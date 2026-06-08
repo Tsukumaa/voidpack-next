@@ -8,8 +8,14 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll()         { return cookieStore.getAll() },
-        setAll(toSet)    { try { toSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {} },
+        getAll() { return cookieStore.getAll() },
+        setAll(toSet: { name: string; value: string; options?: object }[]) {
+          try {
+            toSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+            )
+          } catch {}
+        },
       },
     },
   )
