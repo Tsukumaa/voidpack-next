@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #7b2bff; border-radius: 999px; }
+}
+
+@layer utilities {
+  .text-rarity-common    { color: #9ca3af; }
+  .text-rarity-rare      { color: #3b82f6; }
+  .text-rarity-epic      { color: #a855f7; }
+  .text-rarity-legendary { color: #f59e0b; }
+  .text-rarity-void      { color: #7b2bff; }
+
+  .border-rarity-common    { border-color: #9ca3af40; }
+  .border-rarity-rare      { border-color: #3b82f640; }
+  .border-rarity-epic      { border-color: #a855f740; }
+  .border-rarity-legendary { border-color: #f59e0b40; }
+  .border-rarity-void      { border-color: #7b2bff40; }
+}
