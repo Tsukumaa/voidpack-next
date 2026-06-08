@@ -6,7 +6,30 @@
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  
+
+  :root {
+    --void-bg: #06010e;
+    --void-purple: #7b2bff;
+    --void-cyan: #00c896;
+    --void-text: #f6f1ff;
+    --void-muted: rgba(255,255,255,0.45);
+    --void-border: rgba(255,255,255,0.08);
+    --void-gold: #c9973a;
+    --font: 'Inter', system-ui, sans-serif;
+    /* Legacy vars pour compatibilité */
+    --v16-purple: #7b2bff;
+    --v16-cyan: #00c896;
+    --v16-text: #f6f1ff;
+    --v16-muted: rgba(230,220,255,.68);
+    --color-text: #f4f7fb;
+    --color-muted: rgba(255,255,255,.45);
+    --color-border: rgba(255,255,255,.12);
+    --neon-violet: #a855f7;
+    --neon-teal: #00c896;
+    --neon-cyan: #00c896;
+    --neon-gold: #ffd166;
+  }
+
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #7b2bff; border-radius: 999px; }
@@ -18,10 +41,4 @@
   .text-rarity-epic      { color: #a855f7; }
   .text-rarity-legendary { color: #f59e0b; }
   .text-rarity-void      { color: #7b2bff; }
-
-  .border-rarity-common    { border-color: #9ca3af40; }
-  .border-rarity-rare      { border-color: #3b82f640; }
-  .border-rarity-epic      { border-color: #a855f740; }
-  .border-rarity-legendary { border-color: #f59e0b40; }
-  .border-rarity-void      { border-color: #7b2bff40; }
 }

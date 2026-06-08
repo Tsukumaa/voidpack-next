@@ -4,17 +4,23 @@ import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 
 export function useAuth() {
-  const { user, profile, authStatus, setUser, setProfile, setAuthStatus } = useGameStore()
-  const supabase = createClient()
+  const { user, profile, authStatus, setUser, setProfile, setAuthStatus } = useGameStore(s => ({
+    user:       s.user,
+    profile:    s.profile,
+    authStatus: s.authStatus,
+    setUser:    s.setUser,
+    setProfile: s.setProfile,
+    setAuthStatus: s.setAuthStatus,
+  }))
 
   useEffect(() => {
+    const supabase = createClient()
     setAuthStatus('loading')
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({ id: session.user.id, email: session.user.email })
         setAuthStatus('authenticated')
-        // Charger le profil
         supabase
           .from('player_profiles')
           .select('*')
@@ -32,6 +38,12 @@ export function useAuth() {
       if (session?.user) {
         setUser({ id: session.user.id, email: session.user.email })
         setAuthStatus('authenticated')
+        supabase
+          .from('player_profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single()
+          .then(({ data }) => { if (data) setProfile(data) })
       } else {
         setUser(null)
         setProfile(null)
@@ -42,5 +54,5 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, []) // eslint-disable-line
 
-  return { user, profile, authStatus, supabase }
+  return { user, profile, authStatus }
 }

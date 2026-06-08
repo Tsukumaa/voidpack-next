@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code  = searchParams.get('code')
-  const next  = searchParams.get('next') ?? '/pack'
   const error = searchParams.get('error')
 
   if (error) {
@@ -15,9 +14,10 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
     if (!exchangeError) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}/pack`)
     }
+    return NextResponse.redirect(`${origin}/pack?error=auth_failed`)
   }
 
-  return NextResponse.redirect(`${origin}/pack?error=auth_failed`)
+  return NextResponse.redirect(`${origin}/pack`)
 }

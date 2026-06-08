@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'VOID Pack',
@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.variable}>
-      <body className="bg-void-bg text-void-text min-h-svh overflow-x-hidden antialiased">
+    <html lang="fr" className={inter.className}>
+      <body className="bg-[#06010e] text-[#f6f1ff] min-h-svh overflow-x-hidden antialiased">
         {/* Fond image fixe */}
         <div
           className="fixed inset-0 z-0 pointer-events-none"
@@ -29,11 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {/* Rochers flottants */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/assets/rochers.png"
           alt=""
-          aria-hidden
-          className="fixed inset-0 w-full h-full object-cover z-[1] pointer-events-none animate-rock-float"
+          aria-hidden="true"
+          className="fixed inset-0 w-full h-full object-cover z-[1] pointer-events-none animate-[rockFloat_11s_ease-in-out_infinite]"
         />
         {/* Contenu */}
         <div className="relative z-[2]">
