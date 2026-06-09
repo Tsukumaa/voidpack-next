@@ -360,17 +360,17 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
     if (!form) return
     setSaving(true)
     try {
-      const payload = {
-        id: form.id || form.name.toLowerCase().replace(/\s+/g, '-'),
+      const fields = {
         name: form.name, family: form.family, rarity: form.rarity,
         image_url: form.image_url,
         metadata: { combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } }
       }
       if (form.id) {
-        const { error } = await sb.from('custom_cards').update(payload).eq('id', form.id)
+        const { error } = await sb.from('custom_cards').update(fields).eq('id', form.id)
         if (error) throw error
       } else {
-        const { error } = await sb.from('custom_cards').insert(payload)
+        const newId = form.name.toLowerCase().replace(/\s+/g, '-')
+        const { error } = await sb.from('custom_cards').insert({ id: newId, ...fields })
         if (error) throw error
       }
       onMsg(`✅ Carte "${form.name}" sauvegardée`)
