@@ -32,6 +32,8 @@ export function PackScreen() {
 
   const [loading, setLoading]             = useState(false)
   const [openedCards, setOpenedCards]     = useState<CardResult[] | null>(null)
+  const [openedType, setOpenedType]       = useState<string>('void')
+  const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/dos.png')
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
   const [carouselIdx, setCarouselIdx]     = useState(0)
   const touchStartX = useRef<number | null>(null)
@@ -55,6 +57,12 @@ export function PackScreen() {
     })
   }, [types.join(',')]) // eslint-disable-line
 
+  // Ref pour éviter le bug de closure sur activeType/activeCredits
+  const activeTypeRef    = useRef(activeType)
+  const activeCreditsRef = useRef(activeCredits)
+  useEffect(() => { activeTypeRef.current    = activeType    }, [activeType])
+  useEffect(() => { activeCreditsRef.current = activeCredits }, [activeCredits])
+
   const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
   const onTouchEnd   = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return
@@ -67,8 +75,10 @@ export function PackScreen() {
   }
 
   const handleOpen = useCallback(async () => {
-    if (loading || !user || !activeType || !activeCredits.length) return
-    const credit = activeCredits[0]
+    const type    = activeTypeRef.current
+    const credits = activeCreditsRef.current
+    if (loading || !user || !type || !credits.length) return
+    const credit = credits[0]
     setLoading(true)
     try {
       const supabase = createClient()
@@ -78,30 +88,35 @@ export function PackScreen() {
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booster_type: activeType, count: 5 }),
+        body: JSON.stringify({ booster_type: type, count: 5 }),
       })
       if (!res.ok) throw new Error('Erreur génération pack')
       const { cards } = await res.json()
 
-      removePendingCredit(credit.id)
+      const imageUrl = boosterImages[type] || '/assets/dos.png'
+
+      // Afficher les cartes AVANT de retirer le crédit du state
+      setOpenedType(type)
+      setOpenedImageUrl(imageUrl)
       setOpenedCards(cards as CardResult[])
+
+      removePendingCredit(credit.id)
     } catch (e) {
       console.error(e)
-      // Recharger les crédits pour que le booster réapparaisse si erreur
       loadCredits()
     } finally {
       setLoading(false)
     }
-  }, [loading, user, activeType, activeCredits, removePendingCredit])
+  }, [loading, user, removePendingCredit, loadCredits, boosterImages])
 
   const imgFor = (type: string) => boosterImages[type] || '/assets/dos.png'
 
   return (
     <>
-      {openedCards && activeType && (
+      {openedCards && (
         <BoosterOpening
           cards={openedCards}
-          boosterImageUrl={imgFor(activeType)}
+          boosterImageUrl={openedImageUrl}
           onClose={() => { setOpenedCards(null); loadCredits() }}
         />
       )}
