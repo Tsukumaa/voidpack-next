@@ -15,13 +15,8 @@ interface Player {
   highest_rarity: string | null
 }
 
-const BOOSTER_TYPES = [
-  { value: 'void',           label: 'VOID Pack' },
-  { value: 'harmony',        label: 'Harmony Pack' },
-  { value: 'pacific-bluffs', label: 'Pacific Bluffs Pack' },
-  { value: 'neon-divide',    label: 'Neon Divide Pack' },
-  { value: 'ash-district',   label: 'Ash District Pack' },
-]
+// Types de boosters chargés depuis Supabase
+interface BoosterType { value: string; label: string }
 
 export default function AdminPage() {
   const [players, setPlayers]         = useState<Player[]>([])
@@ -33,6 +28,9 @@ export default function AdminPage() {
   const [creditType, setCreditType]   = useState('void')
   const [creditQty, setCreditQty]     = useState(1)
   const [crediting, setCrediting]     = useState(false)
+  const [boosterTypes, setBoosterTypes] = useState<BoosterType[]>([
+    { value: 'void', label: 'VOID Pack (global)' }
+  ])
 
   const supabase = createClient()
 
@@ -47,7 +45,26 @@ export default function AdminPage() {
     setLoading(false)
   }, []) // eslint-disable-line
 
-  useEffect(() => { loadPlayers() }, [loadPlayers])
+  useEffect(() => {
+    loadPlayers()
+    loadBoosterTypes()
+  }, [loadPlayers]) // eslint-disable-line
+
+  async function loadBoosterTypes() {
+    const { data } = await supabase
+      .from('families')
+      .select('key, label')
+      .order('label')
+    if (data && data.length > 0) {
+      setBoosterTypes([
+        { value: 'void', label: 'VOID Pack (global)' },
+        ...data.map((f: { key: string; label: string }) => ({
+          value: f.key,
+          label: `${f.label} Pack`,
+        })),
+      ])
+    }
+  }
 
   const showMsg = (msg: string, type: 'success' | 'error') => {
     setMessage(msg)
@@ -178,7 +195,7 @@ export default function AdminPage() {
                 onChange={e => setCreditType(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl bg-white/6 border border-[#7b2bff]/30 text-sm focus:outline-none focus:border-[#7b2bff]/60"
               >
-                {BOOSTER_TYPES.map(t => (
+                {boosterTypes.map(t => (
                   <option key={t.value} value={t.value} className="bg-[#0a0318]">{t.label}</option>
                 ))}
               </select>
