@@ -18,11 +18,27 @@ interface CardResult {
 export function PackScreen() {
   const { user, profile }   = useGameStore(s => ({ user: s.user, profile: s.profile }))
   const { pendingCredits, loadCredits, removePendingCredit } = useBoosterCredits()
-  const [loading, setLoading]         = useState(false)
-  const [hint, setHint]               = useState('Clique pour ouvrir ton booster.')
-  const [hintGreen, setHintGreen]     = useState(false)
-  const [openedCards, setOpenedCards] = useState<CardResult[] | null>(null)
+  const [loading, setLoading]             = useState(false)
+  const [hint, setHint]                   = useState('Clique pour ouvrir ton booster.')
+  const [hintGreen, setHintGreen]         = useState(false)
+  const [openedCards, setOpenedCards]     = useState<CardResult[] | null>(null)
+  const [boosterImageUrl, setBoosterImageUrl] = useState<string>('/assets/dos.png')
   const hasCredits = pendingCredits.length > 0
+
+  // Charger l'image du booster depuis settings
+  useEffect(() => {
+    const boosterType = pendingCredits[0]?.booster_type ?? 'void'
+    const key = `booster_image_${boosterType}`
+    createClient()
+      .from('settings')
+      .select('value')
+      .eq('key', key)
+      .single()
+      .then(({ data }) => {
+        if (data?.value) setBoosterImageUrl(data.value)
+        else setBoosterImageUrl('/assets/dos.png')
+      })
+  }, [pendingCredits])
 
   useEffect(() => {
     if (pendingCredits.length > 0) {
@@ -61,13 +77,11 @@ export function PackScreen() {
     try {
       const supabase = createClient()
 
-      // Réclamer le crédit
       const { error: claimErr } = await supabase.rpc('claim_booster_credit', { p_id: credit.id })
       if (claimErr) throw claimErr
 
       removePendingCredit(credit.id)
 
-      // Générer le pack via l'API route (service role + cartes Supabase)
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +113,7 @@ export function PackScreen() {
       {openedCards && (
         <BoosterOpening
           cards={openedCards}
-          boosterImageUrl="/assets/dos.png"
+          boosterImageUrl={boosterImageUrl}
           onClose={() => { setOpenedCards(null); loadCredits() }}
         />
       )}
@@ -131,7 +145,7 @@ export function PackScreen() {
             )}
           >
             <div className="absolute inset-0 rounded-[22px] overflow-hidden">
-              <Image src="/assets/dos.png" alt="Booster VOID" fill className="object-cover" priority />
+              <Image src={boosterImageUrl} alt="Booster VOID" fill className="object-cover" priority unoptimized={boosterImageUrl.startsWith('http')} />
             </div>
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-black/40">
