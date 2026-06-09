@@ -169,7 +169,9 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
         setRevealedColor(c)
         setRevealFx(rarity, c)
         setCardPhase('revealed')
-        spawnRevealParticles(c, PARTICLE_COUNT[rarity] ?? 10)
+        if (['rare', 'epic', 'legendary', 'void'].includes(rarity)) {
+          spawnRevealParticles(c, PARTICLE_COUNT[rarity] ?? 10)
+        }
         locked.current = false
       }, suspenseMs)
 
@@ -314,19 +316,17 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 }} />
               )}
 
-              {/* Particules de reveal */}
-              <div className="absolute overflow-visible pointer-events-none" style={{ inset: '35%' }}>
-                {particles.map(p => (
-                  <div key={p.id} className="absolute rounded-full"
-                    style={{
-                      width: `${p.size}px`, height: `${p.size}px`,
-                      background: p.color,
-                      left: `${p.x}%`, top: `${p.y}%`,
-                      boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                      animation: `fxParticleRise ${p.dur}s ease-out ${p.delay}s forwards`,
-                    }} />
-                ))}
-              </div>
+              {/* Particules de reveal — positionnées par rapport au fx-stage */}
+              {particles.map(p => (
+                <div key={p.id} className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: `${p.size}px`, height: `${p.size}px`,
+                    background: p.color,
+                    left: `${p.x}%`, top: `${p.y}%`,
+                    boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                    animation: `fxParticleRise ${p.dur}s ease-out ${p.delay}s forwards`,
+                  }} />
+              ))}
             </div>
 
             {/* Carte flip 3D */}
