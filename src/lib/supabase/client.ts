@@ -12,7 +12,13 @@ export function createClient() {
   return _client
 }
 
-// Alias pour compatibilité avec l'ancien code qui appelle getSupabaseClient()
+// Alias pour compatibilité avec l'ancien code
 export async function getSupabaseClient() {
   return createClient()
+}
+
+// Alias getUser pour compatibilité
+export async function getUser() {
+  const { data: { user } } = await createClient().auth.getUser()
+  return user
 }
