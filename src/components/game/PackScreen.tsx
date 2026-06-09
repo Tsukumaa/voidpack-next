@@ -103,7 +103,7 @@ export function PackScreen() {
       )}
 
       {/* Centrage vertical plein écran (sous statusbar, au-dessus navbar) */}
-      <div className="flex flex-col items-center justify-center min-h-[calc(100svh-120px)] gap-6 w-full">
+      <div className="relative flex flex-col items-center justify-center min-h-[calc(100svh-120px)] gap-6 w-full overflow-hidden">
 
         {hasCredits ? (
           /* ── Carrousel boosters ── */
@@ -181,20 +181,18 @@ export function PackScreen() {
           </div>
 
         ) : (
-          /* ── État vide : tagline + pack inactif ── */
-          <div className="flex flex-col items-center gap-8">
-            {/* Logo + tagline */}
-            <div className="flex flex-col items-center gap-3">
-              <Image src="/assets/branding/void-favicon.png" alt="VOID" width={48} height={48} className="opacity-80" />
-              <div className="flex flex-col items-center gap-1">
-                <h1 className="text-2xl font-black tracking-tight text-white">VOID Pack</h1>
-                <p className="text-white/40 text-sm tracking-widest uppercase font-medium">
-                  Ouvre · Découvre · Collectionne
-                </p>
-              </div>
+          /* ── État vide : pack inactif centré ── */
+          <>
+            {/* Logo + tagline fixés en haut, indépendants */}
+            <div className="absolute top-16 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
+              <Image src="/assets/branding/void-favicon.png" alt="VOID" width={36} height={36} className="opacity-70" />
+              <h1 className="text-xl font-black tracking-tight text-white">VOID Pack</h1>
+              <p className="text-white/35 text-xs tracking-widest uppercase font-medium">
+                Ouvre · Découvre · Collectionne
+              </p>
             </div>
 
-            {/* Pack inactif */}
+            {/* Pack seul, centré */}
             <div style={{
               width: 'min(72vw, 260px)',
               filter: 'drop-shadow(0 0 20px rgba(107,33,212,0.3))',
@@ -205,10 +203,10 @@ export function PackScreen() {
               <img src="/assets/dos.png" alt="Booster" className="w-full h-auto block" draggable={false} />
             </div>
 
-            <p className="text-white/30 text-xs text-center">
+            <p className="text-white/25 text-xs text-center">
               {!user ? 'Connecte-toi avec Discord pour commencer' : 'Aucun booster disponible pour le moment'}
             </p>
-          </div>
+          </>
         )}
       </div>
     </>
