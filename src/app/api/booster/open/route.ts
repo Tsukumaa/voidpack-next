@@ -33,16 +33,11 @@ export async function POST(req: NextRequest) {
   // Pool de cartes (filtré par famille si pas void)
   let query = sb.from('custom_cards').select('id, name, rarity, family, image_url')
   if (booster_type !== 'void') query = query.eq('family', booster_type)
-  const { data: familyPool, error } = await query
+  const { data: pool, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Fallback sur tout le pool si pas assez de cartes dans la famille
-  const pool = (familyPool && familyPool.length >= count)
-    ? familyPool
-    : ((await sb.from('custom_cards').select('id, name, rarity, family, image_url')).data ?? [])
-
-  // Cartes placeholder si base vide
-  if (!pool.length) {
+  // Cartes placeholder si aucune carte dans cette famille
+  if (!pool || !pool.length) {
     const rarities = ['common','uncommon','rare','epic','legendary']
     return NextResponse.json({
       cards: Array.from({ length: count }, (_, i) => ({
@@ -55,14 +50,11 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Tirage pondéré sans remise
+  // Tirage pondéré AVEC remise si pool < count (pour toujours avoir `count` cartes)
   const picked: typeof pool = []
-  const remaining = [...pool]
-  const n = Math.min(count, remaining.length)
-  for (let i = 0; i < n; i++) {
-    const idx = weightedRoll(remaining)
-    picked.push(remaining[idx])
-    remaining.splice(idx, 1)
+  for (let i = 0; i < count; i++) {
+    const idx = weightedRoll(pool)
+    picked.push(pool[idx])
   }
 
   // Garantir au moins une carte uncommon+
