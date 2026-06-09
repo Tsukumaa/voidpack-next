@@ -383,12 +383,18 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
       {phase === 'cards' && currentCard && (
         <div className="flex flex-col items-center gap-5 relative">
 
-          {/* Indicateurs */}
+          {/* Indicateurs — neutres jusqu'au reveal de chaque carte */}
           <div className="flex items-center gap-1.5 z-10">
             {cards.map((c, i) => (
               <div key={i} className="rounded-full transition-all duration-300"
-                style={{ width: i === cardIndex ? '20px' : '8px', height: '8px',
-                  background: i <= cardIndex ? (RARITY_COLOR[cards[i].rarity] ?? '#fff') : 'rgba(255,255,255,0.15)' }} />
+                style={{
+                  width: i === cardIndex ? '20px' : '8px', height: '8px',
+                  background: i < cardIndex
+                    ? (RARITY_COLOR[cards[i].rarity] ?? '#fff')  // cartes déjà révélées = couleur
+                    : i === cardIndex && cardPhase === 'revealed'
+                      ? (RARITY_COLOR[cards[i].rarity] ?? '#fff') // carte actuelle révélée = couleur
+                      : 'rgba(255,255,255,0.2)',                  // sinon neutre
+                }} />
             ))}
           </div>
 
@@ -424,7 +430,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
               }} />
             )}
 
-            {/* Lightning canvas — centré, mix-blend-mode screen */}
+            {/* Lightning canvas — invisible jusqu'au reveal */}
             <canvas ref={canvasRef} style={{
               position: 'absolute', left: '50%', top: '50%',
               width: '900px', height: '900px',
@@ -432,6 +438,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
               mixBlendMode: 'screen',
               opacity: 0,
               pointerEvents: 'none',
+              visibility: cardPhase === 'revealed' ? 'visible' : 'hidden',
             }} />
 
             {/* Burst */}
@@ -485,9 +492,14 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
 
                 {/* FACE */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden bg-[#050210]"
-                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-                    boxShadow: `0 0 60px ${hexToRgba(color, .7)}, 0 0 120px ${hexToRgba(color, .35)}, 0 20px 60px rgba(0,0,0,0.8)`,
-                    border: `1px solid ${hexToRgba(color, .5)}`,
+                  style={{
+                    backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
+                    boxShadow: cardPhase === 'revealed'
+                      ? `0 0 60px ${hexToRgba(color, .7)}, 0 0 120px ${hexToRgba(color, .35)}, 0 20px 60px rgba(0,0,0,0.8)`
+                      : '0 20px 60px rgba(0,0,0,0.8)',
+                    border: cardPhase === 'revealed'
+                      ? `1px solid ${hexToRgba(color, .5)}`
+                      : '1px solid rgba(255,255,255,0.1)',
                   }}>
                   {currentCard.artUrl
                     ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
