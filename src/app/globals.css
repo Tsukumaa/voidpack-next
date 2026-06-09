@@ -71,3 +71,8 @@
   0%   { transform: translate(0, 0) scale(1); opacity: 1; }
   100% { transform: translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
