@@ -46,8 +46,9 @@ const RARITY_BG: Record<string, string> = {
 
 type Phase = 'idle' | 'tearing' | 'torn' | 'cards'
 
+const PACK_W = 'min(68vw, 260px)'
 const CARD_W = 'min(68vw, 260px)'
-const CARD_RATIO = '0.714' // ratio carte standard 2.5:3.5
+const CARD_RATIO = '0.714'
 
 export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
   const [phase, setPhase]         = useState<Phase>('idle')
@@ -55,10 +56,10 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
   const [revealed, setRevealed]   = useState(false)
 
   const currentCard = cards[cardIndex]
-  const isLast = cardIndex === cards.length - 1
-  const packSrc = boosterImageUrl && boosterImageUrl !== '/assets/dos.png'
-    ? boosterImageUrl
-    : '/assets/dos.png'
+  const isLast      = cardIndex === cards.length - 1
+  const rarity      = currentCard?.rarity ?? 'common'
+  const glowColor   = RARITY_COLOR[rarity] ?? '#7b2bff'
+  const packSrc     = boosterImageUrl || '/assets/dos.png'
 
   const handleTear = useCallback(() => {
     if (phase !== 'idle') return
@@ -78,95 +79,96 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
     }
   }, [revealed, isLast, onClose])
 
-  const rarity = currentCard?.rarity ?? 'common'
-  const glowColor = RARITY_COLOR[rarity] ?? '#7b2bff'
-
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700"
       style={{
-        background: (phase === 'cards')
+        background: phase === 'cards'
           ? RARITY_BG[rarity]
           : 'radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)',
       }}
     >
-      {/* ── IDLE : pack flottant ── */}
+
+      {/* ── IDLE / TEARING : pack flottant libre ── */}
       {(phase === 'idle' || phase === 'tearing') && (
         <div
           onClick={handleTear}
-          className="flex flex-col items-center gap-8 cursor-pointer select-none z-10"
+          className="flex flex-col items-center gap-8 cursor-pointer select-none"
         >
-          {/* Halo */}
-          <div className={cn(
-            'absolute rounded-full blur-3xl transition-all duration-200 pointer-events-none',
-            phase === 'tearing' ? 'w-96 h-96 bg-white/20' : 'w-72 h-72 bg-[#7b2bff]/15'
-          )} />
-
-          {/* Pack */}
           <div
-            className={cn(
-              'relative rounded-2xl overflow-hidden transition-transform duration-150',
-              phase === 'tearing' ? 'scale-105' : 'scale-100',
-            )}
             style={{
-              width: 'min(72vw, 300px)',
-              aspectRatio: '0.68',
-              boxShadow: '0 0 60px rgba(123,43,255,0.5), 0 0 120px rgba(123,43,255,0.2)',
+              width: PACK_W,
+              filter: phase === 'tearing'
+                ? 'drop-shadow(0 0 60px rgba(255,255,255,0.5)) drop-shadow(0 0 30px rgba(123,43,255,0.8))'
+                : 'drop-shadow(0 0 40px rgba(123,43,255,0.6)) drop-shadow(0 0 80px rgba(123,43,255,0.25))',
               animation: 'boosterFloat 3s ease-in-out infinite',
+              transform: phase === 'tearing' ? 'scale(1.05)' : 'scale(1)',
+              transition: 'transform 0.15s ease, filter 0.15s ease',
             }}
           >
-            <Image
-              src={packSrc}
-              alt="Booster"
-              fill
-              className="object-cover"
-              priority
-              unoptimized={packSrc.startsWith('http')}
-            />
-            {/* Ligne de découpe */}
-            <div className={cn(
-              'absolute inset-x-0 top-1/2 -translate-y-1/2 h-px transition-opacity duration-100',
-              phase === 'tearing'
-                ? 'opacity-100 bg-white shadow-[0_0_12px_6px_rgba(255,255,255,0.7)]'
-                : 'opacity-0 bg-transparent'
-            )} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={packSrc} alt="Booster" className="w-full h-auto block" draggable={false} />
           </div>
-
-          <p className="text-white/50 text-sm animate-pulse relative z-10">Clique pour ouvrir</p>
+          <p className="text-white/50 text-sm animate-pulse">Clique pour ouvrir</p>
         </div>
       )}
 
       {/* ── TORN : split haut/bas ── */}
       {phase === 'torn' && (
         <div
-          className="relative"
-          style={{ width: 'min(72vw, 300px)', aspectRatio: '0.68' }}
+          className="relative overflow-hidden"
+          style={{ width: PACK_W }}
         >
-          {/* Moitié haute */}
-          <div
-            className="absolute inset-x-0 top-0 overflow-hidden rounded-t-2xl"
-            style={{ height: '50%', animation: 'splitTop 0.65s cubic-bezier(0.25,0.46,0.45,0.94) forwards' }}
-          >
-            <div className="relative w-full" style={{ height: '200%' }}>
-              <Image src={packSrc} alt="" fill className="object-cover object-top" unoptimized={packSrc.startsWith('http')} />
-            </div>
-          </div>
+          {/* Image de référence invisible pour tenir la hauteur */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={packSrc} alt="" className="w-full h-auto invisible block" draggable={false} />
 
-          {/* Moitié basse */}
+          {/* Moitié haute — clip du haut */}
           <div
-            className="absolute inset-x-0 bottom-0 overflow-hidden rounded-b-2xl"
-            style={{ height: '50%', animation: 'splitBottom 0.65s cubic-bezier(0.25,0.46,0.45,0.94) forwards' }}
-          >
-            <div className="relative w-full" style={{ height: '200%', transform: 'translateY(-100%)' }}>
-              <Image src={packSrc} alt="" fill className="object-cover object-bottom" unoptimized={packSrc.startsWith('http')} />
-            </div>
-          </div>
-
-          {/* Flash central */}
-          <div
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-white"
+            className="absolute inset-x-0 top-0"
             style={{
-              boxShadow: '0 0 20px 8px rgba(255,255,255,0.8)',
+              height: '50%',
+              overflow: 'hidden',
+              animation: 'splitTop 0.65s cubic-bezier(0.25,0.46,0.45,0.94) forwards',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={packSrc}
+              alt=""
+              className="w-full block"
+              style={{ position: 'absolute', top: 0, left: 0 }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Moitié basse — clip du bas */}
+          <div
+            className="absolute inset-x-0 bottom-0"
+            style={{
+              height: '50%',
+              overflow: 'hidden',
+              animation: 'splitBottom 0.65s cubic-bezier(0.25,0.46,0.45,0.94) forwards',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={packSrc}
+              alt=""
+              className="w-full block"
+              style={{ position: 'absolute', bottom: 0, left: 0 }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Flash de lumière central */}
+          <div
+            className="absolute inset-x-0 bg-white pointer-events-none"
+            style={{
+              top: '50%',
+              height: '2px',
+              transform: 'translateY(-50%)',
+              boxShadow: '0 0 20px 10px rgba(255,255,255,0.85)',
               animation: 'flashLine 0.65s ease-out forwards',
             }}
           />
@@ -175,7 +177,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
 
       {/* ── CARDS : révélation une par une ── */}
       {phase === 'cards' && currentCard && (
-        <div className="flex flex-col items-center gap-5 z-10">
+        <div className="flex flex-col items-center gap-5">
 
           {/* Indicateurs */}
           <div className="flex items-center gap-1.5">
@@ -184,9 +186,11 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 key={i}
                 className="rounded-full transition-all duration-300"
                 style={{
-                  width: i === cardIndex ? '16px' : '8px',
+                  width:  i === cardIndex ? '20px' : '8px',
                   height: '8px',
-                  background: i <= cardIndex ? (RARITY_COLOR[cards[i].rarity] ?? '#fff') : 'rgba(255,255,255,0.2)',
+                  background: i <= cardIndex
+                    ? (RARITY_COLOR[cards[i].rarity] ?? '#fff')
+                    : 'rgba(255,255,255,0.15)',
                 }}
               />
             ))}
@@ -199,7 +203,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
             style={{ width: CARD_W, aspectRatio: CARD_RATIO, perspective: '1000px' }}
           >
             <div
-              className="w-full h-full transition-transform duration-500 relative"
+              className="w-full h-full relative transition-transform duration-500"
               style={{
                 transformStyle: 'preserve-3d',
                 transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
@@ -216,17 +220,14 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 <Image src="/assets/dos.png" alt="" fill className="object-cover" />
               </div>
 
-              {/* FACE — artwork pur, sans texte */}
+              {/* FACE — artwork pur plein cadre */}
               <div
-                className="absolute inset-0 rounded-2xl overflow-hidden"
+                className="absolute inset-0 rounded-2xl overflow-hidden bg-[#050210]"
                 style={{
                   backfaceVisibility: 'hidden',
                   transform: 'rotateY(180deg)',
-                  background: '#050210',
-                  boxShadow: RARITY_GLOW[currentCard.rarity] !== 'none'
-                    ? RARITY_GLOW[currentCard.rarity]
-                    : '0 20px 60px rgba(0,0,0,0.8)',
-                  border: `1px solid ${glowColor}40`,
+                  boxShadow: RARITY_GLOW[rarity] !== 'none' ? RARITY_GLOW[rarity] : '0 20px 60px rgba(0,0,0,0.8)',
+                  border: `1px solid ${glowColor}50`,
                 }}
               >
                 {currentCard.artUrl ? (
@@ -238,7 +239,6 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                     unoptimized
                   />
                 ) : (
-                  /* Placeholder si pas d'artwork */
                   <div className="w-full h-full flex items-center justify-center">
                     <div
                       className="w-20 h-20 rounded-full opacity-40"
@@ -250,23 +250,26 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
             </div>
           </div>
 
-          {/* Nom + rareté SOUS la carte */}
-          {revealed && (
-            <div className="flex flex-col items-center gap-1 animate-[fadeIn_0.3s_ease-out]">
-              <p className="text-white font-bold text-base">{currentCard.name}</p>
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: glowColor }}>
-                {currentCard.rarity}
-              </p>
-            </div>
-          )}
+          {/* Nom + rareté sous la carte, apparaît après reveal */}
+          <div
+            className={cn(
+              'flex flex-col items-center gap-0.5 transition-all duration-300',
+              revealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            )}
+          >
+            <p className="text-white font-bold text-base">{currentCard.name}</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: glowColor }}>
+              {currentCard.rarity}
+            </p>
+          </div>
 
           {/* Hint */}
-          <p className="text-white/35 text-xs">
+          <p className="text-white/30 text-xs">
             {!revealed
               ? 'Clique pour révéler'
               : isLast
                 ? 'Clique pour terminer'
-                : `Clique pour continuer · ${cardIndex + 1}/${cards.length}`}
+                : `Clique pour continuer · ${cardIndex + 1} / ${cards.length}`}
           </p>
         </div>
       )}
