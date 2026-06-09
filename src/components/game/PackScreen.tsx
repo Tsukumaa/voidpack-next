@@ -16,7 +16,6 @@ interface CardResult {
   artUrl?: string
 }
 
-// Regroupe les crédits par type → { void: [credit1, credit2], nebulor: [credit3] }
 function groupCredits(credits: BoosterCredit[]) {
   const map: Record<string, BoosterCredit[]> = {}
   for (const c of credits) {
@@ -28,50 +27,34 @@ function groupCredits(credits: BoosterCredit[]) {
 }
 
 export function PackScreen() {
-  const { user, profile }   = useGameStore(s => ({ user: s.user, profile: s.profile }))
+  const { user, profile } = useGameStore(s => ({ user: s.user, profile: s.profile }))
   const { pendingCredits, loadCredits, removePendingCredit } = useBoosterCredits()
 
   const [loading, setLoading]             = useState(false)
-  const [hint, setHint]                   = useState('')
   const [openedCards, setOpenedCards]     = useState<CardResult[] | null>(null)
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
   const [carouselIdx, setCarouselIdx]     = useState(0)
   const touchStartX = useRef<number | null>(null)
 
-  // Groupes de boosters disponibles
-  const groups = useMemo(() => groupCredits(pendingCredits), [pendingCredits])
-  const types  = useMemo(() => Object.keys(groups), [groups])
-
-  // Index sécurisé
-  const safeIdx = Math.min(carouselIdx, Math.max(0, types.length - 1))
-  const activeType = types[safeIdx] ?? null
+  const groups   = useMemo(() => groupCredits(pendingCredits), [pendingCredits])
+  const types    = useMemo(() => Object.keys(groups), [groups])
+  const safeIdx  = Math.min(carouselIdx, Math.max(0, types.length - 1))
+  const activeType    = types[safeIdx] ?? null
   const activeCredits = activeType ? groups[activeType] : []
-  const activeCount = activeCredits.length
+  const activeCount   = activeCredits.length
+  const hasCredits    = pendingCredits.length > 0
 
-  // Charger les images depuis settings
   useEffect(() => {
     if (!types.length) return
-    const sb = createClient()
-    const keys = ['void', ...types].map(t => `booster_image_${t}`)
+    const sb   = createClient()
+    const keys = types.map(t => `booster_image_${t}`)
     sb.from('settings').select('key,value').in('key', keys).then(({ data }) => {
       const map: Record<string, string> = {}
-      for (const row of data ?? []) {
-        const type = row.key.replace('booster_image_', '')
-        map[type] = row.value
-      }
+      for (const row of data ?? []) map[row.key.replace('booster_image_', '')] = row.value
       setBoosterImages(map)
     })
-  }, [types.join(',')])  // eslint-disable-line
+  }, [types.join(',')]) // eslint-disable-line
 
-  // Hint
-  useEffect(() => {
-    if (!user) { setHint('Connecte-toi avec Discord pour ouvrir un booster.'); return }
-    const total = pendingCredits.length
-    if (total === 0) { setHint('Aucun booster disponible.'); return }
-    setHint(total === 1 ? "1 booster disponible !" : `${total} boosters disponibles !`)
-  }, [user, pendingCredits.length])
-
-  // Swipe handlers
   const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
   const onTouchEnd   = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return
@@ -92,7 +75,6 @@ export function PackScreen() {
       const { error: claimErr } = await supabase.rpc('claim_booster_credit', { p_id: credit.id })
       if (claimErr) throw claimErr
       removePendingCredit(credit.id)
-
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,17 +85,10 @@ export function PackScreen() {
       setOpenedCards(cards as CardResult[])
     } catch (e) {
       console.error(e)
-      setHint("Erreur lors de l'ouverture.")
     } finally {
       setLoading(false)
     }
   }, [loading, user, activeType, activeCredits, removePendingCredit])
-
-  const stats = [
-    { label: 'Collection', value: `${profile?.packs_opened ?? 0} cartes` },
-    { label: 'Rareté max',  value: profile?.highest_rarity ?? '—' },
-    { label: 'Packs',       value: String(profile?.packs_opened ?? '—') },
-  ]
 
   const imgFor = (type: string) => boosterImages[type] || '/assets/dos.png'
 
@@ -127,28 +102,27 @@ export function PackScreen() {
         />
       )}
 
-      <div className="flex flex-col items-center gap-4 pt-4 w-full">
+      {/* Centrage vertical plein écran (sous statusbar, au-dessus navbar) */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100svh-120px)] gap-6 w-full">
 
-        {/* ── Carrousel ── */}
-        {types.length > 0 ? (
+        {hasCredits ? (
+          /* ── Carrousel boosters ── */
           <div
-            className="w-full flex flex-col items-center gap-4"
+            className="flex flex-col items-center gap-4 w-full"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            {/* Pack actif */}
-            <div className="relative flex items-center justify-center">
+            <div className="relative flex items-center justify-center w-full">
 
               {/* Flèche gauche */}
               {types.length > 1 && safeIdx > 0 && (
                 <button
                   onClick={() => setCarouselIdx(i => i - 1)}
-                  className="absolute left-0 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 transition-all"
-                  style={{ transform: 'translateX(-48px)' }}
+                  className="absolute left-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 transition-all text-xl"
                 >‹</button>
               )}
 
-              {/* Pack avec badge */}
+              {/* Pack */}
               <button
                 onClick={handleOpen}
                 disabled={loading}
@@ -159,31 +133,22 @@ export function PackScreen() {
                   ×{activeCount}
                 </div>
 
-                {/* Image du pack — libre, drop-shadow suit le contour */}
-                <div
-                  style={{
-                    width: 'min(72vw, 280px)',
-                    filter: `drop-shadow(0 0 28px ${activeCount > 0 ? 'rgba(123,43,255,0.7)' : 'rgba(123,43,255,0.3)'}) drop-shadow(0 0 60px rgba(123,43,255,0.25))`,
-                    animation: 'boosterFloat 3s ease-in-out infinite',
-                  }}
-                >
+                <div style={{
+                  width: 'min(72vw, 280px)',
+                  filter: 'drop-shadow(0 0 35px rgba(123,43,255,0.65)) drop-shadow(0 0 70px rgba(123,43,255,0.25))',
+                  animation: 'boosterFloat 3s ease-in-out infinite',
+                }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imgFor(activeType)}
-                    alt={activeType}
-                    className="w-full h-auto block"
-                    draggable={false}
-                  />
+                  <img src={imgFor(activeType)} alt={activeType} className="w-full h-auto block" draggable={false} />
                 </div>
 
-                {/* Nom du type + spinner */}
-                <div className="mt-3 flex items-center gap-2">
-                  {loading && (
-                    <div className="w-4 h-4 border-2 border-[#7b2bff]/30 border-t-[#7b2bff] rounded-full animate-spin" />
-                  )}
-                  <span className="text-white/70 text-sm font-semibold capitalize">
-                    {activeType === 'void' ? 'VOID Pack' : `${activeType} Pack`}
-                  </span>
+                <div className="mt-3 flex items-center gap-2 h-5">
+                  {loading
+                    ? <div className="w-4 h-4 border-2 border-[#7b2bff]/30 border-t-[#7b2bff] rounded-full animate-spin" />
+                    : <span className="text-white/60 text-sm font-semibold capitalize">
+                        {activeType === 'void' ? 'VOID Pack' : `${activeType} Pack`}
+                      </span>
+                  }
                 </div>
               </button>
 
@@ -191,62 +156,60 @@ export function PackScreen() {
               {types.length > 1 && safeIdx < types.length - 1 && (
                 <button
                   onClick={() => setCarouselIdx(i => i + 1)}
-                  className="absolute right-0 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 transition-all"
-                  style={{ transform: 'translateX(48px)' }}
+                  className="absolute right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 transition-all text-xl"
                 >›</button>
               )}
             </div>
 
-            {/* Indicateurs de pagination */}
+            {/* Indicateurs pagination */}
             {types.length > 1 && (
               <div className="flex gap-2">
                 {types.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCarouselIdx(i)}
+                  <button key={i} onClick={() => setCarouselIdx(i)}
                     className="rounded-full transition-all duration-300"
                     style={{
-                      width: i === safeIdx ? '20px' : '8px',
-                      height: '8px',
+                      width: i === safeIdx ? '20px' : '8px', height: '8px',
                       background: i === safeIdx ? '#7b2bff' : 'rgba(255,255,255,0.2)',
-                    }}
-                  />
+                    }} />
                 ))}
               </div>
             )}
+
+            <p className="text-[#00c896] text-xs font-medium">
+              {pendingCredits.length === 1 ? '1 booster disponible' : `${pendingCredits.length} boosters disponibles`}
+            </p>
           </div>
+
         ) : (
-          /* Pas de booster — pack inactif */
-          <div
-            style={{
-              width: 'min(72vw, 280px)',
+          /* ── État vide : tagline + pack inactif ── */
+          <div className="flex flex-col items-center gap-8">
+            {/* Logo + tagline */}
+            <div className="flex flex-col items-center gap-3">
+              <Image src="/assets/branding/void-favicon.png" alt="VOID" width={48} height={48} className="opacity-80" />
+              <div className="flex flex-col items-center gap-1">
+                <h1 className="text-2xl font-black tracking-tight text-white">VOID Pack</h1>
+                <p className="text-white/40 text-sm tracking-widest uppercase font-medium">
+                  Ouvre · Découvre · Collectionne
+                </p>
+              </div>
+            </div>
+
+            {/* Pack inactif */}
+            <div style={{
+              width: 'min(72vw, 260px)',
               filter: 'drop-shadow(0 0 20px rgba(107,33,212,0.3))',
               animation: 'boosterFloat 3s ease-in-out infinite',
-              opacity: 0.5,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/dos.png" alt="Booster" className="w-full h-auto block" draggable={false} />
+              opacity: 0.45,
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/assets/dos.png" alt="Booster" className="w-full h-auto block" draggable={false} />
+            </div>
+
+            <p className="text-white/30 text-xs text-center">
+              {!user ? 'Connecte-toi avec Discord pour commencer' : 'Aucun booster disponible pour le moment'}
+            </p>
           </div>
         )}
-
-        {/* Hint */}
-        <p className={cn(
-          'text-xs text-center transition-colors',
-          pendingCredits.length > 0 ? 'text-[#00c896]' : 'text-white/40'
-        )}>
-          {hint}
-        </p>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2.5 w-full mt-1">
-          {stats.map(s => (
-            <div key={s.label} className="rounded-[18px] bg-[rgba(12,14,22,0.62)] border border-white/[0.08] backdrop-blur-md p-3">
-              <span className="block text-[10px] uppercase tracking-widest text-white/50 font-bold">{s.label}</span>
-              <strong className="block mt-1.5 text-sm text-white">{s.value}</strong>
-            </div>
-          ))}
-        </div>
       </div>
     </>
   )
