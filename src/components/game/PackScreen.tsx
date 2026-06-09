@@ -77,6 +77,7 @@ export function PackScreen() {
   const handleOpen = useCallback(async () => {
     const type    = activeTypeRef.current
     const credits = activeCreditsRef.current
+    console.log('handleOpen — type:', type, '| credits:', credits)
     if (loading || !user || !type || !credits.length) return
     const credit = credits[0]
     setLoading(true)
