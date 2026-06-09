@@ -282,28 +282,15 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
     if (locked.current) return
 
     if (cardPhase === 'back') {
-      // Démarrer le suspense
       locked.current = true
       setCardPhase('suspense')
-      setNeutralFx()
+      // Pendant le suspense : RIEN — pas d'aura, pas de rays, pas de particules
+      // Juste le tremblement de la carte
       const suspenseMs = SUSPENSE_MS[rarity] ?? 580
-      const c = RARITY_COLOR[rarity] ?? '#9ca3af'
-
-      // Sequences de particules pendant le suspense
-      if (rarity === 'epic') {
-        later(() => spawnParticles(c, 15), suspenseMs * .45)
-      } else if (rarity === 'legendary') {
-        later(() => spawnParticles(c, 20), suspenseMs * .50)
-        later(() => spawnParticles(c, 30), Math.max(100, suspenseMs - 500))
-      } else if (rarity === 'void') {
-        const mc = ['#ff80d5', '#80e8ff', '#c080ff']
-        later(() => spawnParticles(mc[0], 20), suspenseMs * .22)
-        later(() => spawnParticles(mc[1], 30), suspenseMs * .42)
-        later(() => spawnParticles(mc[2], 40), suspenseMs * .62)
-      }
 
       later(() => {
-        // Reveal
+        // Reveal — seulement là on montre les couleurs
+        const c = RARITY_COLOR[rarity] ?? '#9ca3af'
         setRevealFxColors(rarity, c)
         setCardPhase('revealed')
         triggerImpact(rarity, c)
@@ -411,8 +398,8 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
           {/* Zone FX — fx-stage déborde de -35% comme l'ancien projet */}
           <div className="absolute pointer-events-none z-0" style={{ inset: '-35%' }}>
 
-            {/* Aura — cercle flou centré */}
-            {auraColor && (
+            {/* Aura — uniquement après reveal */}
+            {auraColor && cardPhase === 'revealed' && (
               <div style={{
                 position: 'absolute', left: '50%', top: '50%',
                 width: '640px', height: '640px',
@@ -420,12 +407,12 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 background: auraColor,
                 borderRadius: '50%',
                 filter: 'blur(52px)',
-                animation: cardPhase === 'revealed' ? 'fxAura 1.4s ease-out forwards' : 'none',
+                animation: 'fxAura 1.4s ease-out forwards',
               }} />
             )}
 
-            {/* Rays — cercle rotatif mix-blend-mode screen */}
-            {raysColor && (
+            {/* Rays — uniquement après reveal */}
+            {raysColor && cardPhase === 'revealed' && (
               <div style={{
                 position: 'absolute', left: '50%', top: '50%',
                 width: '780px', height: '780px',
@@ -433,7 +420,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 background: raysColor,
                 borderRadius: '50%',
                 mixBlendMode: 'screen',
-                animation: cardPhase === 'revealed' ? 'fxRays 1.6s ease-out forwards' : 'none',
+                animation: rarity === 'void' ? 'fxRaysMythic 2.0s ease-out forwards' : 'fxRays 1.6s ease-out forwards',
               }} />
             )}
 
