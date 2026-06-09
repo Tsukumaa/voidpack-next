@@ -18,9 +18,9 @@ interface CardResult {
 export function PackScreen() {
   const { user, profile }   = useGameStore(s => ({ user: s.user, profile: s.profile }))
   const { pendingCredits, loadCredits, removePendingCredit } = useBoosterCredits()
-  const [loading, setLoading]     = useState(false)
-  const [hint, setHint]           = useState('Clique pour ouvrir ton booster.')
-  const [hintGreen, setHintGreen] = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [hint, setHint]               = useState('Clique pour ouvrir ton booster.')
+  const [hintGreen, setHintGreen]     = useState(false)
   const [openedCards, setOpenedCards] = useState<CardResult[] | null>(null)
   const hasCredits = pendingCredits.length > 0
 
@@ -67,28 +67,18 @@ export function PackScreen() {
 
       removePendingCredit(credit.id)
 
-      // Générer le pack via la RPC Supabase
-      const { data: packData, error: packErr } = await supabase.rpc('open_booster_pack', {
-        p_booster_type: credit.booster_type ?? 'void',
+      // Générer le pack via l'API route (service role + cartes Supabase)
+      const res = await fetch('/api/booster/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booster_type: credit.booster_type ?? 'void', count: 5 }),
       })
 
-      let cards: CardResult[] = []
+      if (!res.ok) throw new Error('Erreur lors de la génération du pack')
 
-      if (!packErr && packData) {
-        cards = (packData as CardResult[])
-      } else {
-        // Fallback : générer côté client
-        const { rollPackByType } = await import('@/lib/game/boosters')
-        const result = rollPackByType(credit.booster_type ?? 'void', {})
-        cards = (result?.cards ?? []).map((c: Record<string, unknown>) => ({
-          id:     String(c.id ?? c.card_id ?? ''),
-          name:   String(c.name ?? 'Carte inconnue'),
-          rarity: String(c.rarity ?? 'common'),
-          family: String(c.family ?? ''),
-        }))
-      }
+      const { cards } = await res.json()
+      setOpenedCards(cards as CardResult[])
 
-      setOpenedCards(cards)
     } catch (e) {
       console.error(e)
       setHint("Erreur lors de l'ouverture.")
@@ -106,7 +96,6 @@ export function PackScreen() {
 
   return (
     <>
-      {/* Overlay d'ouverture */}
       {openedCards && (
         <BoosterOpening
           cards={openedCards}
@@ -117,7 +106,6 @@ export function PackScreen() {
 
       <div className="flex flex-col items-center gap-4 pt-4">
         <div className="relative flex flex-col items-center gap-3">
-          {/* Badge crédits */}
           {hasCredits && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(0,80,55,0.85)] border border-[rgba(0,200,150,0.6)] text-[#00c896] text-xs font-bold animate-badge-pulse">
               <Image src="/assets/branding/void-favicon.png" alt="" width={16} height={16} className="rounded-sm" />
@@ -129,7 +117,6 @@ export function PackScreen() {
             </div>
           )}
 
-          {/* Carte booster */}
           <button
             onClick={handleClick}
             disabled={loading}
