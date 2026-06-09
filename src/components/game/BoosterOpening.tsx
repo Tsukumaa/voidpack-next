@@ -408,32 +408,72 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
           {/* Zone FX (aura + rays + lightning canvas) */}
           <div className="relative" style={{ width: 'min(68vw, 260px)', aspectRatio: '0.714' }}>
 
-            {/* Aura — blend screen pour fondre dans le fond */}
+          {/* Zone FX — fx-stage déborde de -35% comme l'ancien projet */}
+          <div className="absolute pointer-events-none z-0" style={{ inset: '-35%' }}>
+
+            {/* Aura — cercle flou centré */}
             {auraColor && (
-              <div className="absolute pointer-events-none"
-                style={{ inset: '-80%', background: auraColor, borderRadius: '50%', filter: 'blur(40px)', mixBlendMode: 'screen', opacity: .8 }} />
-            )}
-            {/* Rays — blend screen */}
-            {raysColor && (
-              <div className="absolute pointer-events-none animate-[spin_8s_linear_infinite]"
-                style={{ inset: '-80%', background: raysColor, mixBlendMode: 'screen', opacity: .5 }} />
+              <div style={{
+                position: 'absolute', left: '50%', top: '50%',
+                width: '640px', height: '640px',
+                transform: 'translate(-50%, -50%)',
+                background: auraColor,
+                borderRadius: '50%',
+                filter: 'blur(52px)',
+                animation: cardPhase === 'revealed' ? 'fxAura 1.4s ease-out forwards' : 'none',
+              }} />
             )}
 
-            {/* Lightning canvas */}
-            <canvas ref={canvasRef} className="absolute pointer-events-none z-10"
-              style={{ opacity: 0, width: '160%', height: '160%', left: '-30%', top: '-30%', mixBlendMode: 'screen' }} />
+            {/* Rays — cercle rotatif mix-blend-mode screen */}
+            {raysColor && (
+              <div style={{
+                position: 'absolute', left: '50%', top: '50%',
+                width: '780px', height: '780px',
+                transform: 'translate(-50%, -50%)',
+                background: raysColor,
+                borderRadius: '50%',
+                mixBlendMode: 'screen',
+                animation: cardPhase === 'revealed' ? 'fxRays 1.6s ease-out forwards' : 'none',
+              }} />
+            )}
+
+            {/* Lightning canvas — centré, mix-blend-mode screen */}
+            <canvas ref={canvasRef} style={{
+              position: 'absolute', left: '50%', top: '50%',
+              width: '900px', height: '900px',
+              transform: 'translate(-50%, -50%)',
+              mixBlendMode: 'screen',
+              opacity: 0,
+              pointerEvents: 'none',
+            }} />
+
+            {/* Burst */}
+            {auraColor && cardPhase === 'revealed' && (
+              <div style={{
+                position: 'absolute', left: '50%', top: '50%',
+                width: '560px', height: '560px',
+                transform: 'translate(-50%, -50%)',
+                background: `radial-gradient(circle at center, ${hexToRgba(color, rarity === 'void' ? .58 : .42)}, ${hexToRgba(color, .18)} 34%, transparent 60%)`,
+                borderRadius: '50%',
+                mixBlendMode: 'screen',
+                animation: rarity === 'void' ? 'fxBurstMythic 1.1s ease-out forwards' : 'fxBurst 0.9s ease-out forwards',
+              }} />
+            )}
 
             {/* Particules de rareté */}
-            <div className="absolute inset-0 pointer-events-none overflow-visible z-20">
+            <div className="absolute inset-0 overflow-visible pointer-events-none" style={{ left: '35%', top: '35%', width: '30%', height: '30%' }}>
               {particles.map(p => (
                 <div key={p.id} className="absolute rounded-full"
-                  style={{ width: `${p.size * 4}px`, height: `${p.size * 4}px`, background: p.color,
-                    left: `${p.x}%`, top: `${p.y}%`,
-                    boxShadow: `0 0 ${p.size * 4}px ${p.color}`,
-                    animation: 'particleFade 1.4s ease-out forwards',
+                  style={{
+                    width: '8px', height: '8px',
+                    background: p.color, left: `${p.x}%`, top: `${p.y}%`,
+                    boxShadow: `0 0 16px ${p.color}`,
+                    animation: 'fxParticleRise 1.2s ease-out forwards',
+                    animationDuration: `${0.8 + Math.random() * 1.2}s`,
                   }} />
               ))}
             </div>
+          </div>
 
             {/* Suspense overlay (tremblement) */}
             {cardPhase === 'suspense' && (

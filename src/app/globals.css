@@ -116,3 +116,36 @@
   0%   { transform: translate(0, 0) scale(1); opacity: .9; }
   100% { transform: translate(var(--vx, 0px), var(--vy, -40px)) scale(0); opacity: 0; }
 }
+
+/* ── FX Stage keyframes (portés depuis l'ancien projet) ── */
+@keyframes fxAura {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.4); }
+  18%  { opacity: .98; }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.35); }
+}
+@keyframes fxRays {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.5) rotate(0deg); }
+  18%  { opacity: .9; }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.28) rotate(28deg); }
+}
+@keyframes fxRaysMythic {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.45) rotate(0deg); filter: hue-rotate(0deg); }
+  14%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.40) rotate(45deg); filter: hue-rotate(90deg); }
+}
+@keyframes fxBurst {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.18); }
+  18%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.6); }
+}
+@keyframes fxBurstMythic {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(.14); }
+  16%  { opacity: 1; transform: translate(-50%,-50%) scale(.90); }
+  45%  { opacity: .6; transform: translate(-50%,-50%) scale(1.10); }
+  100% { opacity: 0; transform: translate(-50%,-50%) scale(1.80); }
+}
+@keyframes fxParticleRise {
+  0%   { transform: translateY(28px) scale(.35); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateY(-130px) scale(1.2); opacity: 0; }
+}
