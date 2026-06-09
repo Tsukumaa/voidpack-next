@@ -26,12 +26,13 @@ interface Family {
 
 interface Card {
   id?: string
-  card_id: string
   name: string
   family: string
   rarity: string
-  description: string
-  art_url: string
+  character?: string
+  image_url: string
+  metadata?: { combat?: { atk?: number; hp?: number; cost?: number; effects?: string[] } }
+  // UI helpers (not stored directly)
   combat_atk: number
   combat_hp: number
   combat_cost: number
@@ -341,7 +342,7 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
   const [search, setSearch]   = useState('')
   const [filterFam, setFilterFam] = useState('')
 
-  const empty: Card = { card_id: '', name: '', family: '', rarity: 'common', description: '', art_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '' }
+  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '' }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -360,9 +361,9 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
     setSaving(true)
     try {
       const payload = {
-        card_id: form.card_id || form.name.toLowerCase().replace(/\s+/g, '-'),
+        id: form.id || form.name.toLowerCase().replace(/\s+/g, '-'),
         name: form.name, family: form.family, rarity: form.rarity,
-        description: form.description, art_url: form.art_url,
+        image_url: form.image_url,
         metadata: { combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } }
       }
       if (form.id) {
@@ -442,7 +443,7 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
         <Modal title={form.id ? `Modifier "${form.name}"` : 'Nouvelle carte'} onClose={() => setForm(null)} wide>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nom"><input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))} className={inputCls} /></Field>
-            <Field label="Clé (auto si vide)"><input value={form.card_id} onChange={e => setForm(f => f && ({ ...f, card_id: e.target.value }))} className={inputCls} placeholder="auto" /></Field>
+            <Field label="Clé (auto si vide)"><input value={form.id ?? ''} onChange={e => setForm(f => f && ({ ...f, id: e.target.value }))} className={inputCls} placeholder="auto" /></Field>
             <Field label="Famille">
               <select value={form.family} onChange={e => setForm(f => f && ({ ...f, family: e.target.value }))} className={selectCls}>
                 <option value="">— Aucune —</option>
@@ -459,7 +460,7 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
             <Field label="Coût mana"><input type="number" min={0} max={10} value={form.combat_cost} onChange={e => setForm(f => f && ({ ...f, combat_cost: +e.target.value }))} className={inputCls} /></Field>
             <Field label="Effets (taunt, shield, charge…)"><input value={form.combat_effects} onChange={e => setForm(f => f && ({ ...f, combat_effects: e.target.value }))} className={inputCls} placeholder="taunt, shield" /></Field>
             <div className="col-span-2">
-              <Field label="URL artwork"><input value={form.art_url} onChange={e => setForm(f => f && ({ ...f, art_url: e.target.value }))} className={inputCls} placeholder="https://…" /></Field>
+              <Field label="URL artwork"><input value={form.image_url} onChange={e => setForm(f => f && ({ ...f, image_url: e.target.value }))} className={inputCls} placeholder="https://…" /></Field>
             </div>
             <div className="col-span-2">
               <Field label="Description">
