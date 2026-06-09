@@ -10,8 +10,9 @@ interface Player {
   level: number
   xp: number
   packs_opened: number
-  streak: number
-  last_activity: string | null
+  current_streak: number
+  void_pulls: number
+  highest_rarity: string | null
 }
 
 const BOOSTER_TYPES = [
@@ -39,7 +40,7 @@ export default function AdminPage() {
     setLoading(true)
     const { data } = await supabase
       .from('player_profiles')
-      .select('user_id, username, avatar_url, level, xp, packs_opened, streak, last_activity')
+      .select('user_id, username, avatar_url, level, xp, packs_opened, current_streak, void_pulls, highest_rarity')
       .order('xp', { ascending: false })
       .limit(100)
     setPlayers(data ?? [])
@@ -142,7 +143,7 @@ export default function AdminPage() {
                 <td className="px-4 py-3 text-[#a78bfa]">{p.level}</td>
                 <td className="px-4 py-3 text-white/70">{(p.xp ?? 0).toLocaleString('fr-FR')}</td>
                 <td className="px-4 py-3 text-white/70">{p.packs_opened ?? 0}</td>
-                <td className="px-4 py-3 text-white/70">{p.streak ?? 0}j</td>
+                <td className="px-4 py-3 text-white/70">{p.current_streak ?? 0}j</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => setCreditModal({ player: p })}
