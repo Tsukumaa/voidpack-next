@@ -42,3 +42,32 @@
   .text-rarity-legendary { color: #f59e0b; }
   .text-rarity-void      { color: #7b2bff; }
 }
+
+/* ── Booster animations ─────────────────────────────── */
+@keyframes boosterFloat {
+  0%, 100% { transform: translateY(0px) rotate(-1deg); }
+  50%       { transform: translateY(-14px) rotate(1deg); }
+}
+
+@keyframes splitTop {
+  0%   { transform: translateY(0);    opacity: 1; }
+  60%  { transform: translateY(-8px); opacity: 1; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+
+@keyframes splitBottom {
+  0%   { transform: translateY(0);    opacity: 1; }
+  60%  { transform: translateY(8px);  opacity: 1; }
+  100% { transform: translateY(120px); opacity: 0; }
+}
+
+@keyframes flashLine {
+  0%   { opacity: 1; transform: translateY(-50%) scaleX(1); }
+  50%  { opacity: 1; transform: translateY(-50%) scaleX(1.05); }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes particleBurst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
+}
