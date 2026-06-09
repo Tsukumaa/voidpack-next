@@ -91,3 +91,28 @@
   0%   { transform: translate(0, 0) scale(1); opacity: 1; }
   100% { transform: translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
 }
+
+@keyframes cardShake {
+  0%, 100% { transform: translateX(0) rotateY(0deg); }
+  25%       { transform: translateX(-3px) rotateY(0deg); }
+  75%       { transform: translateX(3px) rotateY(0deg); }
+}
+
+@keyframes cardPulse {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50%       { opacity: 1;  transform: scale(1.012); }
+}
+
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  15%       { transform: translate(-4px, 2px) rotate(-.4deg); }
+  30%       { transform: translate(4px, -2px) rotate(.4deg); }
+  45%       { transform: translate(-3px, 1px) rotate(-.2deg); }
+  60%       { transform: translate(3px, -1px) rotate(.2deg); }
+  75%       { transform: translate(-2px, 1px) rotate(-.1deg); }
+}
+
+@keyframes particleFade {
+  0%   { transform: translate(0, 0) scale(1); opacity: .9; }
+  100% { transform: translate(var(--vx, 0px), var(--vy, -40px)) scale(0); opacity: 0; }
+}
