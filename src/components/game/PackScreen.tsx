@@ -18,12 +18,13 @@ interface CardResult {
 
 function groupCredits(credits: BoosterCredit[]) {
   const map: Record<string, BoosterCredit[]> = {}
+  const order: string[] = []
   for (const c of credits) {
     const t = c.booster_type ?? 'void'
-    if (!map[t]) map[t] = []
+    if (!map[t]) { map[t] = []; order.push(t) }
     map[t].push(c)
   }
-  return map
+  return { map, order }
 }
 
 export function PackScreen() {
@@ -38,11 +39,10 @@ export function PackScreen() {
   const [carouselIdx, setCarouselIdx]     = useState(0)
   const touchStartX = useRef<number | null>(null)
 
-  const groups   = useMemo(() => groupCredits(pendingCredits), [pendingCredits])
-  const types    = useMemo(() => Object.keys(groups), [groups])
+  const { map: groups, order: types } = useMemo(() => groupCredits(pendingCredits), [pendingCredits])
   const safeIdx  = Math.min(carouselIdx, Math.max(0, types.length - 1))
   const activeType    = types[safeIdx] ?? null
-  const activeCredits = activeType ? groups[activeType] : []
+  const activeCredits = activeType ? (groups[activeType] ?? []) : []
   const activeCount   = activeCredits.length
   const hasCredits    = pendingCredits.length > 0
 
