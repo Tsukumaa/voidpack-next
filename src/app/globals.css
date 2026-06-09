@@ -76,3 +76,18 @@
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes splitTopSmall {
+  0%   { transform: translateY(0);     opacity: 1; }
+  100% { transform: translateY(-140px); opacity: 0; }
+}
+
+@keyframes splitBottomBig {
+  0%   { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(160px); opacity: 0; }
+}
+
+@keyframes tearParticle {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
+}
