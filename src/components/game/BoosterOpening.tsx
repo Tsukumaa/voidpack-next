@@ -408,13 +408,20 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
           {/* Zone FX (aura + rays + lightning canvas) */}
           <div className="relative" style={{ width: 'min(68vw, 260px)', aspectRatio: '0.714' }}>
 
-            {/* Aura */}
-            {auraColor && <div className="absolute inset-[-40%] pointer-events-none" style={{ background: auraColor, borderRadius: '50%', filter: 'blur(30px)' }} />}
-            {/* Rays */}
-            {raysColor && <div className="absolute inset-[-60%] pointer-events-none animate-[spin_8s_linear_infinite]" style={{ background: raysColor, opacity: .6 }} />}
+            {/* Aura — blend screen pour fondre dans le fond */}
+            {auraColor && (
+              <div className="absolute pointer-events-none"
+                style={{ inset: '-80%', background: auraColor, borderRadius: '50%', filter: 'blur(40px)', mixBlendMode: 'screen', opacity: .8 }} />
+            )}
+            {/* Rays — blend screen */}
+            {raysColor && (
+              <div className="absolute pointer-events-none animate-[spin_8s_linear_infinite]"
+                style={{ inset: '-80%', background: raysColor, mixBlendMode: 'screen', opacity: .5 }} />
+            )}
 
             {/* Lightning canvas */}
-            <canvas ref={canvasRef} className="absolute inset-[-30%] pointer-events-none z-10" style={{ opacity: 0, width: '160%', height: '160%', left: '-30%', top: '-30%' }} />
+            <canvas ref={canvasRef} className="absolute pointer-events-none z-10"
+              style={{ opacity: 0, width: '160%', height: '160%', left: '-30%', top: '-30%', mixBlendMode: 'screen' }} />
 
             {/* Particules de rareté */}
             <div className="absolute inset-0 pointer-events-none overflow-visible z-20">
