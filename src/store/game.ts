@@ -29,6 +29,6 @@ export const useGameStore = create<GameStore>((set) => ({
   setAuthStatus:     (status)  => set({ authStatus: status }),
   setPendingCredits: (credits) => set({ pendingCredits: credits }),
   removePendingCredit: (id)    => set(s => ({
-    pendingCredits: s.pendingCredits.filter(c => c.id !== id),
+    pendingCredits: s.pendingCredits.filter(c => String(c.id) !== String(id)),
   })),
 }))
