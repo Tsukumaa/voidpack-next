@@ -14,7 +14,7 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         <StatusBar />
 
         {/* Contenu principal centré */}
-        <main className="flex-1 w-full max-w-[520px] mx-auto px-4 pb-28 pt-4">
+        <main className="flex-1 w-full max-w-[520px] mx-auto px-4 pb-28 pt-0">
           {children}
         </main>
 

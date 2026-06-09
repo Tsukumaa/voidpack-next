@@ -74,7 +74,7 @@ export function PackScreen() {
       const supabase = createClient()
       const { error: claimErr } = await supabase.rpc('claim_booster_credit', { p_id: credit.id })
       if (claimErr) throw claimErr
-      removePendingCredit(credit.id)
+
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,9 +82,13 @@ export function PackScreen() {
       })
       if (!res.ok) throw new Error('Erreur génération pack')
       const { cards } = await res.json()
+
+      removePendingCredit(credit.id)
       setOpenedCards(cards as CardResult[])
     } catch (e) {
       console.error(e)
+      // Recharger les crédits pour que le booster réapparaisse si erreur
+      loadCredits()
     } finally {
       setLoading(false)
     }
@@ -103,7 +107,7 @@ export function PackScreen() {
       )}
 
       {/* Centrage vertical plein écran (sous statusbar, au-dessus navbar) */}
-      <div className="relative flex flex-col items-center justify-center min-h-[calc(100svh-120px)] gap-6 w-full overflow-hidden">
+      <div className="relative flex flex-col items-center justify-center gap-6 w-full" style={{ height: 'calc(100svh - 120px)' }}>
 
         {hasCredits ? (
           /* ── Carrousel boosters ── */
