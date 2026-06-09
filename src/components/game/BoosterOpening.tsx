@@ -177,6 +177,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
   const [tearParticles, setTearParticles] = useState<typeof particles>([])
   const [auraColor, setAuraColor] = useState('')
   const [raysColor, setRaysColor] = useState('')
+  const [revealedColor, setRevealedColor] = useState('')
 
   const canvasRef  = useRef<HTMLCanvasElement>(null)
   const cancelLightRef = useRef<(() => void) | null>(null)
@@ -289,8 +290,8 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
       const suspenseMs = SUSPENSE_MS[rarity] ?? 580
 
       later(() => {
-        // Reveal — seulement là on montre les couleurs
         const c = RARITY_COLOR[rarity] ?? '#9ca3af'
+        setRevealedColor(c)
         setRevealFxColors(rarity, c)
         setCardPhase('revealed')
         triggerImpact(rarity, c)
@@ -301,6 +302,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
       clearTimers()
       cancelLightRef.current?.()
       setAuraColor(''); setRaysColor(''); setParticles([])
+      setRevealedColor('')
       if (!isLast) {
         setCardIndex(i => i + 1)
         setCardPhase('back')
@@ -430,16 +432,23 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
               }} />
             )}
 
-            {/* Lightning canvas — invisible jusqu'au reveal */}
-            <canvas ref={canvasRef} style={{
+            {/* Lightning canvas — dans un conteneur circulaire pour éviter le rectangle */}
+            <div style={{
               position: 'absolute', left: '50%', top: '50%',
               width: '900px', height: '900px',
               transform: 'translate(-50%, -50%)',
-              mixBlendMode: 'screen',
-              opacity: 0,
+              borderRadius: '50%',
+              overflow: 'hidden',
               pointerEvents: 'none',
               visibility: cardPhase === 'revealed' ? 'visible' : 'hidden',
-            }} />
+            }}>
+              <canvas ref={canvasRef} style={{
+                width: '100%', height: '100%',
+                mixBlendMode: 'screen',
+                opacity: 0,
+                display: 'block',
+              }} />
+            </div>
 
             {/* Burst */}
             {auraColor && cardPhase === 'revealed' && (
@@ -494,12 +503,12 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
                 <div className="absolute inset-0 rounded-2xl overflow-hidden bg-[#050210]"
                   style={{
                     backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
-                    boxShadow: cardPhase === 'revealed'
-                      ? `0 0 60px ${hexToRgba(color, .7)}, 0 0 120px ${hexToRgba(color, .35)}, 0 20px 60px rgba(0,0,0,0.8)`
+                    boxShadow: revealedColor
+                      ? `0 0 60px ${hexToRgba(revealedColor, .7)}, 0 0 120px ${hexToRgba(revealedColor, .35)}, 0 20px 60px rgba(0,0,0,0.8)`
                       : '0 20px 60px rgba(0,0,0,0.8)',
-                    border: cardPhase === 'revealed'
-                      ? `1px solid ${hexToRgba(color, .5)}`
-                      : '1px solid rgba(255,255,255,0.1)',
+                    border: revealedColor
+                      ? `1px solid ${hexToRgba(revealedColor, .5)}`
+                      : '1px solid rgba(255,255,255,0.08)',
                   }}>
                   {currentCard.artUrl
                     ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
