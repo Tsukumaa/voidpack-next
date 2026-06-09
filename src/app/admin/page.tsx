@@ -31,6 +31,7 @@ interface Card {
   rarity: string
   character?: string
   image_url: string
+  description?: string
   metadata?: { combat?: { atk?: number; hp?: number; cost?: number; effects?: string[] } }
   // UI helpers (not stored directly)
   combat_atk: number
@@ -46,15 +47,19 @@ interface Setting {
 
 type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'settings'
 
-const BOOSTER_IMAGE_KEYS = [
-  { key: 'booster_image_void',           label: 'VOID Pack' },
-  { key: 'booster_image_harmony',        label: 'Harmony Pack' },
-  { key: 'booster_image_pacific-bluffs', label: 'Pacific Bluffs Pack' },
-  { key: 'booster_image_neon-divide',    label: 'Neon Divide Pack' },
-  { key: 'booster_image_ash-district',   label: 'Ash District Pack' },
-]
-
 const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'void']
+
+// ─── Helper API admin (service role, bypass RLS) ──────────────────────────────
+async function adminDb(action: string, table: string, data?: unknown, eq?: { col: string; val: unknown; onConflict?: string }) {
+  const res = await fetch('/api/admin/db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, table, data, eq }),
+  })
+  const json = await res.json()
+  if (json.error) throw new Error(json.error)
+  return json.data
+}
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function AdminPage() {
@@ -113,16 +118,16 @@ export default function AdminPage() {
       {/* Contenu */}
       <div className="p-6">
         {tab === 'players'  && <PlayersTab  sb={sb} onMsg={showMsg} />}
-        {tab === 'families' && <FamiliesTab sb={sb} onMsg={showMsg} />}
-        {tab === 'cards'    && <CardsTab    sb={sb} onMsg={showMsg} />}
-        {tab === 'boosters' && <BoostersTab sb={sb} onMsg={showMsg} />}
-        {tab === 'settings' && <SettingsTab sb={sb} onMsg={showMsg} />}
+        {tab === 'families' && <FamiliesTab onMsg={showMsg} />}
+        {tab === 'cards'    && <CardsTab    onMsg={showMsg} />}
+        {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
+        {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
       </div>
     </div>
   )
 }
 
-// ─── Onglet Joueurs ───────────────────────────────────────────────────────────
+// ─── Onglet Joueurs (garde sb anon — lecture + rpc seulement) ─────────────────
 function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
@@ -144,12 +149,12 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
 
   useEffect(() => {
     load()
-    sb.from('families').select('key,label').order('label').then(({ data }) => {
+    adminDb('select', 'families', { select: 'key,label', order: 'label' }).then((data) => {
       setFamilies([
         { value: 'void', label: 'VOID Pack (global)' },
-        ...(data ?? []).map((f: { key: string; label: string }) => ({ value: f.key, label: `${f.label} Pack` })),
+        ...((data ?? []) as Family[]).map((f) => ({ value: f.key, label: `${f.label} Pack` })),
       ])
-    })
+    }).catch(() => setFamilies([{ value: 'void', label: 'VOID Pack (global)' }]))
   }, [load, sb])
 
   async function credit() {
@@ -234,8 +239,8 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
   )
 }
 
-// ─── Onglet Familles ──────────────────────────────────────────────────────────
-function FamiliesTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
+// ─── Onglet Familles (via API route service role) ─────────────────────────────
+function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [families, setFamilies] = useState<Family[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Family | null>(null)
@@ -243,10 +248,11 @@ function FamiliesTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await sb.from('families').select('*').order('order_index')
-    setFamilies(data ?? [])
-    setLoading(false)
-  }, [sb])
+    try {
+      const data = await adminDb('select', 'families', { order: 'order_index' })
+      setFamilies(data ?? [])
+    } finally { setLoading(false) }
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -256,25 +262,22 @@ function FamiliesTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg
     if (!form) return
     setSaving(true)
     try {
+      const fields = { key: form.key, label: form.label, color: form.color, description: form.description }
       if (form.id) {
-        const { error } = await sb.from('families').update({ key: form.key, label: form.label, color: form.color, description: form.description }).eq('id', form.id)
-        if (error) throw error
+        await adminDb('update', 'families', fields, { col: 'id', val: form.id })
       } else {
-        const { error } = await sb.from('families').insert({ key: form.key, label: form.label, color: form.color, description: form.description })
-        if (error) throw error
+        await adminDb('insert', 'families', fields)
       }
       onMsg(`✅ Famille "${form.label}" sauvegardée`)
-      setForm(null)
-      load()
+      setForm(null); load()
     } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
     finally { setSaving(false) }
   }
 
   async function del(fam: Family) {
     if (!confirm(`Supprimer "${fam.label}" ?`)) return
-    await sb.from('families').delete().eq('id', fam.id!)
-    onMsg(`🗑 "${fam.label}" supprimée`)
-    load()
+    await adminDb('delete', 'families', undefined, { col: 'id', val: fam.id })
+    onMsg(`🗑 "${fam.label}" supprimée`); load()
   }
 
   return (
@@ -332,29 +335,30 @@ function FamiliesTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg
   )
 }
 
-// ─── Onglet Cartes ────────────────────────────────────────────────────────────
-function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
-  const [cards, setCards]     = useState<Card[]>([])
+// ─── Onglet Cartes (via API route service role) ───────────────────────────────
+function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [cards, setCards]       = useState<Card[]>([])
   const [families, setFamilies] = useState<Family[]>([])
-  const [loading, setLoading] = useState(true)
-  const [form, setForm]       = useState<Card | null>(null)
-  const [saving, setSaving]   = useState(false)
-  const [search, setSearch]   = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [form, setForm]         = useState<Card | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
 
   const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '' }
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await sb.from('custom_cards').select('*').order('name')
-    setCards(data ?? [])
-    setLoading(false)
-  }, [sb])
+    try {
+      const data = await adminDb('select', 'custom_cards', { order: 'name' })
+      setCards(data ?? [])
+    } finally { setLoading(false) }
+  }, [])
 
   useEffect(() => {
     load()
-    sb.from('families').select('*').order('label').then(({ data }) => setFamilies(data ?? []))
-  }, [load, sb])
+    adminDb('select', 'families', { order: 'label' }).then(data => setFamilies(data ?? [])).catch(() => {})
+  }, [load])
 
   async function save() {
     if (!form) return
@@ -366,12 +370,10 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
         metadata: { combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } }
       }
       if (form.id) {
-        const { error } = await sb.from('custom_cards').update(fields).eq('id', form.id)
-        if (error) throw error
+        await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
       } else {
         const newId = form.name.toLowerCase().replace(/\s+/g, '-')
-        const { error } = await sb.from('custom_cards').insert({ id: newId, ...fields })
-        if (error) throw error
+        await adminDb('insert', 'custom_cards', { id: newId, ...fields })
       }
       onMsg(`✅ Carte "${form.name}" sauvegardée`)
       setForm(null); load()
@@ -381,7 +383,7 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
 
   async function del(card: Card) {
     if (!confirm(`Supprimer "${card.name}" ?`)) return
-    await sb.from('custom_cards').delete().eq('id', card.id!)
+    await adminDb('delete', 'custom_cards', undefined, { col: 'id', val: card.id })
     onMsg(`🗑 "${card.name}" supprimée`); load()
   }
 
@@ -424,11 +426,11 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
                   <td className="px-4 py-3 font-medium">{c.name}</td>
                   <td className="px-4 py-3 text-white/60">{c.family || '—'}</td>
                   <td className="px-4 py-3"><span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '20' }}>{c.rarity}</span></td>
-                  <td className="px-4 py-3 text-white/70">{(c as unknown as { metadata?: { combat?: { atk?: number } } }).metadata?.combat?.atk ?? '—'}</td>
-                  <td className="px-4 py-3 text-white/70">{(c as unknown as { metadata?: { combat?: { hp?: number } } }).metadata?.combat?.hp ?? '—'}</td>
-                  <td className="px-4 py-3 text-white/70">{(c as unknown as { metadata?: { combat?: { cost?: number } } }).metadata?.combat?.cost ?? '—'}</td>
+                  <td className="px-4 py-3 text-white/70">{c.metadata?.combat?.atk ?? '—'}</td>
+                  <td className="px-4 py-3 text-white/70">{c.metadata?.combat?.hp ?? '—'}</td>
+                  <td className="px-4 py-3 text-white/70">{c.metadata?.combat?.cost ?? '—'}</td>
                   <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => setForm({ ...c, combat_atk: (c as unknown as { metadata?: { combat?: { atk?: number } } }).metadata?.combat?.atk ?? 1, combat_hp: (c as unknown as { metadata?: { combat?: { hp?: number } } }).metadata?.combat?.hp ?? 2, combat_cost: (c as unknown as { metadata?: { combat?: { cost?: number } } }).metadata?.combat?.cost ?? 1, combat_effects: ((c as unknown as { metadata?: { combat?: { effects?: string[] } } }).metadata?.combat?.effects ?? []).join(', ') })}
+                    <button onClick={() => setForm({ ...c, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') })}
                       className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs">✏</button>
                     <button onClick={() => del(c)} className="px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs">✕</button>
                   </td>
@@ -464,7 +466,7 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
             </div>
             <div className="col-span-2">
               <Field label="Description">
-                <textarea value={form.description} onChange={e => setForm(f => f && ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none h-20`} />
+                <textarea value={form.description ?? ''} onChange={e => setForm(f => f && ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none h-20`} />
               </Field>
             </div>
           </div>
@@ -475,29 +477,31 @@ function CardsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (
   )
 }
 
-// ─── Onglet Boosters ──────────────────────────────────────────────────────────
-function BoostersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
+// ─── Onglet Boosters (via API route service role) ─────────────────────────────
+function BoostersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [families, setFamilies] = useState<Family[]>([])
 
   useEffect(() => {
-    sb.from('settings').select('key,value').then(({ data }) => {
+    adminDb('select', 'settings', { select: 'key,value' }).then((data) => {
       const map: Record<string, string> = {}
-      ;(data ?? []).forEach((s: Setting) => { map[s.key] = s.value })
+      ;((data ?? []) as Setting[]).forEach((s) => { map[s.key] = s.value })
       setSettings(map)
       setLoading(false)
-    })
-    sb.from('families').select('key,label').order('label').then(({ data }) => setFamilies(data ?? []))
-  }, [sb])
+    }).catch(() => setLoading(false))
+    adminDb('select', 'families', { select: 'key,label', order: 'label' }).then(data => setFamilies(data ?? [])).catch(() => {})
+  }, [])
 
   async function save(key: string, value: string) {
     setSaving(true)
-    await sb.from('settings').upsert({ key, value }, { onConflict: 'key' })
-    setSettings(s => ({ ...s, [key]: value }))
-    setSaving(false)
-    onMsg('✅ Image sauvegardée')
+    try {
+      await adminDb('upsert', 'settings', { key, value }, { col: 'key', val: key, onConflict: 'key' })
+      setSettings(s => ({ ...s, [key]: value }))
+      onMsg('✅ Image sauvegardée')
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setSaving(false) }
   }
 
   const allKeys = [
@@ -534,8 +538,8 @@ function BoostersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg
   )
 }
 
-// ─── Onglet Paramètres ────────────────────────────────────────────────────────
-function SettingsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
+// ─── Onglet Paramètres (via API route service role) ───────────────────────────
+function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [settings, setSettings] = useState<Setting[]>([])
   const [loading, setLoading]   = useState(true)
   const [newKey, setNewKey]     = useState('')
@@ -543,15 +547,16 @@ function SettingsTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await sb.from('settings').select('*').order('key')
-    setSettings(data ?? [])
-    setLoading(false)
-  }, [sb])
+    try {
+      const data = await adminDb('select', 'settings', { order: 'key' })
+      setSettings(data ?? [])
+    } finally { setLoading(false) }
+  }, [])
 
   useEffect(() => { load() }, [load])
 
   async function upsert(key: string, value: string) {
-    await sb.from('settings').upsert({ key, value }, { onConflict: 'key' })
+    await adminDb('upsert', 'settings', { key, value }, { col: 'key', val: key, onConflict: 'key' })
     onMsg('✅ Sauvegardé')
     load()
   }
