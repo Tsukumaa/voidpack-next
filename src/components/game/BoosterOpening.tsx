@@ -255,25 +255,30 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   function spawnTearParticles() {
     const canvas = tearCanvasRef.current
     if (!canvas) return
-    const W = canvas.offsetWidth || 300
-    const H = canvas.offsetHeight || 400
-    canvas.width  = W * 2
-    canvas.height = H * 2
-    canvas.style.width  = `${W}px`
-    canvas.style.height = `${H}px`
+    const W = window.innerWidth
+    const H = window.innerHeight
+    canvas.width  = W
+    canvas.height = H
     const ctx = canvas.getContext('2d')!
-    ctx.scale(2, 2)
 
     const colors = ['#ffffff','#a78bfa','#7b2bff','#c4b5fd','#e0d7ff']
-    const pts = Array.from({ length: 28 }, () => ({
-      x: W * (.2 + Math.random() * .6),
-      y: H * TEAR_Y / 100,
-      vx: (Math.random() - .5) * 6,
-      vy: -2 - Math.random() * 5,
-      r: 1.5 + Math.random() * 3,
+    // Centre horizontal de l'écran, à ~TEAR_Y% depuis le haut du pack
+    // Le pack fait ~min(72vw,300px) de large, centré
+    const packW = Math.min(W * 0.72, 300)
+    const packH = packW / 0.68 // ratio du pack
+    const packTop = (H - packH) / 2 // pack verticalement centré
+    const tearY = packTop + packH * (TEAR_Y / 100)
+    const cx = W / 2
+
+    const pts = Array.from({ length: 32 }, () => ({
+      x: cx + (Math.random() - .5) * packW * .8,
+      y: tearY + (Math.random() - .5) * 8,
+      vx: (Math.random() - .5) * 8,
+      vy: -2.5 - Math.random() * 5,
+      r: 2 + Math.random() * 4,
       color: colors[Math.floor(Math.random() * colors.length)],
       life: 1,
-      decay: .018 + Math.random() * .025,
+      decay: .015 + Math.random() * .02,
     }))
 
     cancelAnimationFrame(tearRafRef.current)
@@ -281,18 +286,18 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       ctx.clearRect(0, 0, W, H)
       let alive = false
       for (const p of pts) {
+        p.life -= p.decay
         if (p.life <= 0) continue
         alive = true
-        p.x += p.vx; p.y += p.vy
-        p.vy += .12 // gravité légère
-        p.life -= p.decay
-        const radius = Math.max(0, p.r * p.life)
-        if (radius <= 0) continue
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += .15
+        const r = Math.max(0, p.r * p.life)
         ctx.beginPath()
-        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
         ctx.fillStyle = p.color
         ctx.globalAlpha = p.life
-        ctx.shadowBlur = p.r * 4
+        ctx.shadowBlur = r * 3
         ctx.shadowColor = p.color
         ctx.fill()
         ctx.globalAlpha = 1
@@ -366,9 +371,9 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       {/* ── IDLE / TEARING ── */}
       {(phase === 'idle' || phase === 'tearing') && (
         <div onClick={handleTear} className="relative flex flex-col items-center gap-8 cursor-pointer select-none">
-          {/* Canvas particules déchirure */}
-          <canvas ref={tearCanvasRef} className="absolute pointer-events-none"
-            style={{ top: 0, left: '50%', transform: 'translateX(-50%)', width: 'min(72vw,300px)', height: '100%', overflow: 'visible' }} />
+          {/* Canvas particules déchirure — plein écran pour que les particules volent librement */}
+          <canvas ref={tearCanvasRef} className="fixed inset-0 pointer-events-none"
+            style={{ zIndex: 110, width: '100vw', height: '100vh' }} />
 
           <div style={{
             width: 'min(72vw,300px)',
@@ -471,13 +476,18 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                 <div className="absolute inset-0 rounded-2xl overflow-hidden bg-[#050210]"
                   style={{ backfaceVisibility:'hidden', transform:'rotateY(180deg)',
                     boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
-                  {currentCard.artUrl
-                    ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
-                    : <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-20 h-20 rounded-full opacity-40"
-                          style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
-                      </div>
-                  }
+                  <CardHover
+                    rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'}
+                    className="absolute inset-0"
+                  >
+                    {currentCard.artUrl
+                      ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
+                      : <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-20 h-20 rounded-full opacity-40"
+                            style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
+                        </div>
+                    }
+                  </CardHover>
                 </div>
               </div>
             </div>
