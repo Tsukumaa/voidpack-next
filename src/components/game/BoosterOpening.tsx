@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
+import { CardModal } from '@/components/game/CardModal'
 
 interface Card {
   id: string
@@ -196,59 +197,16 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
         </div>
       </div>
 
-      {/* Modal inspection — grande carte */}
+      {/* Modal inspection */}
       {selected && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-8 bg-black/90 backdrop-blur-md"
-          onClick={() => setSelected(null)}>
-          <div className="flex flex-col items-center gap-5 w-full max-w-[380px]" onClick={e => e.stopPropagation()}>
-            <div className="relative w-full rounded-3xl overflow-hidden"
-              style={{ aspectRatio:'0.714', background:RARITY_BG[selected.rarity],
-                boxShadow:`0 0 100px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.7)},0 0 200px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.3)}`,
-                border:`1px solid ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.5)}`,
-              }}>
-              {selected.artUrl
-                ? <Image src={selected.artUrl} alt={selected.name} fill className="object-contain" unoptimized />
-                : <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-32 h-32 rounded-full opacity-30"
-                      style={{ background:`radial-gradient(circle,${RARITY_COLOR[selected.rarity]??'#7b2bff'},transparent)` }} />
-                  </div>
-              }
-            </div>
-            <div className="text-center">
-              <p className="text-white font-black text-2xl">{selected.name}</p>
-              <p className="text-sm font-bold uppercase tracking-widest mt-1" style={{ color:RARITY_COLOR[selected.rarity] }}>
-                {selected.rarity}
-              </p>
-              {selected.family && <p className="text-white/40 text-sm mt-1 capitalize">{selected.family}</p>}
-              {selected.description && (() => {
-                // Parser la description — chercher un lien artiste (format: "texte | Artiste: nom [url]" ou libre)
-                const desc = selected.description
-                const artistMatch = desc.match(/artiste?\s*:?\s*([^\[]+)(?:\[([^\]]+)\])?/i)
-                const cleanDesc = desc.replace(/artiste?\s*:?[^\n]*/i, '').trim()
-                const artistName = artistMatch?.[1]?.trim()
-                const artistUrl = artistMatch?.[2]?.trim()
-                return (
-                  <div className="mt-3 text-center space-y-2 max-w-[280px]">
-                    {cleanDesc && <p className="text-white/60 text-sm leading-relaxed">{cleanDesc}</p>}
-                    {artistName && (
-                      <div className="flex items-center justify-center gap-1.5 text-xs text-white/40">
-                        <span>🎨</span>
-                        {artistUrl ? (
-                          <a href={artistUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">
-                            {artistName}
-                          </a>
-                        ) : (
-                          <span>{artistName}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        </div>
+        <CardModal
+          name={selected.name}
+          rarity={selected.rarity}
+          family={selected.family}
+          artUrl={selected.artUrl}
+          description={selected.description}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   )
