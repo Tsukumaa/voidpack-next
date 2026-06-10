@@ -167,23 +167,22 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
         )}
       </div>
 
-      {/* Grille petites cartes — 3 col mobile, 5 col desktop */}
+      {/* Grille petites cartes */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
           {cards.map((card, i) => (
             <button key={i} onClick={() => setSelected(card)}
-              className="relative rounded-xl overflow-hidden active:scale-95 transition-transform"
-              style={{ aspectRatio:'0.714', background:RARITY_BG[card.rarity]??RARITY_BG.common,
+              className="relative rounded-xl overflow-hidden active:scale-95 transition-transform flex-shrink-0"
+              style={{
+                width: '100px', height: '140px',
+                background:RARITY_BG[card.rarity]??RARITY_BG.common,
                 boxShadow:`0 0 10px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.3)}`,
                 border:`1px solid ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.25)}`,
                 animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
               }}>
               {card.artUrl
                 ? <Image src={card.artUrl} alt={card.name} fill className="object-contain" unoptimized />
-                : <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-8 h-8 rounded-full opacity-40"
-                      style={{ background:`radial-gradient(circle,${RARITY_COLOR[card.rarity]??'#7b2bff'},transparent)` }} />
-                  </div>
+                : <Image src="/assets/dos.png" alt={card.name} fill className="object-cover" />
               }
               <div className="absolute bottom-0 inset-x-0 h-5 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-0.5">
                 <span className="text-[7px] font-black uppercase tracking-wider" style={{ color:RARITY_COLOR[card.rarity] }}>
