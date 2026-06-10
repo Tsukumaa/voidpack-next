@@ -195,3 +195,8 @@
   85%  { opacity: 1; }
   100% { opacity: 0; transform: scale(.95) translateY(-10px); }
 }
+
+@keyframes voidFloat {
+  0%, 100% { transform: translateY(0px) scale(1); opacity: .7; }
+  50%       { transform: translateY(-8px) scale(1.2); opacity: 1; }
+}
