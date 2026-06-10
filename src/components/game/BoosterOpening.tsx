@@ -59,6 +59,7 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
   const [xpGain, setXpGain]     = useState(0)
   const [levelUp, setLevelUp]   = useState<number | null>(null)
   const [showXP, setShowXP]     = useState(false)
+  const [lvlParticles, setLvlParticles] = useState<{id:number;x:number;y:number;c:string;s:number;d:number}[]>([])
 
   const XP_PER_RARITY: Record<string, number> = {
     void: 500, legendary: 300, epic: 150, rare: 80, uncommon: 30, common: 10,
@@ -69,36 +70,32 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
     setSaving(true)
     try {
       const sb = createClient()
-      // Insérer les cartes dans player_cards
       const rows = cards.map(c => ({
-        user_id: user.id,
-        card_id: c.id,
-        rarity: c.rarity,
+        user_id: user.id, card_id: c.id, rarity: c.rarity,
         family: c.family ?? 'void',
         metadata: { name: c.name, image_url: c.artUrl ?? null, source: 'pack' },
       }))
       await sb.from('player_cards').insert(rows)
-
-      // XP total
       const totalXP = cards.reduce((sum, c) => sum + (XP_PER_RARITY[c.rarity] ?? 10), 0)
       setXpGain(totalXP)
-
-      // Mettre à jour XP profil
       const { data: updated } = await sb
         .from('player_profiles')
         .update({ xp: (profile?.xp ?? 0) + totalXP })
         .eq('user_id', user.id)
-        .select('level, xp')
-        .single()
-
+        .select('level, xp').single()
       if (updated && profile && updated.level > (profile.level ?? 1)) {
         setLevelUp(updated.level)
+        const colors = ['#a855f7','#c084fc','#7b2bff','#e879f9','#ffffff','#d8b4fe']
+        setLvlParticles(Array.from({ length: 40 }, (_, i) => ({
+          id: i, x: 30+Math.random()*40, y: 30+Math.random()*40,
+          c: colors[Math.floor(Math.random()*colors.length)],
+          s: 4+Math.random()*8, d: 0.6+Math.random()*1.2,
+        })))
+        setTimeout(() => { setLvlParticles([]); setLevelUp(null) }, 3000)
       }
       if (updated) setProfile({ ...profile!, ...updated })
-
-      setSaved(true)
-      setShowXP(true)
-      setTimeout(() => setShowXP(false), 3000)
+      setSaved(true); setShowXP(true)
+      setTimeout(() => setShowXP(false), 2500)
     } catch(e) { console.error(e) }
     finally { setSaving(false) }
   }
@@ -112,219 +109,123 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
       style={{ background: RARITY_BG[bestRarity] ?? RARITY_BG.common }}>
 
-      {/* Level up overlay */}
+      {/* Level up */}
       {levelUp && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-2 animate-[levelUpBurst_1.2s_ease-out_forwards]">
-            <div className="text-6xl">⬆️</div>
-            <p className="text-4xl font-black text-white" style={{ textShadow: '0 0 40px #a855f7' }}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none overflow-hidden">
+          <div className="absolute w-[600px] h-[600px] rounded-full animate-[lvlRing1_.8s_ease-out_forwards]"
+            style={{ border:'3px solid rgba(168,85,247,.6)', boxShadow:'0 0 40px rgba(168,85,247,.4)' }} />
+          <div className="absolute w-[400px] h-[400px] rounded-full animate-[lvlRing2_.8s_ease-out_.1s_forwards]"
+            style={{ border:'2px solid rgba(192,132,252,.5)' }} />
+          <div className="absolute w-[240px] h-[240px] rounded-full animate-[lvlBurstGlow_1s_ease-out_forwards]"
+            style={{ background:'radial-gradient(circle,rgba(123,43,255,.8) 0%,rgba(168,85,247,.4) 40%,transparent 70%)' }} />
+          {lvlParticles.map(p => (
+            <div key={p.id} className="absolute rounded-full"
+              style={{ width:p.s, height:p.s, background:p.c,
+                left:`${p.x}%`, top:`${p.y}%`,
+                boxShadow:`0 0 ${p.s*2}px ${p.c}`,
+                animation:`lvlParticle ${p.d}s ease-out forwards`,
+                '--tx':`${(Math.random()-.5)*300}px`,
+                '--ty':`${-100-Math.random()*200}px`,
+              } as React.CSSProperties} />
+          ))}
+          <div className="flex flex-col items-center gap-2 animate-[lvlText_2.5s_ease-out_forwards] relative z-10">
+            <p className="text-5xl font-black text-white tracking-tight"
+              style={{ textShadow:'0 0 60px #a855f7,0 0 120px #7b2bff' }}>
               NIVEAU {levelUp}
             </p>
-            <p className="text-[#a78bfa] text-lg font-bold">Level Up !</p>
+            <p className="text-[#c084fc] text-lg font-bold tracking-widest uppercase">Level Up</p>
           </div>
         </div>
       )}
 
-      {/* XP gain notification */}
+      {/* XP */}
       {showXP && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
-          <div className="px-4 py-2 rounded-full bg-[#7b2bff]/80 backdrop-blur text-white font-bold text-sm animate-[xpFloat_2s_ease-out_forwards]">
+        <div className="fixed top-16 left-1/2 z-[200] pointer-events-none" style={{ transform:'translateX(-50%)' }}>
+          <div className="px-4 py-2 rounded-full text-white font-bold text-sm animate-[xpFloat_2.5s_ease-out_forwards]"
+            style={{ background:'linear-gradient(135deg,#7b2bff,#a855f7)', boxShadow:'0 0 20px rgba(123,43,255,.6)' }}>
             +{xpGain} XP
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0">
         <div>
-          <h2 className="text-white font-black text-lg">Cartes obtenues</h2>
+          <h2 className="text-white font-black text-base">Cartes obtenues</h2>
           <p className="text-white/40 text-xs">{cards.length} cartes · Clique pour inspecter</p>
         </div>
         {!saved ? (
           <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#7b2bff] to-[#4a1fa8] text-white text-sm font-bold disabled:opacity-50 transition-all">
-            {saving ? '…' : 'Ajouter à la collection'}
+            className="px-4 py-2 rounded-xl text-white text-sm font-bold disabled:opacity-50"
+            style={{ background:'linear-gradient(135deg,#7b2bff,#4a1fa8)', boxShadow:'0 0 20px rgba(123,43,255,.4)' }}>
+            {saving ? '…' : '+ Collection'}
           </button>
         ) : (
-          <button onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold">
-            Terminer
+          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold">
+            Terminer ✓
           </button>
         )}
       </div>
 
-      {/* Grille de cartes */}
-      <div className="flex-1 overflow-y-auto px-5 pb-5">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {/* Grille petites cartes — 3 col mobile, 5 col desktop */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
           {cards.map((card, i) => (
             <button key={i} onClick={() => setSelected(card)}
-              className="relative rounded-2xl overflow-hidden active:scale-95 transition-transform"
-              style={{ aspectRatio: '0.714', background: RARITY_BG[card.rarity] ?? RARITY_BG.common,
-                boxShadow: `0 0 20px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff', .35)}`,
-                border: `1px solid ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff', .3)}`,
-                animation: `cardFadeIn .4s ease-out ${i * .08}s both`,
+              className="relative rounded-xl overflow-hidden active:scale-95 transition-transform"
+              style={{ aspectRatio:'0.714', background:RARITY_BG[card.rarity]??RARITY_BG.common,
+                boxShadow:`0 0 10px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.3)}`,
+                border:`1px solid ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.25)}`,
+                animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
               }}>
               {card.artUrl
                 ? <Image src={card.artUrl} alt={card.name} fill className="object-contain" unoptimized />
                 : <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full opacity-40"
-                      style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]??'#7b2bff'}, transparent)` }} />
+                    <div className="w-8 h-8 rounded-full opacity-40"
+                      style={{ background:`radial-gradient(circle,${RARITY_COLOR[card.rarity]??'#7b2bff'},transparent)` }} />
                   </div>
               }
-              <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                <p className="text-white text-[10px] font-bold truncate">{card.name}</p>
-                <p className="text-[9px] font-bold uppercase" style={{ color: RARITY_COLOR[card.rarity] }}>{card.rarity}</p>
+              <div className="absolute bottom-0 inset-x-0 h-5 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-0.5">
+                <span className="text-[7px] font-black uppercase tracking-wider" style={{ color:RARITY_COLOR[card.rarity] }}>
+                  {card.rarity}
+                </span>
               </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Modal inspection */}
+      {/* Modal inspection — grande carte */}
       {selected && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-black/85 backdrop-blur-md"
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-8 bg-black/90 backdrop-blur-md"
           onClick={() => setSelected(null)}>
-          <div className="flex flex-col items-center gap-4 w-full max-w-[320px]" onClick={e => e.stopPropagation()}>
+          <div className="flex flex-col items-center gap-5 w-full max-w-[380px]" onClick={e => e.stopPropagation()}>
             <div className="relative w-full rounded-3xl overflow-hidden"
-              style={{ aspectRatio: '0.714', background: RARITY_BG[selected.rarity],
-                boxShadow: `0 0 80px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff', .6)}, 0 0 160px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff', .25)}`,
-                border: `1px solid ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff', .5)}`,
+              style={{ aspectRatio:'0.714', background:RARITY_BG[selected.rarity],
+                boxShadow:`0 0 100px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.7)},0 0 200px ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.3)}`,
+                border:`1px solid ${hexToRgba(RARITY_COLOR[selected.rarity]??'#7b2bff',.5)}`,
               }}>
               {selected.artUrl
                 ? <Image src={selected.artUrl} alt={selected.name} fill className="object-contain" unoptimized />
                 : <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-full opacity-30"
-                      style={{ background: `radial-gradient(circle, ${RARITY_COLOR[selected.rarity]??'#7b2bff'}, transparent)` }} />
+                    <div className="w-32 h-32 rounded-full opacity-30"
+                      style={{ background:`radial-gradient(circle,${RARITY_COLOR[selected.rarity]??'#7b2bff'},transparent)` }} />
                   </div>
               }
             </div>
             <div className="text-center">
-              <p className="text-white font-black text-xl">{selected.name}</p>
-              <p className="text-sm font-bold uppercase tracking-widest mt-1" style={{ color: RARITY_COLOR[selected.rarity] }}>
+              <p className="text-white font-black text-2xl">{selected.name}</p>
+              <p className="text-sm font-bold uppercase tracking-widest mt-1" style={{ color:RARITY_COLOR[selected.rarity] }}>
                 {selected.rarity}
               </p>
-              {selected.family && <p className="text-white/40 text-xs mt-1 capitalize">{selected.family}</p>}
+              {selected.family && <p className="text-white/40 text-sm mt-1 capitalize">{selected.family}</p>}
             </div>
-            <p className="text-white/30 text-xs">Clique en dehors pour fermer</p>
           </div>
         </div>
       )}
     </div>
   )
 }
-
-// ── Composant principal ───────────────────────────────────────────────────────
-export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
-  const [phase, setPhase]           = useState<Phase>('idle')
-  const [cardIndex, setCardIndex]   = useState(0)
-  const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
-  const [revealedColor, setRevealedColor] = useState('')
-  const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
-  const [auraColor, setAuraColor]   = useState('')
-  const [raysColor, setRaysColor]   = useState('')
-  const [particles, setParticles]   = useState<Particle[]>([])
-  const [tearParticles, setTearParticles] = useState<Particle[]>([])
-  const [shake, setShake]           = useState(false)
-
-  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
-  const locked    = useRef(false)
-
-  const currentCard = cards[cardIndex]
-  const isLast      = cardIndex === cards.length - 1
-  const rarity      = currentCard?.rarity ?? 'common'
-  const packSrc     = boosterImageUrl || '/assets/dos.png'
-
-  function later(fn: () => void, ms: number) {
-    const t = setTimeout(fn, ms); timerRefs.current.push(t); return t
-  }
-  function clearTimers() {
-    timerRefs.current.forEach(clearTimeout); timerRefs.current = []; locked.current = false
-  }
-  useEffect(() => () => clearTimers(), []) // eslint-disable-line
-
-  // Particules de déchirure
-  function spawnTearParticles() {
-    const colors = ['#ffffff','#a78bfa','#7b2bff','#c4b5fd','#e0d7ff']
-    const ps: Particle[] = Array.from({ length: 24 }, (_, i) => ({
-      id: i,
-      x: 20 + Math.random() * 60,
-      y: TEAR_Y - 5 + Math.random() * 10,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: 2 + Math.random() * 5,
-      delay: Math.random() * 0.15,
-      dur: 0.5 + Math.random() * 0.5,
-      vx: (Math.random() - .5) * 120,
-      vy: -30 - Math.random() * 80,
-    }))
-    setTearParticles(ps)
-    setTimeout(() => setTearParticles([]), 1200)
-  }
-
-  // Particules de reveal
-  function spawnRevealParticles(c: string, count: number) {
-    if (count <= 0) return
-    const extras = rarity === 'void' ? ['#ff80d5','#80e8ff','#c080ff','#fff'] :
-                   rarity === 'legendary' ? ['#ffcc80','#fff','#ffd700'] : [c, '#fff']
-    setParticles(Array.from({ length: count }, (_, i) => ({
-      id: Date.now() + i,
-      x: 5 + Math.random() * 90,
-      y: 10 + Math.random() * 80,
-      color: extras[Math.floor(Math.random() * extras.length)],
-      size: 3 + Math.random() * 5,
-      delay: Math.random() * 0.4,
-      dur: 0.9 + Math.random() * 0.8,
-      vx: (Math.random() - .5) * 40,
-      vy: -30 - Math.random() * 60,
-    })))
-    later(() => setParticles([]), 2000)
-  }
-
-  function setRevealFx(r: string, c: string) {
-    const gA = r==='void'?.50:r==='legendary'?.40:r==='epic'?.30:r==='rare'?.20:.12
-    const rA = r==='void'?.28:r==='legendary'?.22:r==='epic'?.16:r==='rare'?.10:.05
-    setAuraColor(`radial-gradient(circle at center,${hexToRgba(c,gA)} 0%,${hexToRgba(c,gA*.3)} 30%,transparent 65%)`)
-    setRaysColor(`conic-gradient(from 0deg,transparent 0deg,${hexToRgba(c,rA)} 18deg,transparent 40deg,transparent 84deg,${hexToRgba(c,rA*.8)} 106deg,transparent 136deg,transparent 178deg,${hexToRgba(c,rA)} 206deg,transparent 234deg,transparent 292deg,${hexToRgba(c,rA*.7)} 322deg,transparent 360deg)`)
-  }
-
-  const handleTear = useCallback(() => {
-    if (phase !== 'idle') return
-    setPhase('tearing')
-    spawnTearParticles()
-    setTimeout(() => setPhase('torn'), 80)
-    setTimeout(() => { setPhase('cards'); setCardPhase('back'); locked.current = false }, 800)
-  }, [phase]) // eslint-disable-line
-
-  const handleCardTap = useCallback(() => {
-    if (locked.current) return
-    if (cardPhase === 'back') {
-      locked.current = true
-      setCardPhase('suspense')
-      const suspenseMs = SUSPENSE_MS[rarity] ?? 580
-      if (rarity === 'legendary' || rarity === 'void') {
-        later(() => { setShake(true); setTimeout(() => setShake(false), 400) }, suspenseMs * .6)
-      }
-      later(() => {
-        const c = RARITY_COLOR[rarity] ?? '#9ca3af'
-        setRevealedColor(c)
-        setBgStyle(RARITY_BG[rarity]) // fond change UNIQUEMENT au reveal
-        setRevealFx(rarity, c)
-        setCardPhase('revealed')
-        spawnRevealParticles(c, PARTICLE_COUNT[rarity] ?? 0)
-        locked.current = false
-      }, suspenseMs)
-    } else if (cardPhase === 'revealed') {
-      clearTimers()
-      setAuraColor(''); setRaysColor(''); setParticles([])
-      setRevealedColor('')
-      if (!isLast) {
-        setBgStyle('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)') // reset fond
-        setCardIndex(i => i + 1)
-        setCardPhase('back')
-      } else {
-        setPhase('results')
-      }
-    }
-  }, [cardPhase, rarity, isLast]) // eslint-disable-line
 
   if (phase === 'results') return <ResultsScreen cards={cards} onClose={onClose} />
 
