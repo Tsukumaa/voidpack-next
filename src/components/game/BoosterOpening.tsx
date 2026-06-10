@@ -474,3 +474,4 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
     </div>
   )
 }
+"// $(date)" 
