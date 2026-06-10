@@ -9,7 +9,7 @@ const RARITY_COLOR: Record<string, string> = {
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 
-const XP_PER_LEVEL = (level: number) => Math.floor(1000 * Math.pow(1.18, level - 1))
+const XP_PER_LEVEL = (level: number) => Math.floor(200 * Math.pow(1.18, level - 1))
 
 function getLevelProgress(xp: number, level: number) {
   const current = Array.from({ length: level - 1 }, (_, i) => XP_PER_LEVEL(i + 1)).reduce((a, b) => a + b, 0)

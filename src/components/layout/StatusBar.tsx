@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 function xpForLevel(lvl: number) {
-  return Math.floor(1000 / 2.5 * Math.pow(1.18, lvl - 1))
+  return Math.floor(200 * Math.pow(1.18, lvl - 1))
 }
 
 function getLevelProgress(xp: number, level: number) {
