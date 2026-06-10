@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import { CardHover } from '@/components/game/CardHover'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
@@ -53,9 +54,8 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
         className="flex flex-col items-center gap-4 w-full max-w-[320px]"
         onClick={e => e.stopPropagation()}
       >
-        {/* Carte */}
-        <div
-          className="relative w-full rounded-3xl overflow-hidden"
+        {/* Carte avec hover effect */}
+        <CardHover rarity={rarity} className="relative w-full rounded-3xl overflow-hidden"
           style={{
             aspectRatio: '0.714',
             background: RARITY_BG[rarity] ?? RARITY_BG.common,
@@ -70,7 +70,7 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
                   style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
               </div>
           }
-        </div>
+        </CardHover>
 
         {/* Infos */}
         <div className="text-center w-full space-y-1.5">

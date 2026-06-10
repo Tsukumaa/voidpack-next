@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
+import { CardHover } from '@/components/game/CardHover'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
 const RARITY_COLOR: Record<string, string> = {
@@ -169,34 +170,29 @@ export default function CollectionPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {group.map(card => (
-                    <button
+                    <CardHover
                       key={card.card_id}
-                      onClick={() => setSelected(card)}
-                      className="relative rounded-2xl overflow-hidden group transition-transform active:scale-95"
+                      rarity={card.rarity}
+                      className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-95"
                       style={{ aspectRatio: '0.714', background: RARITY_BG[card.rarity] }}
                     >
-                      {card.image_url ? (
-                        <Image src={card.image_url} alt={card.name} fill className="object-contain" unoptimized />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-12 h-12 rounded-full opacity-30"
-                            style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
-                        </div>
-                      )}
-                      {/* Overlay bottom */}
-                      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-white text-xs font-bold truncate">{card.name}</p>
-                      </div>
-                      {/* Badge count */}
-                      {card.count > 1 && (
-                        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white">
-                          {card.count}
-                        </div>
-                      )}
-                      {/* Glow border */}
-                      <div className="absolute inset-0 rounded-2xl pointer-events-none transition-opacity opacity-0 group-hover:opacity-100"
-                        style={{ boxShadow: `inset 0 0 0 1px ${RARITY_COLOR[card.rarity]}60` }} />
-                    </button>
+                      <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
+                        {card.image_url ? (
+                          <Image src={card.image_url} alt={card.name} fill className="object-contain" unoptimized />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full opacity-30"
+                              style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
+                          </div>
+                        )}
+                        {/* Badge count */}
+                        {card.count > 1 && (
+                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-10">
+                            {card.count}
+                          </div>
+                        )}
+                      </button>
+                    </CardHover>
                   ))}
                 </div>
               </div>
