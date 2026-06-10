@@ -11,6 +11,7 @@ interface Card {
   rarity: string
   family?: string
   artUrl?: string
+  description?: string | null
 }
 
 interface Props {
@@ -219,6 +220,32 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
                 {selected.rarity}
               </p>
               {selected.family && <p className="text-white/40 text-sm mt-1 capitalize">{selected.family}</p>}
+              {selected.description && (() => {
+                // Parser la description — chercher un lien artiste (format: "texte | Artiste: nom [url]" ou libre)
+                const desc = selected.description
+                const artistMatch = desc.match(/artiste?\s*:?\s*([^\[]+)(?:\[([^\]]+)\])?/i)
+                const cleanDesc = desc.replace(/artiste?\s*:?[^\n]*/i, '').trim()
+                const artistName = artistMatch?.[1]?.trim()
+                const artistUrl = artistMatch?.[2]?.trim()
+                return (
+                  <div className="mt-3 text-center space-y-2 max-w-[280px]">
+                    {cleanDesc && <p className="text-white/60 text-sm leading-relaxed">{cleanDesc}</p>}
+                    {artistName && (
+                      <div className="flex items-center justify-center gap-1.5 text-xs text-white/40">
+                        <span>🎨</span>
+                        {artistUrl ? (
+                          <a href={artistUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">
+                            {artistName}
+                          </a>
+                        ) : (
+                          <span>{artistName}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -330,17 +357,34 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
       {/* ── IDLE / TEARING ── */}
       {(phase === 'idle' || phase === 'tearing') && (
         <div onClick={handleTear} className="relative flex flex-col items-center gap-8 cursor-pointer select-none">
-          {/* Particules déchirure */}
-          {tearParticles.map(p => (
-            <div key={p.id} className="absolute rounded-full pointer-events-none"
-              style={{
-                width: p.size, height: p.size, background: p.color,
-                left: `${p.x}%`, top: `${p.y}%`,
-                boxShadow: `0 0 ${p.size*2}px ${p.color}`,
-                animation: `tearParticle2 ${p.dur}s ease-out ${p.delay}s forwards`,
-                '--tx': `${p.vx}px`, '--ty': `${p.vy}px`,
-              } as React.CSSProperties} />
-          ))}
+          {/* Particules déchirure — positionnées absolument par rapport au pack */}
+          <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
+            {tearParticles.map(p => (
+              <div key={p.id}
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  width: p.size,
+                  height: p.size,
+                  background: p.color,
+                  left: `${p.x}%`,
+                  top: `${p.y}%`,
+                  boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                  opacity: 0,
+                  animationName: `tp${p.id}`,
+                  animationDuration: `${p.dur}s`,
+                  animationDelay: `${p.delay}s`,
+                  animationFillMode: 'forwards',
+                  animationTimingFunction: 'ease-out',
+                }}>
+                <style>{`
+                  @keyframes tp${p.id} {
+                    0% { transform: translate(0,0) scale(1); opacity: 1; }
+                    100% { transform: translate(${p.vx}px,${p.vy}px) scale(0); opacity: 0; }
+                  }
+                `}</style>
+              </div>
+            ))}
+          </div>
 
           <div style={{
             width: 'min(72vw,300px)',
