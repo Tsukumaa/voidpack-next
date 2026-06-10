@@ -367,6 +367,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       const fields = {
         name: form.name, family: form.family, rarity: form.rarity,
         image_url: form.image_url,
+        description: form.description ?? '',
         metadata: { combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } }
       }
       if (form.id) {
