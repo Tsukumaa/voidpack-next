@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
+import { CardModal } from '@/components/game/CardModal'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
 const RARITY_COLOR: Record<string, string> = {
@@ -39,6 +40,7 @@ interface GroupedCard {
   count: number
   name: string
   image_url: string | null
+  description: string | null
   latest_at: string
 }
 
@@ -65,10 +67,10 @@ export default function CollectionPage() {
     // Charger les infos des cartes (artwork)
     const { data: cardDefs } = await sb
       .from('custom_cards')
-      .select('id, name, image_url, rarity, family')
+      .select('id, name, image_url, rarity, family, description')
 
-    const defMap: Record<string, { name: string; image_url: string | null }> = {}
-    for (const d of cardDefs ?? []) defMap[d.id] = { name: d.name, image_url: d.image_url }
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null }> = {}
+    for (const d of cardDefs ?? []) defMap[d.id] = { name: d.name, image_url: d.image_url, description: d.description ?? null }
 
     // Grouper par card_id
     const groups: Record<string, GroupedCard> = {}
@@ -82,6 +84,7 @@ export default function CollectionPage() {
           count: 0,
           name: def?.name ?? c.metadata?.name ?? c.card_id,
           image_url: def?.image_url ?? c.metadata?.image ?? null,
+          description: def?.description ?? null,
           latest_at: c.obtained_at,
         }
       }
@@ -204,38 +207,15 @@ export default function CollectionPage() {
 
       {/* Modal detail carte */}
       {selected && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
-          onClick={() => setSelected(null)}
-        >
-          <div
-            className="relative rounded-3xl overflow-hidden w-full max-w-[280px]"
-            style={{ aspectRatio: '0.714', background: RARITY_BG[selected.rarity],
-              boxShadow: `0 0 60px ${RARITY_COLOR[selected.rarity]}60, 0 0 120px ${RARITY_COLOR[selected.rarity]}20`,
-              border: `1px solid ${RARITY_COLOR[selected.rarity]}40`,
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            {selected.image_url
-              ? <Image src={selected.image_url} alt={selected.name} fill className="object-contain" unoptimized />
-              : <div className="w-full h-full flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full opacity-30"
-                    style={{ background: `radial-gradient(circle, ${RARITY_COLOR[selected.rarity]}, transparent)` }} />
-                </div>
-            }
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
-              <p className="text-white font-black text-lg">{selected.name}</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: RARITY_COLOR[selected.rarity] }}>
-                  {selected.rarity}
-                </p>
-                {selected.count > 1 && (
-                  <p className="text-white/50 text-xs">×{selected.count} copies</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <CardModal
+          name={selected.name}
+          rarity={selected.rarity}
+          family={selected.family}
+          artUrl={selected.image_url}
+          description={selected.description}
+          count={selected.count}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   )
