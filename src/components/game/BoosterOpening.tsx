@@ -227,6 +227,99 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
   )
 }
 
+// ── Composant principal ───────────────────────────────────────────────────────
+export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
+  const [phase, setPhase]           = useState<Phase>('idle')
+  const [cardIndex, setCardIndex]   = useState(0)
+  const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
+  const [revealedColor, setRevealedColor] = useState('')
+  const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
+  const [auraColor, setAuraColor]   = useState('')
+  const [raysColor, setRaysColor]   = useState('')
+  const [particles, setParticles]   = useState<Particle[]>([])
+  const [tearParticles, setTearParticles] = useState<Particle[]>([])
+  const [shake, setShake]           = useState(false)
+
+  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
+  const locked    = useRef(false)
+
+  const currentCard = cards[cardIndex]
+  const isLast      = cardIndex === cards.length - 1
+  const rarity      = currentCard?.rarity ?? 'common'
+  const packSrc     = boosterImageUrl || '/assets/dos.png'
+
+  function later(fn: () => void, ms: number) {
+    const t = setTimeout(fn, ms); timerRefs.current.push(t); return t
+  }
+  function clearTimers() {
+    timerRefs.current.forEach(clearTimeout); timerRefs.current = []; locked.current = false
+  }
+  useEffect(() => () => clearTimers(), []) // eslint-disable-line
+
+  function spawnTearParticles() {
+    const colors = ['#ffffff','#a78bfa','#7b2bff','#c4b5fd','#e0d7ff']
+    const ps: Particle[] = Array.from({ length: 24 }, (_, i) => ({
+      id: i, x: 20+Math.random()*60, y: TEAR_Y-5+Math.random()*10,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      size: 2+Math.random()*5, delay: Math.random()*.15,
+      dur: .5+Math.random()*.5, vx: (Math.random()-.5)*120, vy: -30-Math.random()*80,
+    }))
+    setTearParticles(ps)
+    setTimeout(() => setTearParticles([]), 1200)
+  }
+
+  function spawnRevealParticles(c: string, count: number) {
+    if (count <= 0) return
+    const extras = rarity==='void' ? ['#ff80d5','#80e8ff','#c080ff','#fff'] :
+                   rarity==='legendary' ? ['#ffcc80','#fff','#ffd700'] : [c,'#fff']
+    setParticles(Array.from({ length: count }, (_, i) => ({
+      id: Date.now()+i, x: 5+Math.random()*90, y: 10+Math.random()*80,
+      color: extras[Math.floor(Math.random()*extras.length)],
+      size: 3+Math.random()*5, delay: Math.random()*.4,
+      dur: .9+Math.random()*.8, vx: (Math.random()-.5)*40, vy: -30-Math.random()*60,
+    })))
+    later(() => setParticles([]), 2000)
+  }
+
+  function setRevealFx(r: string, c: string) {
+    const gA = r==='void'?.50:r==='legendary'?.40:r==='epic'?.30:r==='rare'?.20:.12
+    const rA = r==='void'?.28:r==='legendary'?.22:r==='epic'?.16:r==='rare'?.10:.05
+    setAuraColor(`radial-gradient(circle at center,${hexToRgba(c,gA)} 0%,${hexToRgba(c,gA*.3)} 30%,transparent 65%)`)
+    setRaysColor(`conic-gradient(from 0deg,transparent 0deg,${hexToRgba(c,rA)} 18deg,transparent 40deg,transparent 84deg,${hexToRgba(c,rA*.8)} 106deg,transparent 136deg,transparent 178deg,${hexToRgba(c,rA)} 206deg,transparent 234deg,transparent 292deg,${hexToRgba(c,rA*.7)} 322deg,transparent 360deg)`)
+  }
+
+  const handleTear = useCallback(() => {
+    if (phase !== 'idle') return
+    setPhase('tearing'); spawnTearParticles()
+    setTimeout(() => setPhase('torn'), 80)
+    setTimeout(() => { setPhase('cards'); setCardPhase('back'); locked.current = false }, 800)
+  }, [phase]) // eslint-disable-line
+
+  const handleCardTap = useCallback(() => {
+    if (locked.current) return
+    if (cardPhase === 'back') {
+      locked.current = true; setCardPhase('suspense')
+      const suspenseMs = SUSPENSE_MS[rarity] ?? 580
+      if (rarity==='legendary'||rarity==='void') {
+        later(() => { setShake(true); setTimeout(() => setShake(false), 400) }, suspenseMs*.6)
+      }
+      later(() => {
+        const c = RARITY_COLOR[rarity] ?? '#9ca3af'
+        setRevealedColor(c); setBgStyle(RARITY_BG[rarity])
+        setRevealFx(rarity, c); setCardPhase('revealed')
+        spawnRevealParticles(c, PARTICLE_COUNT[rarity] ?? 0)
+        locked.current = false
+      }, suspenseMs)
+    } else if (cardPhase === 'revealed') {
+      clearTimers(); setAuraColor(''); setRaysColor(''); setParticles([])
+      setRevealedColor('')
+      if (!isLast) {
+        setBgStyle('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
+        setCardIndex(i => i+1); setCardPhase('back')
+      } else { setPhase('results') }
+    }
+  }, [cardPhase, rarity, isLast]) // eslint-disable-line
+
   if (phase === 'results') return <ResultsScreen cards={cards} onClose={onClose} />
 
   return (
