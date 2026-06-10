@@ -174,7 +174,8 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
             <button key={i} onClick={() => setSelected(card)}
               className="relative rounded-xl overflow-hidden active:scale-95 transition-transform flex-shrink-0"
               style={{
-                width: '100px', height: '140px',
+                width: 'clamp(120px, 18vw, 200px)',
+                height: 'clamp(168px, 25vw, 280px)',
                 background:RARITY_BG[card.rarity]??RARITY_BG.common,
                 boxShadow:`0 0 10px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.3)}`,
                 border:`1px solid ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.25)}`,
@@ -474,4 +475,3 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
     </div>
   )
 }
-"// $(date)" 
