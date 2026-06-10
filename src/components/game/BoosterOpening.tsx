@@ -34,7 +34,7 @@ const RARITY_BG: Record<string, string> = {
   common:    'radial-gradient(ellipse at 50% 0%, #111118 0%, #060608 60%, #000 100%)',
 }
 const SUSPENSE_MS: Record<string, number> = {
-  void: 2800, legendary: 2800, epic: 1000, rare: 780, uncommon: 580, common: 420,
+  void: 2800, legendary: 2800, epic: 1500, rare: 1000, uncommon: 580, common: 420,
 }
 const PARTICLE_COUNT: Record<string, number> = {
   void: 60, legendary: 45, epic: 28, rare: 18, uncommon: 0, common: 0,
