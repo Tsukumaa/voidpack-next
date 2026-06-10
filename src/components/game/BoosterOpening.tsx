@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
+import { useAchievements } from '@/hooks/useAchievements'
 
 interface Card {
   id: string
@@ -55,6 +56,7 @@ type CardPhase = 'back'|'suspense'|'revealed'
 // ── Écran de résultats ────────────────────────────────────────────────────────
 function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void }) {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
+  const { checkAfterPackOpen } = useAchievements()
   const [selected, setSelected] = useState<Card | null>(null)
   const [saving, setSaving]     = useState(false)
   const [saved, setSaved]       = useState(false)
@@ -96,6 +98,13 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
         setTimeout(() => { setLvlParticles([]); setLevelUp(null) }, 3000)
       }
       if (updated) setProfile({ ...profile!, ...updated })
+
+      // Succès + missions
+      const { data: allCards } = await sb.from('player_cards').select('card_id').eq('user_id', user.id)
+      const uniqueCount = new Set((allCards ?? []).map((c: {card_id: string}) => c.card_id)).size
+      const { data: packData } = await sb.from('player_profiles').select('packs_opened').eq('user_id', user.id).single()
+      await checkAfterPackOpen(cards, packData?.packs_opened ?? 1, uniqueCount)
+
       setSaved(true); setShowXP(true)
       setTimeout(() => setShowXP(false), 2500)
     } catch(e) { console.error(e) }
