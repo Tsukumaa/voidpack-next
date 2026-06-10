@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   )
 
   // Pool de cartes (filtré par famille si pas void)
-  let query = sb.from('custom_cards').select('id, name, rarity, family, image_url, description')
+  let query = sb.from('custom_cards').select('id, name, rarity, family, image_url')
   if (booster_type !== 'void') query = query.eq('family', booster_type)
   const { data: pool, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     cards: picked.map(c => ({
-      id: c.id, name: c.name, rarity: c.rarity, family: c.family, artUrl: c.image_url ?? null, description: (c as any).description ?? null,
+      id: c.id, name: c.name, rarity: c.rarity, family: c.family, artUrl: c.image_url ?? null,
     }))
   })
 }
