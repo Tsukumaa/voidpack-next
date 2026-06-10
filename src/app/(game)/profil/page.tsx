@@ -1,28 +1,24 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
+import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 
-const XP_PER_LEVEL = (level: number) => Math.floor(200 * Math.pow(1.18, level - 1))
-
-function getLevelProgress(xp: number, level: number) {
-  const current = Array.from({ length: level - 1 }, (_, i) => XP_PER_LEVEL(i + 1)).reduce((a, b) => a + b, 0)
-  const needed  = XP_PER_LEVEL(level)
-  const progress = Math.min(1, (xp - current) / needed)
-  return { current: xp - current, needed, progress: Math.max(0, progress) }
+function xpForLevel(lvl: number) {
+  return Math.floor(200 * Math.pow(1.18, lvl - 1))
 }
 
-interface Stats {
-  totalCards: number
-  uniqueCards: number
-  byRarity: Record<string, number>
-  byFamily: Record<string, number>
+function getLevelProgress(xp: number, level: number) {
+  let cumulative = 0
+  for (let i = 1; i < level; i++) cumulative += xpForLevel(i)
+  const needed = xpForLevel(level)
+  const inLevel = xp - cumulative
+  return { current: Math.max(0, inLevel), needed, progress: Math.min(100, Math.max(0, Math.round((inLevel / needed) * 100))) }
 }
 
 interface DailyReward {
@@ -31,86 +27,75 @@ interface DailyReward {
   best_streak: number
 }
 
-const ACHIEVEMENTS = [
-  { id: 'first_pack',    label: 'Premier booster',   desc: 'Ouvrir ton premier booster',         icon: '🎴' },
-  { id: 'rare_pull',     label: 'Chasseur de raretés', desc: 'Obtenir une carte rare ou plus',    icon: '💎' },
-  { id: 'epic_pull',     label: 'Épique',             desc: 'Obtenir une carte épique',           icon: '⚡' },
-  { id: 'legendary',     label: 'Légendaire',         desc: 'Obtenir une carte légendaire',       icon: '👑' },
-  { id: 'void_pull',     label: 'VOID',               desc: 'Obtenir une carte VOID',             icon: '🌀' },
-  { id: 'streak_3',      label: 'Régulier',           desc: '3 jours consécutifs',               icon: '🔥' },
-  { id: 'streak_7',      label: 'Assidu',             desc: '7 jours consécutifs',               icon: '💪' },
-  { id: 'collector_10',  label: 'Collectionneur',     desc: '10 cartes uniques',                 icon: '📚' },
-  { id: 'collector_50',  label: 'Archiviste',         desc: '50 cartes uniques',                 icon: '🗃️' },
-]
+interface MissionProgress {
+  mission_id: string
+  progress: number
+  completed: boolean
+  xp_claimed: boolean
+}
 
 export default function ProfilPage() {
-  const { user, profile } = useGameStore(s => ({ user: s.user, profile: s.profile }))
-  const [stats, setStats]           = useState<Stats | null>(null)
-  const [daily, setDaily]           = useState<DailyReward | null>(null)
+  const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
+  const [stats, setStats]               = useState<{ totalCards: number; uniqueCards: number; byRarity: Record<string, number> } | null>(null)
+  const [daily, setDaily]               = useState<DailyReward | null>(null)
   const [achievements, setAchievements] = useState<string[]>([])
-  const [claiming, setClaiming]     = useState(false)
-  const [claimMsg, setClaimMsg]     = useState('')
-  const [loading, setLoading]       = useState(true)
+  const [missions, setMissions]         = useState<MissionProgress[]>([])
+  const [claiming, setClaiming]         = useState(false)
+  const [claimMsg, setClaimMsg]         = useState('')
+  const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
+  const [claimingMission, setClaimingMission] = useState<string | null>(null)
+
+  const todayMissions = getTodayMissions()
 
   const load = useCallback(async () => {
     if (!user) return
-    setLoading(true)
     const sb = createClient()
 
-    // Stats collection
-    const { data: cards } = await sb
-      .from('player_cards')
-      .select('card_id, rarity, family')
-      .eq('user_id', user.id)
+    const [cardsRes, drRes, achRes, missRes] = await Promise.all([
+      sb.from('player_cards').select('card_id, rarity').eq('user_id', user.id),
+      sb.from('player_daily_rewards').select('last_claim_at, current_streak, best_streak').eq('user_id', user.id).single(),
+      sb.from('player_achievements').select('achievement_id').eq('user_id', user.id),
+      sb.from('player_daily_missions').select('mission_id, progress, completed, xp_claimed').eq('user_id', user.id).eq('date', new Date().toISOString().split('T')[0]),
+    ])
 
-    if (cards) {
+    if (cardsRes.data) {
       const byRarity: Record<string, number> = {}
-      const byFamily: Record<string, number> = {}
       const unique = new Set<string>()
-      for (const c of cards) {
+      for (const c of cardsRes.data) {
         byRarity[c.rarity] = (byRarity[c.rarity] ?? 0) + 1
-        byFamily[c.family] = (byFamily[c.family] ?? 0) + 1
         unique.add(c.card_id)
       }
-      setStats({ totalCards: cards.length, uniqueCards: unique.size, byRarity, byFamily })
+      setStats({ totalCards: cardsRes.data.length, uniqueCards: unique.size, byRarity })
     }
-
-    // Daily rewards
-    const { data: dr } = await sb
-      .from('player_daily_rewards')
-      .select('last_claim_at, current_streak, best_streak')
-      .eq('user_id', user.id)
-      .single()
-    setDaily(dr)
-
-    // Achievements
-    const { data: ach } = await sb
-      .from('player_achievements')
-      .select('achievement_id')
-      .eq('user_id', user.id)
-    setAchievements((ach ?? []).map(a => a.achievement_id))
-
-    setLoading(false)
+    setDaily(drRes.data)
+    setAchievements((achRes.data ?? []).map(a => a.achievement_id))
+    setMissions(missRes.data ?? [])
   }, [user])
 
   useEffect(() => { load() }, [load])
 
-  // Claim daily
   async function claimDaily() {
-    if (claiming || !canClaim) return
+    if (claiming) return
     setClaiming(true)
     try {
-      const sb = createClient()
-      const { error } = await sb.rpc('claim_daily_reward')
+      const { error } = await createClient().rpc('claim_daily_reward')
       if (error) throw error
-      setClaimMsg('✅ Récompense réclamée !')
+      setClaimMsg('✅ Booster crédité !')
       load()
-    } catch {
-      setClaimMsg('Déjà réclamé aujourd\'hui.')
-    } finally {
-      setClaiming(false)
-      setTimeout(() => setClaimMsg(''), 3000)
-    }
+    } catch { setClaimMsg('Déjà réclamé aujourd\'hui.') }
+    finally { setClaiming(false); setTimeout(() => setClaimMsg(''), 3000) }
+  }
+
+  async function claimMission(missionId: string) {
+    setClaimingMission(missionId)
+    try {
+      const { data } = await createClient().rpc('claim_mission_reward', { p_mission_id: missionId })
+      if (data?.xp_gained && profile) {
+        setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+      }
+      load()
+    } catch(e) { console.error(e) }
+    finally { setClaimingMission(null) }
   }
 
   const canClaim = daily?.last_claim_at
@@ -120,6 +105,8 @@ export default function ProfilPage() {
   const level = profile?.level ?? 1
   const xp    = profile?.xp ?? 0
   const { current: xpCurrent, needed: xpNeeded, progress } = getLevelProgress(xp, level)
+  const unlockedCount = achievements.length
+  const completedMissions = missions.filter(m => m.completed).length
 
   if (!user) return (
     <div className="flex items-center justify-center min-h-[50vh] text-white/30 text-sm">
@@ -130,10 +117,10 @@ export default function ProfilPage() {
   return (
     <div className="pb-4 space-y-4">
 
-      {/* Header profil */}
+      {/* Header */}
       <div className="flex items-center gap-4 pt-2">
         <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10"
-          style={profile?.avatar_url ? { backgroundImage: `url(${profile.avatar_url})`, backgroundSize: 'cover' } : { background: 'linear-gradient(135deg, #7b2bff, #4a1fa8)' }}>
+          style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : { background:'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
           {!profile?.avatar_url && (
             <div className="w-full h-full flex items-center justify-center text-xl font-black text-white">
               {profile?.username?.[0]?.toUpperCase() ?? '?'}
@@ -146,110 +133,175 @@ export default function ProfilPage() {
         </div>
         {profile?.highest_rarity && (
           <div className="px-3 py-1.5 rounded-xl text-xs font-bold capitalize"
-            style={{ background: RARITY_COLOR[profile.highest_rarity] + '20', color: RARITY_COLOR[profile.highest_rarity] }}>
+            style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity] }}>
             {profile.highest_rarity}
           </div>
         )}
       </div>
 
-      {/* XP + progression */}
-      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-3">
+      {/* XP bar */}
+      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-white/60 text-xs font-bold uppercase tracking-wider">Expérience</span>
           <span className="text-white/50 text-xs">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</span>
         </div>
         <div className="h-2 rounded-full bg-white/[0.08] overflow-hidden">
           <div className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${progress * 100}%`, background: 'linear-gradient(90deg, #7b2bff, #a855f7)' }} />
+            style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
         </div>
         <p className="text-white/30 text-xs">{xp.toLocaleString('fr-FR')} XP total</p>
       </div>
 
-      {/* Daily reward */}
-      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-white font-bold text-sm">Récompense quotidienne</p>
-            <p className="text-white/40 text-xs mt-0.5">
-              🔥 Streak actuel : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
-              {daily?.best_streak ? <span className="ml-2 text-white/30">· Record : {daily.best_streak}j</span> : null}
-            </p>
-          </div>
-          <button
-            onClick={claimDaily}
-            disabled={!canClaim || claiming}
-            className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-            style={canClaim ? { background: 'linear-gradient(135deg, #7b2bff, #4a1fa8)', color: 'white' } : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
-          >
-            {claiming ? '…' : canClaim ? 'Réclamer' : '✓ Fait'}
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        {([
+          { id: 'overview',     label: '📊 Vue d\'ensemble' },
+          { id: 'missions',     label: `🎯 Missions ${completedMissions > 0 ? `(${completedMissions}/${todayMissions.length})` : ''}` },
+          { id: 'achievements', label: `🏆 Succès (${unlockedCount})` },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60'}`}>
+            {tab.label}
           </button>
-        </div>
-        {claimMsg && <p className="text-xs text-[#00c896]">{claimMsg}</p>}
-
-        {/* Streak calendar (7 derniers jours) */}
-        <div className="flex gap-1.5 mt-2">
-          {Array.from({ length: 7 }, (_, i) => {
-            const filled = daily ? i < daily.current_streak : false
-            return (
-              <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
-                style={{ background: filled ? '#ff9a3d' : 'rgba(255,255,255,0.08)' }} />
-            )
-          })}
-        </div>
+        ))}
       </div>
 
-      {/* Stats */}
-      {stats && (
-        <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-          <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="rounded-xl bg-white/[0.04] p-3">
-              <p className="text-white font-black text-xl">{stats.totalCards}</p>
-              <p className="text-white/40 text-xs">Cartes total</p>
-            </div>
-            <div className="rounded-xl bg-white/[0.04] p-3">
-              <p className="text-white font-black text-xl">{stats.uniqueCards}</p>
-              <p className="text-white/40 text-xs">Uniques</p>
-            </div>
-          </div>
-          {/* Par rareté */}
-          <div className="space-y-1.5">
-            {['void','legendary','epic','rare','uncommon','common'].filter(r => stats.byRarity[r]).map(r => (
-              <div key={r} className="flex items-center gap-2">
-                <span className="w-16 text-xs capitalize" style={{ color: RARITY_COLOR[r] }}>{r}</span>
-                <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className="h-full rounded-full"
-                    style={{ width: `${(stats.byRarity[r] / stats.totalCards) * 100}%`, background: RARITY_COLOR[r] }} />
-                </div>
-                <span className="text-white/40 text-xs w-6 text-right">{stats.byRarity[r]}</span>
+      {/* ── Overview ── */}
+      {activeTab === 'overview' && (
+        <div className="space-y-3">
+          {/* Daily reward */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-white font-bold text-sm">Récompense quotidienne</p>
+                <p className="text-white/40 text-xs mt-0.5">
+                  🔥 Streak : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
+                  {daily?.best_streak ? <span className="ml-2 text-white/30">· Record : {daily.best_streak}j</span> : null}
+                </p>
               </div>
-            ))}
+              <button onClick={claimDaily} disabled={!canClaim || claiming}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+                style={canClaim ? { background:'linear-gradient(135deg,#7b2bff,#4a1fa8)', color:'white' } : { background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.3)' }}>
+                {claiming ? '…' : canClaim ? 'Réclamer' : '✓ Fait'}
+              </button>
+            </div>
+            {claimMsg && <p className="text-xs text-[#00c896]">{claimMsg}</p>}
+            <div className="flex gap-1.5 mt-2">
+              {Array.from({ length: 7 }, (_, i) => (
+                <div key={i} className="flex-1 h-1.5 rounded-full"
+                  style={{ background: i < (daily?.current_streak ?? 0) ? '#ff9a3d' : 'rgba(255,255,255,0.08)' }} />
+              ))}
+            </div>
           </div>
+
+          {/* Stats */}
+          {stats && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+              <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-xl bg-white/[0.04] p-3">
+                  <p className="text-white font-black text-xl">{stats.totalCards}</p>
+                  <p className="text-white/40 text-xs">Cartes total</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.04] p-3">
+                  <p className="text-white font-black text-xl">{stats.uniqueCards}</p>
+                  <p className="text-white/40 text-xs">Uniques</p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                {['void','legendary','epic','rare','common'].filter(r => stats.byRarity[r]).map(r => (
+                  <div key={r} className="flex items-center gap-2">
+                    <span className="w-16 text-xs capitalize" style={{ color: RARITY_COLOR[r] }}>{r}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width:`${(stats.byRarity[r]/stats.totalCards)*100}%`, background: RARITY_COLOR[r] }} />
+                    </div>
+                    <span className="text-white/40 text-xs w-6 text-right">{stats.byRarity[r]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Succès */}
-      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-        <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">
-          Succès · {achievements.length}/{ACHIEVEMENTS.length}
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {ACHIEVEMENTS.map(a => {
-            const unlocked = achievements.includes(a.id)
+      {/* ── Missions ── */}
+      {activeTab === 'missions' && (
+        <div className="space-y-3">
+          <p className="text-white/40 text-xs">Missions du jour — reset à minuit</p>
+          {todayMissions.map(mission => {
+            const prog = missions.find(m => m.mission_id === mission.id)
+            const current = prog?.progress ?? 0
+            const completed = prog?.completed ?? (current >= mission.goal)
+            const claimed = prog?.xp_claimed ?? false
+            const pct = Math.min(100, (current / mission.goal) * 100)
             return (
-              <div key={a.id} title={a.desc}
-                className="rounded-xl p-2.5 flex flex-col items-center gap-1 transition-all"
-                style={{ background: unlocked ? 'rgba(123,43,255,0.15)' : 'rgba(255,255,255,0.03)',
-                  border: unlocked ? '1px solid rgba(123,43,255,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                  opacity: unlocked ? 1 : 0.4,
-                }}>
-                <span className="text-xl">{a.icon}</span>
-                <span className="text-[10px] font-bold text-center text-white/70 leading-tight">{a.label}</span>
+              <div key={mission.id} className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{mission.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-white font-bold text-sm">{mission.label}</p>
+                      <span className="text-[#a78bfa] text-xs font-bold flex-shrink-0">+{mission.xp} XP</span>
+                    </div>
+                    <p className="text-white/40 text-xs mt-0.5">{mission.desc}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{ width:`${pct}%`, background: completed ? '#00c896' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                      </div>
+                      <span className="text-white/40 text-xs flex-shrink-0">{Math.min(current, mission.goal)}/{mission.goal}</span>
+                    </div>
+                  </div>
+                </div>
+                {completed && !claimed && (
+                  <button onClick={() => claimMission(mission.id)}
+                    disabled={claimingMission === mission.id}
+                    className="mt-3 w-full py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
+                    style={{ background:'linear-gradient(135deg,#00c896,#00a878)' }}>
+                    {claimingMission === mission.id ? '…' : `Réclamer +${mission.xp} XP`}
+                  </button>
+                )}
+                {claimed && (
+                  <p className="mt-2 text-xs text-[#00c896] text-center">✅ Récompense réclamée</p>
+                )}
               </div>
             )
           })}
         </div>
-      </div>
+      )}
+
+      {/* ── Succès ── */}
+      {activeTab === 'achievements' && (
+        <div className="space-y-2">
+          <p className="text-white/40 text-xs">{unlockedCount}/{ACHIEVEMENTS.length} succès débloqués</p>
+          <div className="grid grid-cols-1 gap-2">
+            {ACHIEVEMENTS.map(a => {
+              const unlocked = achievements.includes(a.id)
+              return (
+                <div key={a.id}
+                  className="flex items-center gap-3 p-3 rounded-2xl border transition-all"
+                  style={{
+                    background: unlocked ? 'rgba(123,43,255,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: unlocked ? '1px solid rgba(123,43,255,0.25)' : '1px solid rgba(255,255,255,0.05)',
+                    opacity: unlocked ? 1 : 0.45,
+                  }}>
+                  <span className="text-2xl flex-shrink-0">{a.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-bold text-sm">{a.label}</p>
+                    <p className="text-white/40 text-xs truncate">{a.desc}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    {unlocked
+                      ? <span className="text-[#00c896] text-xs font-bold">✓</span>
+                      : <span className="text-[#a78bfa] text-xs">+{a.xp} XP</span>
+                    }
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
