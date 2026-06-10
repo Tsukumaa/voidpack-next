@@ -117,6 +117,7 @@ export function PackScreen() {
         <BoosterOpening
           cards={openedCards}
           boosterImageUrl={openedImageUrl}
+          boosterType={openedType}
           onClose={() => { setOpenedCards(null); loadCredits() }}
         />
       )}
