@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
+import { CardHover } from '@/components/game/CardHover'
 import { useAchievements } from '@/hooks/useAchievements'
 
 interface Card {
