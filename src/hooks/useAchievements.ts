@@ -7,7 +7,7 @@ export function useAchievements() {
   const { profile } = useGameStore(s => ({ profile: s.profile }))
   const sb = createClient()
 
-  async function checkAfterPackOpen(cards: Card[], totalPacks: number, uniqueCards: number) {
+  async function checkAfterPackOpen(cards: Card[], totalPacks: number, uniqueCards: number, boosterType = 'void') {
     const rarities = cards.map(c => c.rarity)
     const promises: Promise<unknown>[] = []
 
@@ -55,6 +55,9 @@ export function useAchievements() {
 
     // Mission daily login (si pas encore faite)
     progress('daily_login', 1)
+
+    // Mission void pack
+    if (boosterType === 'void') progress('open_void_pack', 1)
 
     await Promise.allSettled(promises)
   }

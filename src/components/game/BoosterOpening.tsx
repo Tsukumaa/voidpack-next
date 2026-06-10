@@ -19,6 +19,7 @@ interface Card {
 interface Props {
   cards: Card[]
   boosterImageUrl?: string
+  boosterType?: string
   onClose: () => void
 }
 
@@ -54,7 +55,7 @@ type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
 type CardPhase = 'back'|'suspense'|'revealed'
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
-function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void }) {
+function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]; boosterType?: string; onClose: () => void }) {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
   const { checkAfterPackOpen } = useAchievements()
   const [selected, setSelected] = useState<Card | null>(null)
@@ -103,7 +104,7 @@ function ResultsScreen({ cards, onClose }: { cards: Card[]; onClose: () => void 
       const { data: allCards } = await sb.from('player_cards').select('card_id').eq('user_id', user.id)
       const uniqueCount = new Set((allCards ?? []).map((c: {card_id: string}) => c.card_id)).size
       const { data: packData } = await sb.from('player_profiles').select('packs_opened').eq('user_id', user.id).single()
-      await checkAfterPackOpen(cards, packData?.packs_opened ?? 1, uniqueCount)
+      await checkAfterPackOpen(cards, packData?.packs_opened ?? 1, uniqueCount, boosterType)
 
       setSaved(true); setShowXP(true)
       setTimeout(() => setShowXP(false), 2500)
@@ -231,11 +232,12 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
   const [auraColor, setAuraColor]   = useState('')
   const [raysColor, setRaysColor]   = useState('')
   const [particles, setParticles]   = useState<Particle[]>([])
-  const [tearParticles, setTearParticles] = useState<Particle[]>([])
   const [shake, setShake]           = useState(false)
 
-  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([])
-  const locked    = useRef(false)
+  const timerRefs    = useRef<ReturnType<typeof setTimeout>[]>([])
+  const locked       = useRef(false)
+  const tearCanvasRef = useRef<HTMLCanvasElement>(null)
+  const tearRafRef   = useRef<number>(0)
 
   const currentCard = cards[cardIndex]
   const isLast      = cardIndex === cards.length - 1
@@ -248,18 +250,56 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
   function clearTimers() {
     timerRefs.current.forEach(clearTimeout); timerRefs.current = []; locked.current = false
   }
-  useEffect(() => () => clearTimers(), []) // eslint-disable-line
+  useEffect(() => () => { clearTimers(); cancelAnimationFrame(tearRafRef.current) }, []) // eslint-disable-line
 
   function spawnTearParticles() {
+    const canvas = tearCanvasRef.current
+    if (!canvas) return
+    const W = canvas.offsetWidth || 300
+    const H = canvas.offsetHeight || 400
+    canvas.width  = W * 2
+    canvas.height = H * 2
+    canvas.style.width  = `${W}px`
+    canvas.style.height = `${H}px`
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(2, 2)
+
     const colors = ['#ffffff','#a78bfa','#7b2bff','#c4b5fd','#e0d7ff']
-    const ps: Particle[] = Array.from({ length: 24 }, (_, i) => ({
-      id: i, x: 20+Math.random()*60, y: TEAR_Y-5+Math.random()*10,
-      color: colors[Math.floor(Math.random()*colors.length)],
-      size: 2+Math.random()*5, delay: Math.random()*.15,
-      dur: .5+Math.random()*.5, vx: (Math.random()-.5)*120, vy: -30-Math.random()*80,
+    const pts = Array.from({ length: 28 }, () => ({
+      x: W * (.2 + Math.random() * .6),
+      y: H * TEAR_Y / 100,
+      vx: (Math.random() - .5) * 6,
+      vy: -2 - Math.random() * 5,
+      r: 1.5 + Math.random() * 3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 1,
+      decay: .018 + Math.random() * .025,
     }))
-    setTearParticles(ps)
-    setTimeout(() => setTearParticles([]), 1200)
+
+    cancelAnimationFrame(tearRafRef.current)
+    function frame() {
+      ctx.clearRect(0, 0, W, H)
+      let alive = false
+      for (const p of pts) {
+        if (p.life <= 0) continue
+        alive = true
+        p.x += p.vx; p.y += p.vy
+        p.vy += .12 // gravité légère
+        p.life -= p.decay
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2)
+        ctx.fillStyle = p.color
+        ctx.globalAlpha = p.life
+        ctx.shadowBlur = p.r * 4
+        ctx.shadowColor = p.color
+        ctx.fill()
+        ctx.globalAlpha = 1
+        ctx.shadowBlur = 0
+      }
+      if (alive) tearRafRef.current = requestAnimationFrame(frame)
+      else ctx.clearRect(0, 0, W, H)
+    }
+    tearRafRef.current = requestAnimationFrame(frame)
   }
 
   function spawnRevealParticles(c: string, count: number) {
@@ -314,7 +354,7 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
 
-  if (phase === 'results') return <ResultsScreen cards={cards} onClose={onClose} />
+  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} onClose={onClose} />
 
   return (
     <div
@@ -324,34 +364,9 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
       {/* ── IDLE / TEARING ── */}
       {(phase === 'idle' || phase === 'tearing') && (
         <div onClick={handleTear} className="relative flex flex-col items-center gap-8 cursor-pointer select-none">
-          {/* Particules déchirure — positionnées absolument par rapport au pack */}
-          <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }}>
-            {tearParticles.map(p => (
-              <div key={p.id}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: p.size,
-                  height: p.size,
-                  background: p.color,
-                  left: `${p.x}%`,
-                  top: `${p.y}%`,
-                  boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                  opacity: 0,
-                  animationName: `tp${p.id}`,
-                  animationDuration: `${p.dur}s`,
-                  animationDelay: `${p.delay}s`,
-                  animationFillMode: 'forwards',
-                  animationTimingFunction: 'ease-out',
-                }}>
-                <style>{`
-                  @keyframes tp${p.id} {
-                    0% { transform: translate(0,0) scale(1); opacity: 1; }
-                    100% { transform: translate(${p.vx}px,${p.vy}px) scale(0); opacity: 0; }
-                  }
-                `}</style>
-              </div>
-            ))}
-          </div>
+          {/* Canvas particules déchirure */}
+          <canvas ref={tearCanvasRef} className="absolute pointer-events-none"
+            style={{ top: 0, left: '50%', transform: 'translateX(-50%)', width: 'min(72vw,300px)', height: '100%', overflow: 'visible' }} />
 
           <div style={{
             width: 'min(72vw,300px)',
