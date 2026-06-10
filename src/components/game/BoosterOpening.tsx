@@ -223,7 +223,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
+export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
@@ -286,8 +286,10 @@ export function BoosterOpening({ cards, boosterImageUrl, onClose }: Props) {
         p.x += p.vx; p.y += p.vy
         p.vy += .12 // gravité légère
         p.life -= p.decay
+        const radius = Math.max(0, p.r * p.life)
+        if (radius <= 0) continue
         ctx.beginPath()
-        ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
         ctx.fillStyle = p.color
         ctx.globalAlpha = p.life
         ctx.shadowBlur = p.r * 4
