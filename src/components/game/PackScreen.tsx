@@ -205,8 +205,11 @@ export function PackScreen() {
           <>
             {/* Logo + tagline fixés en haut, indépendants */}
             <div className="absolute top-16 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
-              <Image src="/assets/branding/void-favicon.png" alt="VOID" width={36} height={36} className="opacity-70" />
-              <h1 className="text-xl font-black tracking-tight text-white">VOID Pack</h1>
+              <img
+                src="/assets/branding/void-logo-polished.png"
+                alt="VOID Pack"
+                style={{ width: 'min(72vw, 300px)' }}
+              />
               <p className="text-white/35 text-xs tracking-widest uppercase font-medium">
                 Ouvre · Découvre · Collectionne
               </p>
