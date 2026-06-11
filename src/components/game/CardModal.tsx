@@ -55,21 +55,24 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
         onClick={e => e.stopPropagation()}
       >
         {/* Carte avec hover effect */}
-        <CardHover rarity={rarity} className="relative w-full rounded-3xl overflow-hidden"
+        <CardHover rarity={rarity} className="relative w-full rounded-3xl"
           style={{
             aspectRatio: '0.714',
             background: RARITY_BG[rarity] ?? RARITY_BG.common,
             boxShadow: `0 0 100px ${hexToRgba(color, .65)}, 0 0 200px ${hexToRgba(color, .25)}`,
             border: `1px solid ${hexToRgba(color, .5)}`,
+            overflow: 'visible',
           }}
         >
-          {artUrl
-            ? <Image src={artUrl} alt={name} fill className="object-contain" unoptimized />
-            : <div className="w-full h-full flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full opacity-30"
-                  style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
-              </div>
-          }
+          <div className="absolute inset-0 rounded-3xl overflow-hidden">
+            {artUrl
+              ? <Image src={artUrl} alt={name} fill className="object-contain" unoptimized />
+              : <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full opacity-30"
+                    style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
+                </div>
+            }
+          </div>
         </CardHover>
 
         {/* Infos */}
