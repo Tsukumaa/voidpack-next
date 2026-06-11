@@ -200,3 +200,8 @@
   0%, 100% { transform: translateY(0px) scale(1); opacity: .7; }
   50%       { transform: translateY(-8px) scale(1.2); opacity: 1; }
 }
+
+@keyframes voidCardFloat {
+  0%, 100% { transform: perspective(900px) translateY(0px) rotateX(0deg); }
+  50%       { transform: perspective(900px) translateY(-6px) rotateX(1deg); }
+}
