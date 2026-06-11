@@ -474,23 +474,16 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   style={{ backfaceVisibility:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
                   <Image src="/assets/dos.png" alt="" fill className="object-cover" />
                 </div>
-                <div className="absolute inset-0 rounded-2xl bg-[#050210]"
+                <div className="absolute inset-0 rounded-2xl overflow-hidden bg-[#050210]"
                   style={{ backfaceVisibility:'hidden', transform:'rotateY(180deg)',
-                    boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)',
-                    overflow: 'visible' }}>
-                  <CardHover
-                    rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'}
-                    className="absolute inset-0 rounded-2xl"
-                    style={{ overflow: 'hidden' }}
-                  >
-                    {currentCard.artUrl
-                      ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
-                      : <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-20 h-20 rounded-full opacity-40"
-                            style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
-                        </div>
-                    }
-                  </CardHover>
+                    boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
+                  {currentCard.artUrl
+                    ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
+                    : <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full opacity-40"
+                          style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
+                      </div>
+                  }
                 </div>
               </div>
             </div>

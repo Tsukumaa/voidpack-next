@@ -173,25 +173,26 @@ export default function CollectionPage() {
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
-                      className="relative rounded-2xl overflow-hidden cursor-pointer active:scale-95"
-                      style={{ aspectRatio: '0.714', background: RARITY_BG[card.rarity] }}
+                      className="relative rounded-2xl cursor-pointer active:scale-95"
+                      style={{ aspectRatio: '0.714', background: RARITY_BG[card.rarity], overflow: 'visible' }}
                     >
-                      <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
-                        {card.image_url ? (
-                          <Image src={card.image_url} alt={card.name} fill className="object-contain" unoptimized />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-12 h-12 rounded-full opacity-30"
-                              style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
-                          </div>
-                        )}
-                        {/* Badge count */}
-                        {card.count > 1 && (
-                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-10">
-                            {card.count}
-                          </div>
-                        )}
-                      </button>
+                      <div className="absolute inset-0 rounded-2xl overflow-hidden">
+                        <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
+                          {card.image_url ? (
+                            <Image src={card.image_url} alt={card.name} fill className="object-contain" unoptimized />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full opacity-30"
+                                style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
+                            </div>
+                          )}
+                          {card.count > 1 && (
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-10">
+                              {card.count}
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     </CardHover>
                   ))}
                 </div>
