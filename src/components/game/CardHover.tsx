@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 
 interface CardHoverProps {
   rarity: string
@@ -29,6 +29,85 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const glowRef  = useRef<HTMLDivElement>(null)
   const shimRef  = useRef<HTMLDivElement>(null)
   const rafRef   = useRef<number>(0)
+  const starCanvasRef  = useRef<HTMLCanvasElement>(null)
+  const emberCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [hovered, setHovered] = useState(false)
+
+  const isVoid      = rarity === 'void'
+  const isLegendary = rarity === 'legendary'
+
+  // Void étoiles canvas
+  useEffect(() => {
+    if (!isVoid) return
+    const canvas = starCanvasRef.current
+    const card = cardRef.current
+    if (!canvas || !card) return
+    canvas.width = card.offsetWidth || 260
+    canvas.height = card.offsetHeight || 365
+    const ctx = canvas.getContext('2d')!
+    const stars = Array.from({ length: 16 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: .6 + Math.random() * 1.8, phase: Math.random() * Math.PI * 2,
+      speed: .007 + Math.random() * .013, vy: -.08 - Math.random() * .14,
+    }))
+    let t = 0, raf = 0
+    function drawStar(x: number, y: number, r: number, a: number) {
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y)
+      ctx.beginPath()
+      for (let i = 0; i < 8; i++) {
+        const ang = (i/8)*Math.PI*2; const len = i%2===0 ? r : r*.28
+        i===0 ? ctx.moveTo(Math.cos(ang)*len,Math.sin(ang)*len) : ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len)
+      }
+      ctx.closePath(); ctx.fillStyle='#e9d5ff'; ctx.shadowBlur=r*8; ctx.shadowColor='#a855f7'; ctx.fill()
+      ctx.beginPath(); ctx.arc(0,0,r*.3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.shadowBlur=r*4; ctx.fill()
+      ctx.restore()
+    }
+    function frame() {
+      t++; ctx.clearRect(0,0,canvas.width,canvas.height)
+      for (const s of stars) {
+        s.y += s.vy
+        if (s.y < -8) { s.y = canvas.height+4; s.x = Math.random()*canvas.width }
+        drawStar(s.x, s.y, s.r, .35+.55*Math.sin(t*s.speed+s.phase))
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [isVoid])
+
+  // Legendary braises canvas
+  useEffect(() => {
+    if (!isLegendary || !hovered) return
+    const canvas = emberCanvasRef.current
+    const card = cardRef.current
+    if (!canvas || !card) return
+    canvas.width = card.offsetWidth || 260
+    canvas.height = card.offsetHeight || 365
+    const ctx = canvas.getContext('2d')!
+    const colors = ['#ffd700','#ff8c00','#ffb347','#ffa500','#fffacd']
+    type E = {x:number;y:number;vx:number;vy:number;r:number;life:number;decay:number;color:string;wobble:number}
+    const embers: E[] = []
+    let st=0, raf=0
+    function frame() {
+      ctx.clearRect(0,0,canvas.width,canvas.height); st++
+      if (st%7===0 && embers.length<20) embers.push({
+        x:canvas.width*(.15+Math.random()*.7), y:canvas.height*(.55+Math.random()*.4),
+        vx:(Math.random()-.5)*.35, vy:-(.12+Math.random()*.35),
+        r:.7+Math.random()*1.4, life:1, decay:.003+Math.random()*.004,
+        color:colors[Math.floor(Math.random()*colors.length)], wobble:Math.random()*Math.PI*2,
+      })
+      for (let i=embers.length-1;i>=0;i--) {
+        const e=embers[i]; e.wobble+=.03; e.x+=e.vx+Math.sin(e.wobble)*.2; e.y+=e.vy; e.life-=e.decay
+        if(e.life<=0){embers.splice(i,1);continue}
+        const r=Math.max(0,e.r*Math.sqrt(e.life))
+        ctx.save(); ctx.globalAlpha=e.life*.8; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2)
+        ctx.fillStyle=e.color; ctx.shadowBlur=r*5; ctx.shadowColor='#ffd700'; ctx.fill(); ctx.restore()
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => { cancelAnimationFrame(raf); ctx.clearRect(0,0,canvas.width,canvas.height) }
+  }, [isLegendary, hovered])
 
   const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current
@@ -62,6 +141,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   }, [rarity])
 
   const onLeave = useCallback(() => {
+    setHovered(false)
     const card = cardRef.current
     if (!card) return
     card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'
@@ -74,6 +154,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   }, [])
 
   const onEnter = useCallback(() => {
+    setHovered(true)
     const card = cardRef.current
     if (card) card.style.transition = 'transform 0.1s ease'
   }, [])
@@ -108,21 +189,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
           style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
       )}
 
-      {/* Void : particules flottantes permanentes */}
-      {rarity === 'void' && (
-        <div className="absolute inset-0 pointer-events-none rounded-[inherit] overflow-hidden z-4">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="absolute rounded-full"
-              style={{
-                width: '3px', height: '3px',
-                background: i % 2 === 0 ? '#a855f7' : '#c084fc',
-                boxShadow: '0 0 6px #a855f7',
-                left: `${15 + i * 14}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                animation: `voidFloat ${2 + i * 0.4}s ease-in-out ${i * 0.3}s infinite`,
-              }} />
-          ))}
-        </div>
+      {/* Void : étoiles canvas */}
+      {isVoid && (
+        <canvas ref={starCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
+          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen'}} />
       )}
 
       {/* Legendary : éclat doré aux coins */}
@@ -137,6 +207,12 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
           <div className="absolute bottom-0 right-0 w-8 h-8 pointer-events-none z-4"
             style={{ background: 'radial-gradient(circle at 100% 100%, rgba(255,215,0,0.3), transparent 70%)' }} />
         </>
+      )}
+
+      {/* Legendary : braises canvas (hover only) */}
+      {isLegendary && hovered && (
+        <canvas ref={emberCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
+          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen'}} />
       )}
     </div>
   )
