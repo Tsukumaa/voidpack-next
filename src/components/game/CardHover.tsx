@@ -42,57 +42,37 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const glowAlpha   = GLOW_ALPHA[rarity] ?? .08
   const shimmer     = SHIMMER[rarity]  ?? SHIMMER.common
 
-  // ── Void float — sur le wrapper, pas sur la carte ─────────────────────────
-  const floatWrapRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const el = floatWrapRef.current
-    if (!el || !isVoid) return
-    el.style.animation = 'voidCardFloat 4s ease-in-out infinite'
-    return () => { if (el) el.style.animation = '' }
-  }, [isVoid])
-
-  // ── Void : étoiles canvas ─────────────────────────────────────────────────
+  // ── Void étoiles ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isVoid) return
     const canvas = starCanvasRef.current
     const card   = cardRef.current
     if (!canvas || !card) return
-
-    const sync = () => {
-      canvas.width  = card.offsetWidth  || 260
-      canvas.height = card.offsetHeight || 365
-    }
+    const sync = () => { canvas.width = card.offsetWidth || 260; canvas.height = card.offsetHeight || 365 }
     sync()
-
     const ctx = canvas.getContext('2d')!
     const stars = Array.from({ length: 16 }, () => ({
-      x: Math.random() * (canvas.width  || 260),
+      x: Math.random() * (canvas.width || 260),
       y: Math.random() * (canvas.height || 365),
       r: .5 + Math.random() * 1.6,
       phase: Math.random() * Math.PI * 2,
       speed: .006 + Math.random() * .012,
       vy: -.07 - Math.random() * .12,
     }))
-
     let t = 0, raf = 0
     function drawStar(x: number, y: number, r: number, a: number) {
       ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y)
       ctx.beginPath()
       for (let i = 0; i < 8; i++) {
-        const ang = (i/8)*Math.PI*2
-        const len = i%2===0 ? r : r*.28
-        i===0 ? ctx.moveTo(Math.cos(ang)*len,Math.sin(ang)*len)
-              : ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len)
+        const ang = (i/8)*Math.PI*2; const len = i%2===0 ? r : r*.28
+        i===0 ? ctx.moveTo(Math.cos(ang)*len,Math.sin(ang)*len) : ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len)
       }
-      ctx.closePath()
-      ctx.fillStyle='#e9d5ff'; ctx.shadowBlur=r*8; ctx.shadowColor='#a855f7'; ctx.fill()
+      ctx.closePath(); ctx.fillStyle='#e9d5ff'; ctx.shadowBlur=r*8; ctx.shadowColor='#a855f7'; ctx.fill()
       ctx.beginPath(); ctx.arc(0,0,r*.3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.shadowBlur=r*4; ctx.fill()
       ctx.restore()
     }
-
     function frame() {
-      t++
-      ctx.clearRect(0,0,canvas.width,canvas.height)
+      t++; ctx.clearRect(0,0,canvas.width,canvas.height)
       for (const s of stars) {
         s.y += s.vy
         if (s.y < -8) { s.y = canvas.height+4; s.x = Math.random()*canvas.width }
@@ -104,43 +84,33 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     return () => cancelAnimationFrame(raf)
   }, [isVoid])
 
-  // ── Legendary : braises (hover only) ─────────────────────────────────────
+  // ── Legendary braises ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLegendary || !hovered) return
     const canvas = emberCanvasRef.current
     const card   = cardRef.current
     if (!canvas || !card) return
-
-    canvas.width  = card.offsetWidth  || 260
+    canvas.width = card.offsetWidth || 260
     canvas.height = card.offsetHeight || 365
-
     const ctx = canvas.getContext('2d')!
     const colors = ['#ffd700','#ff8c00','#ffb347','#ffa500','#fffacd']
     type E = {x:number;y:number;vx:number;vy:number;r:number;life:number;decay:number;color:string;wobble:number}
     const embers: E[] = []
     let st=0, raf=0
-
     function frame() {
       ctx.clearRect(0,0,canvas.width,canvas.height); st++
       if (st%7===0 && embers.length<20) embers.push({
-        x: canvas.width*(.15+Math.random()*.7),
-        y: canvas.height*(.55+Math.random()*.4),
-        vx: (Math.random()-.5)*.35,
-        vy: -(.12+Math.random()*.35),
-        r: .7+Math.random()*1.4, life:1,
-        decay: .003+Math.random()*.004,
-        color: colors[Math.floor(Math.random()*colors.length)],
-        wobble: Math.random()*Math.PI*2,
+        x: canvas.width*(.15+Math.random()*.7), y: canvas.height*(.55+Math.random()*.4),
+        vx: (Math.random()-.5)*.35, vy: -(.12+Math.random()*.35),
+        r: .7+Math.random()*1.4, life: 1, decay: .003+Math.random()*.004,
+        color: colors[Math.floor(Math.random()*colors.length)], wobble: Math.random()*Math.PI*2,
       })
       for (let i=embers.length-1;i>=0;i--) {
-        const e=embers[i]
-        e.wobble+=.03; e.x+=e.vx+Math.sin(e.wobble)*.2; e.y+=e.vy; e.life-=e.decay
+        const e=embers[i]; e.wobble+=.03; e.x+=e.vx+Math.sin(e.wobble)*.2; e.y+=e.vy; e.life-=e.decay
         if (e.life<=0){embers.splice(i,1);continue}
         const r=Math.max(0,e.r*Math.sqrt(e.life))
-        ctx.save(); ctx.globalAlpha=e.life*.8
-        ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2)
-        ctx.fillStyle=e.color; ctx.shadowBlur=r*5; ctx.shadowColor='#ffd700'; ctx.fill()
-        ctx.restore()
+        ctx.save(); ctx.globalAlpha=e.life*.8; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2)
+        ctx.fillStyle=e.color; ctx.shadowBlur=r*5; ctx.shadowColor='#ffd700'; ctx.fill(); ctx.restore()
       }
       raf = requestAnimationFrame(frame)
     }
@@ -167,24 +137,25 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         shimRef.current.style.opacity = '1'
       }
     })
-  },[maxTilt,glowRgb,glowAlpha,shimmer,isVoid])
+  }, [maxTilt, glowRgb, glowAlpha, shimmer, isVoid])
 
   const onEnter = useCallback(() => {
     setHovered(true)
     const card = cardRef.current; if (!card) return
     card.style.transition = 'transform 0.08s ease'
     if (borderRef.current) borderRef.current.style.opacity = '1'
-  },[])
+  }, [])
 
   const onLeave = useCallback(() => {
     setHovered(false)
     const card = cardRef.current; if (!card) return
     card.style.transition = 'transform 0.5s ease'
-    card.style.transform  = 'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)'
-    if (!isVoid && glowRef.current)  glowRef.current.style.opacity  = '0'
-    if (shimRef.current)              shimRef.current.style.opacity   = '0'
+    card.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)'
+    if (!isVoid && glowRef.current) glowRef.current.style.opacity = '0'
+    if (shimRef.current) shimRef.current.style.opacity = '0'
     if (!isVoid && borderRef.current) borderRef.current.style.opacity = '0'
     setTimeout(() => { if (card) card.style.transition = '' }, 500)
+  }, [isVoid])
 
   return (
     <div
@@ -195,7 +166,6 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       onMouseLeave={onLeave}
       onMouseEnter={onEnter}
     >
-      {/* Glow derrière void */}
       {isVoid && (
         <div className="absolute pointer-events-none"
           style={{ inset:'-25%', borderRadius:'50%',
