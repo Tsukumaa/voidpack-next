@@ -205,3 +205,8 @@
   0%, 100% { transform: perspective(900px) translateY(0px) rotateX(0deg); }
   50%       { transform: perspective(900px) translateY(-6px) rotateX(1deg); }
 }
+
+@keyframes voidGlowBreathe {
+  0%, 100% { opacity: .7; transform: scale(1); }
+  50%       { opacity: 1;  transform: scale(1.12); }
+}
