@@ -185,87 +185,54 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     if (shimRef.current)              shimRef.current.style.opacity   = '0'
     if (!isVoid && borderRef.current) borderRef.current.style.opacity = '0'
     setTimeout(() => { if (card) card.style.transition = '' }, 500)
-  },[isVoid])
 
   return (
-    <div ref={isVoid ? floatWrapRef : undefined}
+    <div
+      ref={cardRef}
       className={className}
-      style={{ ...style, position: 'relative' }}
+      style={{ ...style, position:'relative', transformStyle:'preserve-3d', willChange:'transform' }}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onMouseEnter={onEnter}
     >
-      <div
-        ref={cardRef}
-        style={{
-          position: 'absolute', inset: 0,
-          transformStyle: 'preserve-3d',
-          willChange: 'transform',
-        }}
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-        onMouseEnter={onEnter}
-      >
-      {/* Glow derrière — void, filtre blur en dehors via outline trick */}
+      {/* Glow derrière void */}
       {isVoid && (
         <div className="absolute pointer-events-none"
-          style={{
-            inset: '-25%',
-            borderRadius: '50%',
-            background: `radial-gradient(circle,rgba(${glowRgb},.28) 0%,rgba(${glowRgb},.10) 45%,transparent 70%)`,
-            filter: 'blur(24px)',
-            zIndex: 0,
-            animation: 'voidGlowBreathe 4s ease-in-out infinite',
-          }} />
+          style={{ inset:'-25%', borderRadius:'50%',
+            background:`radial-gradient(circle,rgba(${glowRgb},.28) 0%,rgba(${glowRgb},.10) 45%,transparent 70%)`,
+            filter:'blur(24px)', zIndex:0, animation:'voidGlowBreathe 4s ease-in-out infinite' }} />
       )}
 
       {children}
 
-      {/* Étoiles void */}
       {isVoid && (
-        <canvas ref={starCanvasRef}
-          className="absolute inset-0 pointer-events-none rounded-[inherit]"
+        <canvas ref={starCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
           style={{zIndex:2,width:'100%',height:'100%',mixBlendMode:'screen'}} />
       )}
-
-      {/* Braises legendary */}
       {isLegendary && hovered && (
-        <canvas ref={emberCanvasRef}
-          className="absolute inset-0 pointer-events-none rounded-[inherit]"
+        <canvas ref={emberCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
           style={{zIndex:2,width:'100%',height:'100%',mixBlendMode:'screen'}} />
       )}
-
-      {/* Glow curseur */}
       {!isVoid && (
-        <div ref={glowRef}
-          className="absolute inset-0 pointer-events-none rounded-[inherit]"
+        <div ref={glowRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
           style={{opacity:0,mixBlendMode:'screen',zIndex:3}} />
       )}
-
-      {/* Shimmer */}
-      <div ref={shimRef}
-        className="absolute inset-0 pointer-events-none rounded-[inherit]"
+      <div ref={shimRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
         style={{opacity:0,mixBlendMode:'screen',zIndex:4}} />
-
-      {/* Border */}
       {(rarity==='legendary'||rarity==='void'||rarity==='epic') && (
-        <div ref={borderRef}
-          className="absolute inset-0 pointer-events-none rounded-[inherit]"
-          style={{
-            opacity: isVoid ? .4 : 0, zIndex:5,
-            boxShadow: isVoid
-              ? `0 0 20px rgba(${glowRgb},.4),0 0 40px rgba(${glowRgb},.15),inset 0 0 0 1px rgba(${glowRgb},.4)`
-              : isLegendary
-                ? `0 0 18px rgba(${glowRgb},.45),0 0 36px rgba(${glowRgb},.18),inset 0 0 0 1px rgba(${glowRgb},.35)`
-                : `0 0 10px rgba(${glowRgb},.25),inset 0 0 0 1px rgba(${glowRgb},.2)`
-          }} />
+        <div ref={borderRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
+          style={{ opacity:isVoid?.4:0, zIndex:5,
+            boxShadow:isVoid
+              ?`0 0 20px rgba(${glowRgb},.4),0 0 40px rgba(${glowRgb},.15),inset 0 0 0 1px rgba(${glowRgb},.4)`
+              :isLegendary
+                ?`0 0 18px rgba(${glowRgb},.45),0 0 36px rgba(${glowRgb},.18),inset 0 0 0 1px rgba(${glowRgb},.35)`
+                :`0 0 10px rgba(${glowRgb},.25),inset 0 0 0 1px rgba(${glowRgb},.2)` }} />
       )}
-
-      {/* Legendary coins */}
       {isLegendary && hovered && [[0,0],[1,0],[0,1],[1,1]].map(([ix,iy],i) => (
         <div key={i} className="absolute w-16 h-16 pointer-events-none"
-          style={{zIndex:5,
-            left:ix?'auto':0,right:ix?0:'auto',top:iy?'auto':0,bottom:iy?0:'auto',
+          style={{zIndex:5, left:ix?'auto':0, right:ix?0:'auto', top:iy?'auto':0, bottom:iy?0:'auto',
             background:`radial-gradient(circle at ${ix?'100%':'0%'} ${iy?'100%':'0%'},rgba(255,215,0,.5),rgba(255,165,0,.15) 50%,transparent 70%)`}} />
       ))}
-      </div>
     </div>
   )
 }
