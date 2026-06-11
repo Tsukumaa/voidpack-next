@@ -173,7 +173,7 @@ export default function CollectionPage() {
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
-                      className="relative rounded-2xl cursor-pointer active:scale-95"
+                      className={`relative rounded-2xl cursor-pointer active:scale-95${card.rarity === 'void' ? ' animate-[voidCardFloat_4s_ease-in-out_infinite]' : ''}`}
                       style={{ aspectRatio: '0.714', background: RARITY_BG[card.rarity], overflow: 'visible' }}
                     >
                       <div className="absolute inset-0 rounded-2xl overflow-hidden">
