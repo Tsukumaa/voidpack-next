@@ -42,9 +42,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const glowAlpha   = GLOW_ALPHA[rarity] ?? .08
   const shimmer     = SHIMMER[rarity]  ?? SHIMMER.common
 
-  // ── Void : float ──────────────────────────────────────────────────────────
+  // ── Void float — sur le wrapper, pas sur la carte ─────────────────────────
+  const floatWrapRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const el = cardRef.current
+    const el = floatWrapRef.current
     if (!el || !isVoid) return
     el.style.animation = 'voidCardFloat 4s ease-in-out infinite'
     return () => { if (el) el.style.animation = '' }
@@ -171,10 +172,9 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const onEnter = useCallback(() => {
     setHovered(true)
     const card = cardRef.current; if (!card) return
-    if (isVoid) card.style.animationPlayState = 'paused'
     card.style.transition = 'transform 0.08s ease'
     if (borderRef.current) borderRef.current.style.opacity = '1'
-  },[isVoid])
+  },[])
 
   const onLeave = useCallback(() => {
     setHovered(false)
@@ -184,27 +184,25 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     if (!isVoid && glowRef.current)  glowRef.current.style.opacity  = '0'
     if (shimRef.current)              shimRef.current.style.opacity   = '0'
     if (!isVoid && borderRef.current) borderRef.current.style.opacity = '0'
-    setTimeout(() => {
-      if (!card) return
-      card.style.transition = ''
-      if (isVoid) card.style.animationPlayState = 'running'
-    }, 500)
+    setTimeout(() => { if (card) card.style.transition = '' }, 500)
   },[isVoid])
 
   return (
-    <div
-      ref={cardRef}
+    <div ref={isVoid ? floatWrapRef : undefined}
       className={className}
-      style={{
-        ...style,
-        position: 'relative',
-        transformStyle: 'preserve-3d',
-        willChange: 'transform',
-      }}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      onMouseEnter={onEnter}
+      style={{ ...style, position: 'relative' }}
     >
+      <div
+        ref={cardRef}
+        style={{
+          position: 'absolute', inset: 0,
+          transformStyle: 'preserve-3d',
+          willChange: 'transform',
+        }}
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+        onMouseEnter={onEnter}
+      >
       {/* Glow derrière — void, filtre blur en dehors via outline trick */}
       {isVoid && (
         <div className="absolute pointer-events-none"
@@ -267,6 +265,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
             left:ix?'auto':0,right:ix?0:'auto',top:iy?'auto':0,bottom:iy?0:'auto',
             background:`radial-gradient(circle at ${ix?'100%':'0%'} ${iy?'100%':'0%'},rgba(255,215,0,.5),rgba(255,165,0,.15) 50%,transparent 70%)`}} />
       ))}
+      </div>
     </div>
   )
 }
