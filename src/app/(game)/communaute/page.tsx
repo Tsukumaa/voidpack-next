@@ -48,6 +48,7 @@ export default function CommunautePage() {
   const [showFriends, setShowFriends] = useState(false)
   const [chatFriend, setChatFriend] = useState<Friend | null>(null)
   const [friends, setFriends]       = useState<Friend[]>([])
+  const [pendingRequests, setPendingRequests] = useState<Friend[]>([])
 
   const loadLadder = useCallback(async () => {
     setLoading(true)
@@ -105,8 +106,31 @@ export default function CommunautePage() {
     }))
   }, [user])
 
+  const loadPendingRequests = useCallback(async () => {
+    if (!user) return
+    const sb = createClient()
+    const { data } = await sb
+      .from('friendships')
+      .select('id, sender_id, receiver_id, status')
+      .eq('receiver_id', user.id)
+      .eq('status', 'pending')
+
+    if (!data || !data.length) { setPendingRequests([]); return }
+
+    const senderIds = data.map(f => f.sender_id)
+    const { data: profiles } = await sb
+      .from('player_profiles')
+      .select('user_id, username, avatar_url')
+      .in('user_id', senderIds)
+
+    setPendingRequests(data.map(f => {
+      const profile = profiles?.find(p => p.user_id === f.sender_id)
+      return { id: f.id, friend_id: f.sender_id, username: profile?.username ?? null, avatar_url: profile?.avatar_url ?? null, status: f.status }
+    }))
+  }, [user])
+
   useEffect(() => { loadLadder() }, [loadLadder])
-  useEffect(() => { if (user) loadFriends() }, [loadFriends, user])
+  useEffect(() => { if (user) { loadFriends(); loadPendingRequests() } }, [loadFriends, loadPendingRequests, user])
 
   const myRank = user ? entries.findIndex(e => e.user_id === user.id) + 1 : 0
 
@@ -123,8 +147,13 @@ export default function CommunautePage() {
             )}
             {user && (
               <button onClick={() => setShowFriends(true)}
-                className="px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
+                className="relative px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
                 👥 Amis {friends.length > 0 && `(${friends.length})`}
+                {pendingRequests.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingRequests.length}
+                  </span>
+                )}
               </button>
             )}
           </div>
@@ -219,9 +248,10 @@ export default function CommunautePage() {
         <FriendsModal
           user={user}
           friends={friends}
+          pendingRequests={pendingRequests}
           onClose={() => setShowFriends(false)}
           onChat={(f) => { setChatFriend(f); setShowFriends(false) }}
-          onRefresh={loadFriends}
+          onRefresh={() => { loadFriends(); loadPendingRequests() }}
         />
       )}
 
@@ -248,9 +278,10 @@ export default function CommunautePage() {
 }
 
 // ─── Modal Amis ───────────────────────────────────────────────────────────────
-function FriendsModal({ user, friends, onClose, onChat, onRefresh }: {
+function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefresh }: {
   user: { id: string } | null
   friends: Friend[]
+  pendingRequests: Friend[]
   onClose: () => void
   onChat: (f: Friend) => void
   onRefresh: () => void
@@ -275,13 +306,34 @@ function FriendsModal({ user, friends, onClose, onChat, onRefresh }: {
 
   async function sendRequest(targetId: string) {
     if (!user) return
-    await createClient().from('friendships').insert({
+    // Vérifier qu'aucune relation n'existe déjà dans un sens ou l'autre
+    const sb = createClient()
+    const { data: existing } = await sb
+      .from('friendships')
+      .select('id')
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${user.id})`)
+      .limit(1)
+    if (existing && existing.length > 0) {
+      setSent(s => new Set([...s, targetId]))
+      return
+    }
+    await sb.from('friendships').insert({
       sender_id: user.id, receiver_id: targetId, status: 'pending'
     })
     setSent(s => new Set([...s, targetId]))
   }
 
   async function removeFriend(friendshipId: number) {
+    await createClient().from('friendships').delete().eq('id', friendshipId)
+    onRefresh()
+  }
+
+  async function acceptRequest(friendshipId: number) {
+    await createClient().from('friendships').update({ status: 'accepted' }).eq('id', friendshipId)
+    onRefresh()
+  }
+
+  async function declineRequest(friendshipId: number) {
     await createClient().from('friendships').delete().eq('id', friendshipId)
     onRefresh()
   }
@@ -296,6 +348,32 @@ function FriendsModal({ user, friends, onClose, onChat, onRefresh }: {
           <h3 className="font-black text-white text-base">👥 Amis</h3>
           <button onClick={onClose} className="text-white/40 hover:text-white text-xl">✕</button>
         </div>
+
+        {/* Demandes reçues */}
+        {pendingRequests.length > 0 && (
+          <div className="space-y-2 mb-4">
+            <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Demandes reçues</p>
+            {pendingRequests.map(r => (
+              <div key={r.id} className="flex items-center gap-3 p-2 rounded-xl bg-[#7b2bff]/10 border border-[#7b2bff]/20">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                  style={r.avatar_url ? { backgroundImage: `url(${r.avatar_url})`, backgroundSize: 'cover' } : {}}>
+                  {!r.avatar_url && r.username?.[0]?.toUpperCase()}
+                </div>
+                <span className="flex-1 text-sm text-white">{r.username ?? 'Joueur'}</span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => acceptRequest(r.id)}
+                    className="px-2.5 py-1 rounded-lg bg-[#00c896]/20 hover:bg-[#00c896]/35 text-[#00c896] text-xs font-bold">
+                    ✓ Accepter
+                  </button>
+                  <button onClick={() => declineRequest(r.id)}
+                    className="px-2.5 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs font-bold">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Recherche */}
         <div className="flex gap-2 mb-4">
