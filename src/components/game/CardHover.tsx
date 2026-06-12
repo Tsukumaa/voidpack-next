@@ -34,9 +34,38 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const emberCanvasRef = useRef<HTMLCanvasElement>(null)
   const [hovered, setHovered] = useState(false)
   const hoveredRef = useRef(false)
+  const tiltRef = useRef({ rx: 0, ry: 0, scale: 1 })
+  const glowBehindRef = useRef<HTMLDivElement>(null)
+  const floatRafRef = useRef<number>(0)
+
+  function applyTransform(card: HTMLDivElement, floatY: number) {
+    const { rx, ry, scale } = tiltRef.current
+    card.style.transform = `perspective(800px) translateY(${floatY}px) rotateX(${rx}deg) rotateY(${ry}deg) scale(${scale})`
+  }
 
   const isVoid      = rarity === 'void'
   const isLegendary = rarity === 'legendary'
+
+  // ── Void : boucle continue — float + glow respirant + application du tilt ──
+  useEffect(() => {
+    if (!isVoid) return
+    const card = cardRef.current
+    if (!card) return
+    let raf = 0, t = 0
+    function frame() {
+      t += 0.016
+      const floatY = Math.sin(t * (Math.PI * 2 / 4)) * 6
+      applyTransform(card, floatY)
+      if (glowBehindRef.current) {
+        const breathe = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / 4)))
+        glowBehindRef.current.style.opacity = String(breathe)
+        glowBehindRef.current.style.transform = `scale(${1 + breathe * 0.12})`
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [isVoid])
 
   // Void étoiles canvas
   useEffect(() => {
@@ -48,10 +77,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     canvas.height = card.offsetHeight || 365
     const ctx = canvas.getContext('2d')!
     const iridColors = ['#a855f7','#60a5fa','#f472b6','#34d399','#fbbf24','#c084fc']
-    const stars = Array.from({ length: 16 }, () => ({
+    const stars = Array.from({ length: 28 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      r: .6 + Math.random() * 1.8, phase: Math.random() * Math.PI * 2,
-      speed: .007 + Math.random() * .013, vy: -.08 - Math.random() * .14,
+      r: 1 + Math.random() * 2.8, phase: Math.random() * Math.PI * 2,
+      speed: .007 + Math.random() * .013, vy: -.1 - Math.random() * .18,
       color: iridColors[Math.floor(Math.random()*iridColors.length)],
     }))
     let t = 0, raf = 0
@@ -125,7 +154,8 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       const y = (e.clientY - rect.top)  / rect.height  // 0..1
       const rx = (y - 0.5) * (rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
       const ry = (x - 0.5) * -(rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
-      card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.04)`
+      tiltRef.current = { rx, ry, scale: 1.04 }
+      if (!isVoid) card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.04)`
 
       // Glow suit le curseur
       if (glowRef.current) {
@@ -167,15 +197,16 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     hoveredRef.current = false
     const card = cardRef.current
     if (!card) return
-    card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'
-    card.style.transition = 'transform 0.4s ease'
+    tiltRef.current = { rx: 0, ry: 0, scale: 1 }
+    if (!isVoid) {
+      card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'
+      card.style.transition = 'transform 0.4s ease'
+      setTimeout(() => { if (card) card.style.transition = '' }, 400)
+    }
     if (glowRef.current) glowRef.current.style.opacity = '0'
     if (shimRef.current) shimRef.current.style.opacity = '0'
     if (holoRef.current) holoRef.current.style.opacity = '0'
-    setTimeout(() => {
-      if (card) card.style.transition = ''
-    }, 400)
-  }, [])
+  }, [isVoid])
 
   const onEnter = useCallback(() => {
     setHovered(true)
@@ -220,20 +251,20 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
           style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
       )}
 
-      {/* Void : glow respirant derrière */}
+      {/* Void : glow respirant derrière — contrôlé par rAF */}
       {isVoid && (
-        <div className="absolute pointer-events-none"
+        <div ref={glowBehindRef} className="absolute pointer-events-none"
           style={{
             inset: '-20%', borderRadius: '50%', zIndex: 0, filter: 'blur(22px)',
-            background: 'radial-gradient(circle, rgba(168,85,247,.35) 0%, rgba(168,85,247,.12) 45%, transparent 70%)',
-            animation: 'voidGlowBreathe 4s ease-in-out infinite',
+            background: 'radial-gradient(circle, rgba(168,85,247,.45) 0%, rgba(168,85,247,.15) 45%, transparent 70%)',
+            opacity: 0.6,
           }} />
       )}
 
-      {/* Void : étoiles canvas */}
+      {/* Void : étoiles canvas — visibles au hover, plus nombreuses */}
       {isVoid && (
-        <canvas ref={starCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
-          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen'}} />
+        <canvas ref={starCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-200"
+          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen', opacity: hovered ? 1 : 0.35}} />
       )}
 
       {/* Legendary : éclat doré aux coins */}
