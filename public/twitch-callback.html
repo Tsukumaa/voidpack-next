@@ -114,17 +114,9 @@
         return
       }
 
-      // Charger la config Supabase
-      let supabaseUrl, supabaseKey
-      try {
-        const cfg = await fetch('/void-config.json').then(r => r.json())
-        supabaseUrl = cfg.supabaseUrl
-        supabaseKey = cfg.supabaseAnonKey
-        if (!supabaseUrl || !supabaseKey) throw new Error('Config manquante')
-      } catch (e) {
-        showError('Impossible de charger la configuration : ' + e.message)
-        return
-      }
+      // Configuration Supabase (clés publiques)
+      const supabaseUrl = 'https://upsfxgqfjfjajyunjvyp.supabase.co'
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwc2Z4Z3FmamZqYWp5dW5qdnlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTU5ODMsImV4cCI6MjA5MzQ5MTk4M30.zWrG3oawhYgLRx7TeUALL6jbJP8o1sLS9V9or22KwcM'
 
       // Session Supabase courante (pour le Bearer joueur, pas l'anon key)
       let userAccessToken = supabaseKey
