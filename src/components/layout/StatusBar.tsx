@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { ShopModal } from '@/components/game/ShopModal'
 
 function xpForLevel(lvl: number) {
   return Math.floor(200 * Math.pow(1.18, lvl - 1))
@@ -22,6 +23,7 @@ export function StatusBar() {
     user: s.user, profile: s.profile, authStatus: s.authStatus,
   }))
   const [streak, setStreak] = useState<number | null>(null)
+  const [showShop, setShowShop] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -67,12 +69,16 @@ export function StatusBar() {
           </div>
         </div>
 
-        {/* Streak + Auth */}
+        {/* Streak + Shop + Auth */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-xs font-bold">
             <span className="text-[#ff9a3d]">🔥</span>
             <span>{streak ?? profile?.current_streak ?? 0}j</span>
           </div>
+          <button onClick={() => setShowShop(true)}
+            className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-sm hover:bg-white/10 transition-colors">
+            🎁
+          </button>
           <button onClick={handleAuth}
             className={cn('px-3 py-2 rounded-full text-xs font-bold transition-colors',
               user
@@ -91,6 +97,8 @@ export function StatusBar() {
             style={{ width: `${xpPercent}%` }} />
         </div>
       </div>
+
+      {showShop && <ShopModal onClose={() => setShowShop(false)} />}
     </header>
   )
 }
