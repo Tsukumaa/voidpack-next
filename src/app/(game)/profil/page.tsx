@@ -74,6 +74,20 @@ export default function ProfilPage() {
 
   useEffect(() => { load() }, [load])
 
+  function linkTwitch() {
+    const TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'
+    const redirectUri = `${window.location.origin}/twitch-callback.html`
+    const state = Math.random().toString(36).slice(2)
+    sessionStorage.setItem('twitch_oauth_state', state)
+    const url = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=user:read:email&state=${state}`
+    window.location.href = url
+  }
+
+  async function unlinkTwitch() {
+    await createClient().rpc('unlink_twitch_account')
+    if (profile) setProfile({ ...profile, twitch_login: null })
+  }
+
   async function claimDaily() {
     if (claiming) return
     setClaiming(true)
@@ -169,6 +183,38 @@ export default function ProfilPage() {
       {/* ── Overview ── */}
       {activeTab === 'overview' && (
         <div className="space-y-3">
+          {/* Twitch link */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                  style={{ background: 'rgba(145,71,255,0.15)' }}>
+                  📺
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Compte Twitch</p>
+                  {profile?.twitch_login ? (
+                    <p className="text-[#00c896] text-xs mt-0.5">Lié à {profile.twitch_login}</p>
+                  ) : (
+                    <p className="text-white/40 text-xs mt-0.5">Lie ton compte pour recevoir des boosters</p>
+                  )}
+                </div>
+              </div>
+              {profile?.twitch_login ? (
+                <button onClick={unlinkTwitch}
+                  className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/50 text-xs font-bold transition-colors">
+                  Délier
+                </button>
+              ) : (
+                <button onClick={linkTwitch}
+                  className="px-3 py-1.5 rounded-xl text-white text-xs font-bold transition-all"
+                  style={{ background: 'linear-gradient(135deg,#9147ff,#5a1fb8)' }}>
+                  Lier
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Daily reward */}
           <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
             <div className="flex items-center justify-between mb-2">
