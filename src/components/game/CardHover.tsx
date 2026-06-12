@@ -39,9 +39,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const floatRafRef = useRef<number>(0)
 
   function applyTransform(card: HTMLDivElement, t: number) {
-    const floatY = Math.sin(t * (Math.PI * 2 / 4)) * 14          // amplitude doublée
-    const rot    = Math.sin(t * (Math.PI * 2 / 4) + Math.PI/4) * 3 // léger wobble
-    const scale  = 1 + Math.sin(t * (Math.PI * 2 / 4)) * 0.025
+    const period = Math.PI * 2 / 5.5                          // cycle plus lent
+    const floatY = Math.sin(t * period) * 22                  // amplitude augmentée
+    const rot    = Math.sin(t * period + Math.PI/4) * 5
+    const scale  = 1 + Math.sin(t * period) * 0.035
     card.style.transform = `translateY(${floatY}px) rotate(${rot}deg) scale(${scale})`
   }
 
