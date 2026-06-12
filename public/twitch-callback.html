@@ -114,37 +114,19 @@
         return
       }
 
-      // Configuration Supabase (clés publiques)
-      const supabaseUrl = 'https://upsfxgqfjfjajyunjvyp.supabase.co'
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwc2Z4Z3FmamZqYWp5dW5qdnlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTU5ODMsImV4cCI6MjA5MzQ5MTk4M30.zWrG3oawhYgLRx7TeUALL6jbJP8o1sLS9V9or22KwcM'
-
-      // Session Supabase courante (pour le Bearer joueur, pas l'anon key)
-      let userAccessToken = supabaseKey
+      // Appeler la route API Next.js pour lier le compte (gère les cookies de session)
       try {
-        const stored = localStorage.getItem(`sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`)
-        if (stored) {
-          const session = JSON.parse(stored)
-          if (session?.access_token) userAccessToken = session.access_token
-        }
-      } catch {}
-
-      // Appeler la RPC Supabase pour lier le compte
-      try {
-        const res = await fetch(`${supabaseUrl}/rest/v1/rpc/link_twitch_account`, {
+        const res = await fetch('/api/twitch/link', {
           method: 'POST',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${userAccessToken}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            p_twitch_id:    twitchUser.id,
-            p_twitch_login: twitchUser.login,
+            twitch_id:    twitchUser.id,
+            twitch_login: twitchUser.login,
           }),
         })
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
-          throw new Error(err.message || `HTTP ${res.status}`)
+          throw new Error(err.error || `HTTP ${res.status}`)
         }
       } catch (e) {
         showError('Impossible de lier le compte dans VOID Pack : ' + e.message)
