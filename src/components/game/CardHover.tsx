@@ -38,14 +38,11 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const glowBehindRef = useRef<HTMLDivElement>(null)
   const floatRafRef = useRef<number>(0)
 
-  const currentTiltRef = useRef({ rx: 0, ry: 0, scale: 1 })
-  function applyTransform(card: HTMLDivElement, floatY: number) {
-    const cur = currentTiltRef.current
-    const target = tiltRef.current
-    cur.rx += (target.rx - cur.rx) * 0.15
-    cur.ry += (target.ry - cur.ry) * 0.15
-    cur.scale += (target.scale - cur.scale) * 0.15
-    card.style.transform = `perspective(800px) translateY(${floatY}px) rotateX(${cur.rx}deg) rotateY(${cur.ry}deg) scale(${cur.scale})`
+  function applyTransform(card: HTMLDivElement, t: number) {
+    const floatY = Math.sin(t * (Math.PI * 2 / 4)) * 14          // amplitude doublée
+    const rot    = Math.sin(t * (Math.PI * 2 / 4) + Math.PI/4) * 3 // léger wobble
+    const scale  = 1 + Math.sin(t * (Math.PI * 2 / 4)) * 0.025
+    card.style.transform = `translateY(${floatY}px) rotate(${rot}deg) scale(${scale})`
   }
 
   const isVoid      = rarity === 'void'
@@ -59,8 +56,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     let raf = 0, t = 0
     function frame() {
       t += 0.016
-      const floatY = Math.sin(t * (Math.PI * 2 / 4)) * 6
-      applyTransform(card, floatY)
+      applyTransform(card, t)
       if (glowBehindRef.current) {
         const breathe = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / 4)))
         glowBehindRef.current.style.opacity = String(breathe)
@@ -159,8 +155,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       const y = (e.clientY - rect.top)  / rect.height  // 0..1
       const rx = (y - 0.5) * (rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
       const ry = (x - 0.5) * -(rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
-      tiltRef.current = { rx, ry, scale: 1.04 }
-      if (!isVoid) card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.04)`
+      if (!isVoid) {
+        tiltRef.current = { rx, ry, scale: 1.04 }
+        card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.04)`
+      }
 
       // Glow suit le curseur
       if (glowRef.current) {
