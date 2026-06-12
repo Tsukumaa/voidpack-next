@@ -38,9 +38,14 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const glowBehindRef = useRef<HTMLDivElement>(null)
   const floatRafRef = useRef<number>(0)
 
+  const currentTiltRef = useRef({ rx: 0, ry: 0, scale: 1 })
   function applyTransform(card: HTMLDivElement, floatY: number) {
-    const { rx, ry, scale } = tiltRef.current
-    card.style.transform = `perspective(800px) translateY(${floatY}px) rotateX(${rx}deg) rotateY(${ry}deg) scale(${scale})`
+    const cur = currentTiltRef.current
+    const target = tiltRef.current
+    cur.rx += (target.rx - cur.rx) * 0.15
+    cur.ry += (target.ry - cur.ry) * 0.15
+    cur.scale += (target.scale - cur.scale) * 0.15
+    card.style.transform = `perspective(800px) translateY(${floatY}px) rotateX(${cur.rx}deg) rotateY(${cur.ry}deg) scale(${cur.scale})`
   }
 
   const isVoid      = rarity === 'void'
@@ -212,8 +217,8 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     setHovered(true)
     hoveredRef.current = true
     const card = cardRef.current
-    if (card) card.style.transition = 'transform 0.1s ease'
-  }, [])
+    if (card && !isVoid) card.style.transition = 'transform 0.1s ease'
+  }, [isVoid])
 
   if (rarity === 'common') {
     return (
