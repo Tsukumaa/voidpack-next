@@ -9,6 +9,7 @@ export interface PlayerProfile {
   void_pulls: number
   is_admin: boolean
   created_at: string
+  twitch_login: string | null
 }
 
 export interface BoosterCredit {
