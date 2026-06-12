@@ -224,31 +224,23 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
 }
 
 // ── Composant principal ───────────────────────────────────────────────────────
-const CARD_BACK_GRADIENTS: Record<string, { gradient: string; pattern: string }> = {
-  default: {
-    gradient: 'linear-gradient(135deg, #1a0b2e 0%, #4a1fa8 50%, #2a0a4d 100%)',
-    pattern: 'radial-gradient(circle at 50% 50%, rgba(123,43,255,0.25), transparent 60%)',
-  },
-  nebula: {
-    gradient: 'linear-gradient(135deg, #1a0b3d 0%, #4a1fa8 45%, #00c8e0 100%)',
-    pattern: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 50%)',
-  },
-  inferno: {
-    gradient: 'linear-gradient(135deg, #2a0a05 0%, #ff6a00 50%, #ffd700 100%)',
-    pattern: 'radial-gradient(circle at 70% 70%, rgba(255,255,255,0.2), transparent 50%)',
-  },
-  abyss: {
-    gradient: 'linear-gradient(135deg, #000000 0%, #0a2e4d 50%, #00ffc8 100%)',
-    pattern: 'radial-gradient(circle at 50% 20%, rgba(255,255,255,0.12), transparent 60%)',
-  },
-  royal: {
-    gradient: 'linear-gradient(135deg, #1f0a3d 0%, #7b2bff 40%, #ff9ad5 100%)',
-    pattern: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 55%)',
-  },
+const DEFAULT_CARD_BACK = {
+  gradient: 'linear-gradient(135deg, #1a0b2e 0%, #4a1fa8 50%, #2a0a4d 100%)',
+  pattern: 'radial-gradient(circle at 50% 50%, rgba(123,43,255,0.25), transparent 60%)',
 }
 
 export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
   const profile = useGameStore(s => s.profile)
+  const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
+
+  useEffect(() => {
+    const sb = createClient()
+    sb.from('card_backs')
+      .select('gradient,pattern')
+      .eq('id', profile?.selected_card_back ?? 'default')
+      .maybeSingle()
+      .then(({ data }) => { if (data) setCardBack(data) })
+  }, [profile?.selected_card_back])
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
@@ -496,19 +488,14 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   transitionTimingFunction:'cubic-bezier(.16,.88,.18,1)' }}>
                 <div className={cn('absolute inset-0 rounded-2xl overflow-hidden', cardPhase==='suspense'&&'animate-[cardShake_.15s_ease-in-out_infinite]')}
                   style={{ backfaceVisibility:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
-                  {(() => {
-                    const back = CARD_BACK_GRADIENTS[profile?.selected_card_back ?? 'default'] ?? CARD_BACK_GRADIENTS.default
-                    return (
-                      <div className="absolute inset-0" style={{ background: back.gradient }}>
-                        <div className="absolute inset-0" style={{ background: back.pattern }} />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-16 rounded-full border-2 border-white/30 flex items-center justify-center">
-                            <div className="w-6 h-6 rounded-full bg-white/40" />
-                          </div>
-                        </div>
+                  <div className="absolute inset-0" style={{ background: cardBack.gradient }}>
+                    <div className="absolute inset-0" style={{ background: cardBack.pattern }} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full border-2 border-white/30 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-white/40" />
                       </div>
-                    )
-                  })()}
+                    </div>
+                  </div>
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-[#050210]"
                   style={{ backfaceVisibility:'hidden', transform:'rotateY(180deg)',

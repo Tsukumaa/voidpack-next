@@ -1,46 +1,32 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
 import { createClient } from '@/lib/supabase/client'
 
 const KOFI_URL = 'https://ko-fi.com/voidpack'
 
-const CARD_BACKS = [
-  {
-    id: 'default',
-    name: 'Originel',
-    gradient: 'linear-gradient(135deg, #1a0b2e 0%, #4a1fa8 50%, #2a0a4d 100%)',
-    pattern: 'radial-gradient(circle at 50% 50%, rgba(123,43,255,0.25), transparent 60%)',
-  },
-  {
-    id: 'nebula',
-    name: 'Nébuleuse',
-    gradient: 'linear-gradient(135deg, #1a0b3d 0%, #4a1fa8 45%, #00c8e0 100%)',
-    pattern: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 50%)',
-  },
-  {
-    id: 'inferno',
-    name: 'Inferno',
-    gradient: 'linear-gradient(135deg, #2a0a05 0%, #ff6a00 50%, #ffd700 100%)',
-    pattern: 'radial-gradient(circle at 70% 70%, rgba(255,255,255,0.2), transparent 50%)',
-  },
-  {
-    id: 'abyss',
-    name: 'Abysse',
-    gradient: 'linear-gradient(135deg, #000000 0%, #0a2e4d 50%, #00ffc8 100%)',
-    pattern: 'radial-gradient(circle at 50% 20%, rgba(255,255,255,0.12), transparent 60%)',
-  },
-  {
-    id: 'royal',
-    name: 'Royal',
-    gradient: 'linear-gradient(135deg, #1f0a3d 0%, #7b2bff 40%, #ff9ad5 100%)',
-    pattern: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 55%)',
-  },
-]
+interface CardBack {
+  id: string
+  name: string
+  gradient: string
+  pattern: string
+}
 
 export function ShopModal({ onClose }: { onClose: () => void }) {
   const { profile, setProfile } = useGameStore(s => ({ profile: s.profile, setProfile: s.setProfile }))
   const unlocked = profile?.unlocked_card_backs ?? ['default']
   const selected = profile?.selected_card_back ?? 'default'
+  const [cardBacks, setCardBacks] = useState<CardBack[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    createClient()
+      .from('card_backs')
+      .select('id,name,gradient,pattern')
+      .eq('active', true)
+      .order('order_index')
+      .then(({ data }) => { setCardBacks(data ?? []); setLoading(false) })
+  }, [])
 
   async function selectBack(id: string) {
     if (!profile) return
@@ -68,7 +54,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
 
         {/* Card backs grid */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          {CARD_BACKS.map(skin => {
+          {loading ? null : cardBacks.map(skin => {
             const isUnlocked = unlocked.includes(skin.id)
             const isSelected = selected === skin.id
             return (
