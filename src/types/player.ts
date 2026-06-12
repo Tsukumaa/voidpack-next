@@ -10,6 +10,8 @@ export interface PlayerProfile {
   is_admin: boolean
   created_at: string
   twitch_login: string | null
+  selected_card_back: string | null
+  unlocked_card_backs: string[] | null
 }
 
 export interface BoosterCredit {
