@@ -28,10 +28,12 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const cardRef  = useRef<HTMLDivElement>(null)
   const glowRef  = useRef<HTMLDivElement>(null)
   const shimRef  = useRef<HTMLDivElement>(null)
+  const holoRef  = useRef<HTMLDivElement>(null)
   const rafRef   = useRef<number>(0)
   const starCanvasRef  = useRef<HTMLCanvasElement>(null)
   const emberCanvasRef = useRef<HTMLCanvasElement>(null)
   const [hovered, setHovered] = useState(false)
+  const hoveredRef = useRef(false)
 
   const isVoid      = rarity === 'void'
   const isLegendary = rarity === 'legendary'
@@ -45,29 +47,33 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     canvas.width = card.offsetWidth || 260
     canvas.height = card.offsetHeight || 365
     const ctx = canvas.getContext('2d')!
+    const iridColors = ['#a855f7','#60a5fa','#f472b6','#34d399','#fbbf24','#c084fc']
     const stars = Array.from({ length: 16 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
       r: .6 + Math.random() * 1.8, phase: Math.random() * Math.PI * 2,
       speed: .007 + Math.random() * .013, vy: -.08 - Math.random() * .14,
+      color: iridColors[Math.floor(Math.random()*iridColors.length)],
     }))
     let t = 0, raf = 0
-    function drawStar(x: number, y: number, r: number, a: number) {
+    function drawStar(x: number, y: number, r: number, a: number, color: string) {
       ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y)
       ctx.beginPath()
       for (let i = 0; i < 8; i++) {
         const ang = (i/8)*Math.PI*2; const len = i%2===0 ? r : r*.28
         i===0 ? ctx.moveTo(Math.cos(ang)*len,Math.sin(ang)*len) : ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len)
       }
-      ctx.closePath(); ctx.fillStyle='#e9d5ff'; ctx.shadowBlur=r*8; ctx.shadowColor='#a855f7'; ctx.fill()
+      ctx.closePath(); ctx.fillStyle=color; ctx.shadowBlur=r*8; ctx.shadowColor=color; ctx.fill()
       ctx.beginPath(); ctx.arc(0,0,r*.3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.shadowBlur=r*4; ctx.fill()
       ctx.restore()
     }
     function frame() {
       t++; ctx.clearRect(0,0,canvas.width,canvas.height)
+      const irid = hoveredRef.current
       for (const s of stars) {
         s.y += s.vy
         if (s.y < -8) { s.y = canvas.height+4; s.x = Math.random()*canvas.width }
-        drawStar(s.x, s.y, s.r, .35+.55*Math.sin(t*s.speed+s.phase))
+        const alpha = .35+.55*Math.sin(t*s.speed+s.phase)
+        drawStar(s.x, s.y, s.r, alpha, irid ? s.color : '#e9d5ff')
       }
       raf = requestAnimationFrame(frame)
     }
@@ -137,17 +143,35 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         shimRef.current.style.background = `linear-gradient(105deg, transparent ${shimX - 15}%, ${color} ${shimX}%, transparent ${shimX + 15}%)`
         shimRef.current.style.opacity = '1'
       }
+
+      // Holo foil — void uniquement, dégradé arc-en-ciel qui suit le curseur
+      if (isVoid && holoRef.current) {
+        const hx = x * 100
+        const hy = y * 100
+        holoRef.current.style.background = `linear-gradient(${115 + (x-0.5)*60}deg,
+          rgba(255,0,150,0) 0%,
+          rgba(255,0,150,0.25) ${hx-25}%,
+          rgba(255,200,0,0.25) ${hx-10}%,
+          rgba(0,255,150,0.25) ${hx}%,
+          rgba(0,180,255,0.25) ${hx+10}%,
+          rgba(180,0,255,0.25) ${hx+25}%,
+          rgba(255,0,150,0) 100%)`
+        holoRef.current.style.opacity = '0.6'
+        holoRef.current.style.backgroundPosition = `${hx}% ${hy}%`
+      }
     })
-  }, [rarity])
+  }, [rarity, isVoid])
 
   const onLeave = useCallback(() => {
     setHovered(false)
+    hoveredRef.current = false
     const card = cardRef.current
     if (!card) return
     card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'
     card.style.transition = 'transform 0.4s ease'
     if (glowRef.current) glowRef.current.style.opacity = '0'
     if (shimRef.current) shimRef.current.style.opacity = '0'
+    if (holoRef.current) holoRef.current.style.opacity = '0'
     setTimeout(() => {
       if (card) card.style.transition = ''
     }, 400)
@@ -155,6 +179,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
 
   const onEnter = useCallback(() => {
     setHovered(true)
+    hoveredRef.current = true
     const card = cardRef.current
     if (card) card.style.transition = 'transform 0.1s ease'
   }, [])
@@ -187,6 +212,22 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       {RARITY_SHIMMER[rarity] !== 'none' && (
         <div ref={shimRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-100"
           style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
+      )}
+
+      {/* Holo foil — void uniquement, effet holographique pleine carte */}
+      {isVoid && (
+        <div ref={holoRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-150"
+          style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
+      )}
+
+      {/* Void : glow respirant derrière */}
+      {isVoid && (
+        <div className="absolute pointer-events-none"
+          style={{
+            inset: '-20%', borderRadius: '50%', zIndex: 0, filter: 'blur(22px)',
+            background: 'radial-gradient(circle, rgba(168,85,247,.35) 0%, rgba(168,85,247,.12) 45%, transparent 70%)',
+            animation: 'voidGlowBreathe 4s ease-in-out infinite',
+          }} />
       )}
 
       {/* Void : étoiles canvas */}
