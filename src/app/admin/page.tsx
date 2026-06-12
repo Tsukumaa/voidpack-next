@@ -13,6 +13,7 @@ interface Player {
   current_streak: number
   void_pulls: number
   highest_rarity: string | null
+  unlocked_card_backs: string[] | null
 }
 
 interface Family {
@@ -45,7 +46,16 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'settings'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'settings'
+
+interface CardBack {
+  id?: string
+  name: string
+  gradient: string
+  pattern: string
+  order_index?: number
+  active?: boolean
+}
 
 const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'void']
 
@@ -78,6 +88,7 @@ export default function AdminPage() {
     { id: 'families', label: '🌐 Familles' },
     { id: 'cards',    label: '🃏 Cartes' },
     { id: 'boosters', label: '🎴 Boosters' },
+    { id: 'cardbacks', label: '🎁 Dos de carte' },
     { id: 'settings', label: '⚙ Paramètres' },
   ]
 
@@ -121,6 +132,7 @@ export default function AdminPage() {
         {tab === 'families' && <FamiliesTab onMsg={showMsg} />}
         {tab === 'cards'    && <CardsTab    onMsg={showMsg} />}
         {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
+        {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
       </div>
     </div>
@@ -137,11 +149,14 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
   const [cQty, setCQty]       = useState(1)
   const [crediting, setCrediting] = useState(false)
   const [families, setFamilies] = useState<{ value: string; label: string }[]>([])
+  const [backModal, setBackModal] = useState<Player | null>(null)
+  const [savingBacks, setSavingBacks] = useState(false)
+  const [cardBacks, setCardBacks] = useState<CardBack[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
     const { data } = await sb.from('player_profiles')
-      .select('user_id,username,avatar_url,level,xp,packs_opened,current_streak,void_pulls,highest_rarity')
+      .select('user_id,username,avatar_url,level,xp,packs_opened,current_streak,void_pulls,highest_rarity,unlocked_card_backs')
       .order('xp', { ascending: false }).limit(200)
     setPlayers(data ?? [])
     setLoading(false)
@@ -155,6 +170,7 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
         ...((data ?? []) as Family[]).map((f) => ({ value: f.key, label: `${f.label} Pack` })),
       ])
     }).catch(() => setFamilies([{ value: 'void', label: 'VOID Pack (global)' }]))
+    adminDb('select', 'card_backs', { order: 'order_index' }).then((data) => setCardBacks(data ?? [])).catch(() => {})
   }, [load, sb])
 
   async function credit() {
@@ -169,6 +185,24 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
       setModal(null)
     } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
     finally { setCrediting(false) }
+  }
+
+  async function toggleCardBack(skinId: string) {
+    if (!backModal) return
+    const current = backModal.unlocked_card_backs ?? ['default']
+    const has = current.includes(skinId)
+    const next = has ? current.filter(id => id !== skinId) : [...current, skinId]
+
+    setSavingBacks(true)
+    try {
+      const { error } = await sb.from('player_profiles')
+        .update({ unlocked_card_backs: next })
+        .eq('user_id', backModal.user_id)
+      if (error) throw error
+      setBackModal({ ...backModal, unlocked_card_backs: next })
+      setPlayers(ps => ps.map(p => p.user_id === backModal.user_id ? { ...p, unlocked_card_backs: next } : p))
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setSavingBacks(false) }
   }
 
   const filtered = players.filter(p => !search || (p.username ?? '').toLowerCase().includes(search.toLowerCase()))
@@ -210,10 +244,16 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
                 <td className="px-4 py-3 text-white/70">{p.current_streak ?? 0}j</td>
                 <td className="px-4 py-3 text-[#a855f7] font-bold">{p.void_pulls ?? 0}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => { setModal(p); setCType('void'); setCQty(1) }}
-                    className="px-3 py-1.5 rounded-lg bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/30">
-                    🎴 Créditer
-                  </button>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => { setModal(p); setCType('void'); setCQty(1) }}
+                      className="px-3 py-1.5 rounded-lg bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/30">
+                      🎴 Créditer
+                    </button>
+                    <button onClick={() => setBackModal(p)}
+                      className="px-3 py-1.5 rounded-lg bg-[#ff5e5b]/15 border border-[#ff5e5b]/30 text-[#ff9a98] text-xs font-bold hover:bg-[#ff5e5b]/30">
+                      🎁 Dos
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -233,6 +273,34 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
             <input type="number" min={1} max={50} value={cQty} onChange={e => setCQty(Math.max(1,Math.min(50,+e.target.value||1)))} className={inputCls} />
           </Field>
           <ModalActions onCancel={() => setModal(null)} onConfirm={credit} loading={crediting} label="Créditer" />
+        </Modal>
+      )}
+
+      {backModal && (
+        <Modal title="🎁 Dos de carte" onClose={() => setBackModal(null)}>
+          <p className="text-sm text-white/50 mb-4">Joueur : <span className="text-white">{backModal.username}</span></p>
+          <div className="space-y-2">
+            {cardBacks.map(skin => {
+              const owned = (backModal.unlocked_card_backs ?? ['default']).includes(skin.id!)
+              return (
+                <button key={skin.id} onClick={() => toggleCardBack(skin.id!)} disabled={savingBacks || skin.id === 'default'}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors text-left disabled:opacity-50"
+                  style={{
+                    background: owned ? 'rgba(0,200,150,0.08)' : 'rgba(255,255,255,0.03)',
+                    borderColor: owned ? 'rgba(0,200,150,0.3)' : 'rgba(255,255,255,0.08)',
+                  }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg" style={{ background: skin.gradient }} />
+                    <span className="text-sm text-white">{skin.name}</span>
+                    {skin.id === 'default' && <span className="text-white/30 text-xs">(toujours débloqué)</span>}
+                  </div>
+                  <span className={owned ? 'text-[#00c896] text-sm font-bold' : 'text-white/30 text-sm'}>
+                    {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </Modal>
       )}
     </div>
@@ -335,7 +403,128 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   )
 }
 
-// ─── Onglet Cartes (via API route service role) ───────────────────────────────
+// ─── Onglet Dos de carte (via API route service role) ─────────────────────────
+function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [backs, setBacks] = useState<CardBack[]>([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState<CardBack | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await adminDb('select', 'card_backs', { order: 'order_index' })
+      setBacks(data ?? [])
+    } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const empty: CardBack = {
+    name: '', gradient: 'linear-gradient(135deg, #1a0b2e 0%, #4a1fa8 50%, #2a0a4d 100%)',
+    pattern: 'radial-gradient(circle at 50% 50%, rgba(123,43,255,0.25), transparent 60%)',
+    active: true, order_index: backs.length,
+  }
+
+  async function save() {
+    if (!form) return
+    setSaving(true)
+    try {
+      const fields = { name: form.name, gradient: form.gradient, pattern: form.pattern, order_index: form.order_index ?? 0, active: form.active ?? true }
+      if (form.id) {
+        await adminDb('update', 'card_backs', fields, { col: 'id', val: form.id })
+      } else {
+        const id = form.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        await adminDb('insert', 'card_backs', { id, ...fields })
+      }
+      onMsg(`✅ Dos "${form.name}" sauvegardé`)
+      setForm(null); load()
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setSaving(false) }
+  }
+
+  async function del(back: CardBack) {
+    if (back.id === 'default') { onMsg('Le dos "Originel" ne peut pas être supprimé', false); return }
+    if (!confirm(`Supprimer "${back.name}" ?`)) return
+    await adminDb('delete', 'card_backs', undefined, { col: 'id', val: back.id })
+    onMsg(`🗑 "${back.name}" supprimé`); load()
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-white/40 text-sm">{backs.length} dos de carte</p>
+        <button onClick={() => setForm({ ...empty })}
+          className="px-4 py-2 rounded-xl bg-[#7b2bff] text-white text-sm font-bold hover:opacity-90">
+          + Nouveau dos
+        </button>
+      </div>
+
+      {loading ? <p className="text-white/30 text-sm">Chargement…</p> : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {backs.map(b => (
+            <div key={b.id} className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+              <div className="aspect-[0.714] relative" style={{ background: b.gradient }}>
+                <div className="absolute inset-0" style={{ background: b.pattern }} />
+                {!b.active && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white/50 text-xs font-bold">
+                    Inactif
+                  </div>
+                )}
+              </div>
+              <div className="p-2.5 flex items-center justify-between gap-2">
+                <span className="text-sm text-white truncate">{b.name}</span>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button onClick={() => setForm({ ...b })} className="text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10">✏</button>
+                  <button onClick={() => del(b)} className="text-xs px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400">✕</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {form && (
+        <Modal title={form.id ? `Modifier "${form.name}"` : 'Nouveau dos de carte'} onClose={() => setForm(null)}>
+          <Field label="Nom">
+            <input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Aurore Boréale" />
+          </Field>
+          <Field label="Gradient CSS (background)">
+            <textarea value={form.gradient} onChange={e => setForm(f => f && ({ ...f, gradient: e.target.value }))} className={`${inputCls} resize-none h-20 font-mono text-xs`}
+              placeholder="linear-gradient(135deg, #000 0%, #7b2bff 100%)" />
+          </Field>
+          <Field label="Motif/Overlay CSS (background, optionnel)">
+            <textarea value={form.pattern} onChange={e => setForm(f => f && ({ ...f, pattern: e.target.value }))} className={`${inputCls} resize-none h-20 font-mono text-xs`}
+              placeholder="radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15), transparent 60%)" />
+          </Field>
+          <Field label="Aperçu">
+            <div className="aspect-[0.714] w-32 rounded-xl relative overflow-hidden border border-white/10">
+              <div className="absolute inset-0" style={{ background: form.gradient }} />
+              <div className="absolute inset-0" style={{ background: form.pattern }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-white/40" />
+                </div>
+              </div>
+            </div>
+          </Field>
+          <Field label="Ordre d'affichage">
+            <input type="number" value={form.order_index ?? 0} onChange={e => setForm(f => f && ({ ...f, order_index: +e.target.value || 0 }))} className={inputCls} />
+          </Field>
+          <Field label="Actif (visible dans la boutique)">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => f && ({ ...f, active: e.target.checked }))} className="w-4 h-4" />
+              <span className="text-sm text-white/70">Visible</span>
+            </label>
+          </Field>
+          <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+
 function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [cards, setCards]       = useState<Card[]>([])
   const [families, setFamilies] = useState<Family[]>([])
