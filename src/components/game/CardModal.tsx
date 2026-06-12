@@ -55,7 +55,7 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
         onClick={e => e.stopPropagation()}
       >
         {/* Carte avec hover effect */}
-        <CardHover rarity={rarity} className="relative w-full rounded-3xl overflow-hidden"
+        <CardHover rarity={rarity} className={`relative w-full rounded-3xl overflow-hidden${rarity === "void" ? " animate-[voidCardFloat_4s_ease-in-out_infinite]" : ""}`}
           style={{
             aspectRatio: '0.714',
             background: RARITY_BG[rarity] ?? RARITY_BG.common,
