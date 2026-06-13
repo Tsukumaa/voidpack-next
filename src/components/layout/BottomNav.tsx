@@ -14,7 +14,7 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[520px] md:max-w-[640px] lg:max-w-[760px]">
+    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[520px]">
       <div className="grid grid-cols-4 gap-2 p-2.5 rounded-[26px] bg-[rgba(8,10,18,0.82)] backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.6)]">
         {TABS.map(tab => {
           const isActive = pathname.startsWith(tab.href)
