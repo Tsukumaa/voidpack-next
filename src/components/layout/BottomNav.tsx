@@ -1,13 +1,15 @@
 'use client'
+import React from 'react'
+import { PackageOpen, Library, Users, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-const TABS = [
-  { href: '/pack',        label: 'Pack',        icon: '◈' },
-  { href: '/collection',  label: 'Cartes',       icon: '▣' },
-  { href: '/communaute',  label: 'Communauté',   icon: '⬡' },
-  { href: '/profil',      label: 'Profil',       icon: '●' },
+const TABS: { href: string; label: string; icon: React.ReactNode }[] = [
+  { href: '/pack',        label: 'Pack',        icon: <PackageOpen size={20} /> },
+  { href: '/collection',  label: 'Cartes',       icon: <Library size={20} /> },
+  { href: '/communaute',  label: 'Communauté',   icon: <Users size={20} /> },
+  { href: '/profil',      label: 'Profil',       icon: <User size={20} /> },
 ]
 
 export function BottomNav() {
@@ -29,7 +31,7 @@ export function BottomNav() {
                   : 'text-white/45 hover:text-white/70'
               )}
             >
-              <span className="text-lg leading-none">{tab.icon}</span>
+              {tab.icon}
               <span className="text-[11px] font-semibold">{tab.label}</span>
             </Link>
           )

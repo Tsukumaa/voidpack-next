@@ -1,4 +1,5 @@
 'use client'
+import { Flame, Gift } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
@@ -72,12 +73,12 @@ export function StatusBar() {
         {/* Streak + Shop + Auth */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-xs font-bold">
-            <span className="text-[#ff9a3d]">🔥</span>
+            <Flame size={14} className="text-[#ff9a3d]" />
             <span>{streak ?? profile?.current_streak ?? 0}j</span>
           </div>
           <button onClick={() => setShowShop(true)}
             className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-sm hover:bg-white/10 transition-colors">
-            🎁
+            
           </button>
           <button onClick={handleAuth}
             className={cn('px-3 py-2 rounded-full text-xs font-bold transition-colors',
