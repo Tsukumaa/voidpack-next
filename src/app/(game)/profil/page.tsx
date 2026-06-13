@@ -1,4 +1,5 @@
 'use client'
+import { BarChart2, Target, Trophy, Flame, Tv2, Lock } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
@@ -129,7 +130,7 @@ export default function ProfilPage() {
   )
 
   return (
-    <div className="pb-4 space-y-4 lg:max-w-4xl lg:mx-auto">
+    <div className="pb-4 space-y-4">
 
       {/* Header */}
       <div className="flex items-center gap-4 pt-2">
@@ -169,9 +170,9 @@ export default function ProfilPage() {
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {([
-          { id: 'overview',     label: '📊 Vue d\'ensemble' },
-          { id: 'missions',     label: `🎯 Missions ${completedMissions > 0 ? `(${completedMissions}/${todayMissions.length})` : ''}` },
-          { id: 'achievements', label: `🏆 Succès (${unlockedCount})` },
+          { id: 'overview',     label: 'Vue d\'ensemble' },
+          { id: 'missions',   icon: <Target size={13} />,     label: `Missions ${completedMissions > 0 ? `(${completedMissions}/${todayMissions.length})` : ''}` },
+          { id: 'achievements', label: `Succès (${unlockedCount})` },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60'}`}>
@@ -189,7 +190,7 @@ export default function ProfilPage() {
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                   style={{ background: 'rgba(145,71,255,0.15)' }}>
-                  📺
+                  <Tv2 size={16} />
                 </div>
                 <div>
                   <p className="text-white font-bold text-sm">Compte Twitch</p>
@@ -221,7 +222,7 @@ export default function ProfilPage() {
               <div>
                 <p className="text-white font-bold text-sm">Récompense quotidienne</p>
                 <p className="text-white/40 text-xs mt-0.5">
-                  🔥 Streak : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
+                  <Flame size={12} className="inline mr-1 text-[#ff9a3d]" />Streak : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
                   {daily?.best_streak ? <span className="ml-2 text-white/30">· Record : {daily.best_streak}j</span> : null}
                 </p>
               </div>
@@ -244,7 +245,7 @@ export default function ProfilPage() {
           {stats && (
             <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="rounded-xl bg-white/[0.04] p-3">
                   <p className="text-white font-black text-xl">{stats.totalCards}</p>
                   <p className="text-white/40 text-xs">Cartes total</p>
@@ -320,7 +321,7 @@ export default function ProfilPage() {
       {activeTab === 'achievements' && (
         <div className="space-y-2">
           <p className="text-white/40 text-xs">{unlockedCount}/{ACHIEVEMENTS.length} succès débloqués</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {ACHIEVEMENTS.map(a => {
               const unlocked = achievements.includes(a.id)
               return (

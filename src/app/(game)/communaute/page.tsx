@@ -1,4 +1,5 @@
 'use client'
+import { Users, MessageCircle, Swords, Star, RefreshCw, Search, Trophy, UserPlus, X, Send } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -169,7 +170,7 @@ export default function CommunautePage() {
             <button key={tab} onClick={() => setLadder(tab)}
               className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all',
                 ladder === tab ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60')}>
-              {tab === 'xp' ? '⭐ Ladder XP' : '⚔️ Ladder Combat'}
+              {tab === 'xp' ? 'Ladder XP' : 'Ladder Combat'}
             </button>
           ))}
         </div>
@@ -362,7 +363,7 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
         onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black text-white text-base">👥 Amis</h3>
+          <h3 className="font-black text-white text-base"><Users size={13} className='inline mr-1' />Amis</h3>
           <button onClick={onClose} className="text-white/40 hover:text-white text-xl">✕</button>
         </div>
 
@@ -403,7 +404,7 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
           />
           <button onClick={() => searchUsers(search)}
             className="px-3 py-2 rounded-xl bg-[#7b2bff]/20 border border-[#7b2bff]/30 text-[#a78bfa] text-sm font-bold">
-            🔍
+            <Search size={14} />
           </button>
         </div>
 
