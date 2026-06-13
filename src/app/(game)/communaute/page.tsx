@@ -136,7 +136,7 @@ export default function CommunautePage() {
 
   return (
     <div className="pb-4 relative">
-      {/* Desktop : deux colonnes — ladder à gauche, amis/actions à droite */}
+      {/* Desktop : deux colonnes */}
       <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
 
       {/* Header */}
@@ -275,6 +275,7 @@ export default function CommunautePage() {
           </button>
         </div>
       )}
+      </div> {/* ferme lg:grid */}
     </div>
   )
 }
@@ -539,7 +540,6 @@ function FloatingChat({ user, friend, onClose }: {
           </div>
         </>
       )}
-      </div> {/* ferme lg:grid */}
     </div>
   )
 }
