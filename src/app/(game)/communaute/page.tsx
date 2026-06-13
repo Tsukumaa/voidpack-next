@@ -249,26 +249,14 @@ export default function CommunautePage() {
 
       </div> {/* fin colonne principale */}
 
-      {/* Colonne droite desktop — carte joueur + placeholder */}
-      <div className="hidden lg:block lg:w-[320px] lg:flex-shrink-0 lg:sticky lg:top-20">
-        {myRank > 0 && ladder === 'xp' && ladderData[myRank - 1] && (() => {
-          const me = ladderData[myRank - 1]
-          return (
-            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 mb-4">
-              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Ta position</p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex-shrink-0 flex items-center justify-center text-sm font-bold border border-white/10"
-                  style={me.avatar_url ? { backgroundImage:`url(${me.avatar_url})`, backgroundSize:'cover' } : {}}>
-                  {!me.avatar_url && me.username?.[0]?.toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-bold text-sm truncate">{me.username}</p>
-                  <p className="text-white/40 text-xs">#{myRank} · {me.xp?.toLocaleString('fr-FR')} XP</p>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
+      {/* Colonne droite desktop */}
+      <div className="hidden lg:block lg:w-[300px] lg:flex-shrink-0 lg:sticky lg:top-20">
+        <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Infos</p>
+          <p className="text-white/60 text-xs leading-relaxed">
+            Le ladder XP classe les joueurs selon leur expérience totale accumulée en ouvrant des boosters.
+          </p>
+        </div>
       </div>
       </div> {/* fin lg:flex */}
 
