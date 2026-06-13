@@ -168,7 +168,7 @@ export default function CollectionPage() {
                   <div className="flex-1 h-px" style={{ background: RARITY_COLOR[r] + '30' }} />
                   <span className="text-white/30 text-xs">{group.length}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {group.map(card => (
                     <CardHover
                       key={card.card_id}

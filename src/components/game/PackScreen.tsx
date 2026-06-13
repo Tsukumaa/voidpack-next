@@ -154,7 +154,7 @@ export function PackScreen() {
                 </div>
 
                 <div style={{
-                  width: 'min(72vw, 280px)',
+                  width: 'min(72vw, 320px)',
                   filter: 'drop-shadow(0 0 35px rgba(123,43,255,0.65)) drop-shadow(0 0 70px rgba(123,43,255,0.25))',
                   animation: 'boosterFloat 3s ease-in-out infinite',
                 }}>

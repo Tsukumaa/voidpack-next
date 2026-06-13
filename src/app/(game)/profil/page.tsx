@@ -129,7 +129,7 @@ export default function ProfilPage() {
   )
 
   return (
-    <div className="pb-4 space-y-4">
+    <div className="pb-4 space-y-4 lg:max-w-4xl lg:mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-4 pt-2">
@@ -244,7 +244,7 @@ export default function ProfilPage() {
           {stats && (
             <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                 <div className="rounded-xl bg-white/[0.04] p-3">
                   <p className="text-white font-black text-xl">{stats.totalCards}</p>
                   <p className="text-white/40 text-xs">Cartes total</p>
@@ -320,7 +320,7 @@ export default function ProfilPage() {
       {activeTab === 'achievements' && (
         <div className="space-y-2">
           <p className="text-white/40 text-xs">{unlockedCount}/{ACHIEVEMENTS.length} succès débloqués</p>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {ACHIEVEMENTS.map(a => {
               const unlocked = achievements.includes(a.id)
               return (
