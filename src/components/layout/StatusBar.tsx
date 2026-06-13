@@ -51,7 +51,7 @@ export function StatusBar() {
 
   return (
     <header className="sticky top-0 z-50 px-4 pt-3 pb-1">
-      <div className="flex items-center justify-between gap-3 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between gap-3 max-w-[520px] mx-auto">
         {/* Profil */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl">
           <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex-shrink-0 flex items-center justify-center">
@@ -91,7 +91,7 @@ export function StatusBar() {
       </div>
 
       {/* XP Bar */}
-      <div className="max-w-7xl mx-auto mt-2">
+      <div className="max-w-[520px] mx-auto mt-2">
         <div className="h-[5px] rounded-full bg-white/5 overflow-hidden">
           <div className="h-full rounded-full bg-gradient-to-r from-[#00c896] to-[#7b2bff] transition-all duration-700 ease-out"
             style={{ width: `${xpPercent}%` }} />

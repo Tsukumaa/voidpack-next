@@ -137,7 +137,9 @@ export default function CommunautePage() {
   return (
     <div className="pb-4 relative">
       {/* Desktop : deux colonnes */}
-      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
+      <div className="lg:flex lg:gap-6 lg:items-start">
+      {/* Colonne principale (ladder) */}
+      <div className="lg:flex-1 lg:min-w-0">
 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-2 mb-4">
@@ -245,6 +247,31 @@ export default function CommunautePage() {
         </div>
       )}
 
+      </div> {/* fin colonne principale */}
+
+      {/* Colonne droite desktop — carte joueur + placeholder */}
+      <div className="hidden lg:block lg:w-[320px] lg:flex-shrink-0 lg:sticky lg:top-20">
+        {myRank > 0 && ladder === 'xp' && ladderData[myRank - 1] && (() => {
+          const me = ladderData[myRank - 1]
+          return (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 mb-4">
+              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Ta position</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex-shrink-0 flex items-center justify-center text-sm font-bold border border-white/10"
+                  style={me.avatar_url ? { backgroundImage:`url(${me.avatar_url})`, backgroundSize:'cover' } : {}}>
+                  {!me.avatar_url && me.username?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold text-sm truncate">{me.username}</p>
+                  <p className="text-white/40 text-xs">#{myRank} · {me.xp?.toLocaleString('fr-FR')} XP</p>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+      </div> {/* fin lg:flex */}
+
       {/* Modal amis */}
       {showFriends && (
         <FriendsModal
@@ -275,7 +302,6 @@ export default function CommunautePage() {
           </button>
         </div>
       )}
-      </div> {/* ferme lg:grid */}
     </div>
   )
 }
