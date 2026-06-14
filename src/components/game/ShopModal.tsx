@@ -1,5 +1,5 @@
 'use client'
-import { Lock, Check, Coffee, Crown } from 'lucide-react'
+import { Lock, Check, Coffee, Crown, Gift } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
 import { createClient } from '@/lib/supabase/client'
@@ -63,7 +63,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-black text-white">🎁 Boutique</h2>
+          <h2 className="text-lg font-black text-white flex items-center gap-2"><Gift size={18} /> Boutique</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white text-xl px-2">×</button>
         </div>
 

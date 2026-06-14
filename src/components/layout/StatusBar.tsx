@@ -1,5 +1,5 @@
 'use client'
-import { Flame, Gift } from 'lucide-react'
+import { Flame, Gift, Coffee } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
@@ -76,9 +76,14 @@ export function StatusBar() {
             <Flame size={14} className="text-[#ff9a3d]" />
             <span>{streak ?? profile?.current_streak ?? 0}j</span>
           </div>
+          <a href="https://ko-fi.com/voidpack" target="_blank" rel="noopener noreferrer"
+            className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl hover:bg-white/10 transition-colors flex items-center justify-center"
+            title="Soutenir sur Ko-Fi">
+            <Coffee size={14} className="text-[#ff5e5b]" />
+          </a>
           <button onClick={() => setShowShop(true)}
             className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-sm hover:bg-white/10 transition-colors">
-            
+            <Gift size={14} />
           </button>
           <button onClick={handleAuth}
             className={cn('px-3 py-2 rounded-full text-xs font-bold transition-colors',
