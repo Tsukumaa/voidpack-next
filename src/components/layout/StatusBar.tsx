@@ -53,7 +53,8 @@ export function StatusBar() {
   return (
     <header className="sticky top-0 z-50 px-4 pt-3 pb-1">
       <div className="flex items-center justify-between gap-3 max-w-[520px] mx-auto">
-        {/* Profil */}
+
+        {/* Profil + Streak */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl">
           <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex-shrink-0 flex items-center justify-center">
             {profile?.avatar_url ? (
@@ -68,23 +69,36 @@ export function StatusBar() {
             <p className="text-xs font-bold text-white leading-none">{profile?.username ?? 'Joueur'}</p>
             <p className="text-[10px] text-white/50 leading-none mt-0.5">Niveau {profile?.level ?? 1}</p>
           </div>
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div className="flex items-center gap-1 text-xs font-bold">
+            <Flame size={13} className="text-[#ff9a3d]" />
+            <span className="text-white/70">{streak ?? profile?.current_streak ?? 0}j</span>
+          </div>
         </div>
 
-        {/* Streak + Shop + Auth */}
+        {/* Actions droite */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-xs font-bold">
-            <Flame size={14} className="text-[#ff9a3d]" />
-            <span>{streak ?? profile?.current_streak ?? 0}j</span>
+
+          {/* Ko-Fi */}
+          <div className="relative group">
+            <a href="https://ko-fi.com/voidpack" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 hover:bg-[#7b2bff]/25 transition-colors">
+              <Coffee size={13} className="text-[#a78bfa]" />
+              <span className="text-[#a78bfa] text-xs font-bold">Soutenir</span>
+            </a>
+            <div className="absolute right-0 top-10 w-44 px-3 py-2 rounded-xl bg-[#0f0c1f] border border-white/10 text-white/50 text-[11px] leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-30 text-center">
+              Soutenir le projet sur Ko-Fi ☕
+            </div>
           </div>
-          <a href="https://ko-fi.com/voidpack" target="_blank" rel="noopener noreferrer"
-            className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl hover:bg-white/10 transition-colors flex items-center justify-center"
-            title="Soutenir sur Ko-Fi">
-            <Coffee size={14} className="text-[#ff5e5b]" />
-          </a>
+
+          {/* Boutique */}
           <button onClick={() => setShowShop(true)}
-            className="px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl text-sm hover:bg-white/10 transition-colors">
-            <Gift size={14} />
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl hover:bg-white/10 transition-colors">
+            <Gift size={13} className="text-white/70" />
+            <span className="text-white/70 text-xs font-bold">Boutique</span>
           </button>
+
+          {/* Auth */}
           <button onClick={handleAuth}
             className={cn('px-3 py-2 rounded-full text-xs font-bold transition-colors',
               user
