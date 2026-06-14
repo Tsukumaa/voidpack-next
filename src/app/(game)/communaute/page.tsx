@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown, Swords } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -187,6 +187,14 @@ export default function CommunautePage() {
           </div>
         </div>
       </div>
+
+      {/* Bouton entrer dans l'arène (onglet Combat seulement) */}
+      {ladder === 'combat' && user && (
+        <a href="/combat/draft"
+          className="flex items-center justify-center gap-2 w-full py-3 mb-4 rounded-2xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] font-bold text-sm hover:bg-[#7b2bff]/25 transition-colors">
+          <Swords size={16} /> Entrer dans l'Arène
+        </a>
+      )}
 
       {/* Ladder */}
       {loading ? (
