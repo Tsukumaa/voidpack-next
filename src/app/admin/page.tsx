@@ -46,7 +46,7 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'settings'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'settings' | 'sql'
 
 interface CardBack {
   id?: string
@@ -90,6 +90,7 @@ export default function AdminPage() {
     { id: 'boosters', label: '🎴 Boosters' },
     { id: 'cardbacks', label: '🎁 Dos de carte' },
     { id: 'settings', label: '⚙ Paramètres' },
+    { id: 'sql',      label: '⌨ SQL' },
   ]
 
   return (
@@ -134,6 +135,7 @@ export default function AdminPage() {
         {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
         {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
+        {tab === 'sql'      && <SqlTab onMsg={showMsg} />}
       </div>
     </div>
   )
@@ -777,6 +779,117 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
         <Field label="Valeur"><input value={newVal} onChange={e => setNewVal(e.target.value)} className={inputCls} placeholder="valeur" /></Field>
         <button onClick={add} className="px-4 py-2.5 rounded-xl bg-[#7b2bff] text-white text-sm font-bold hover:opacity-90 flex-shrink-0">+ Ajouter</button>
       </div>
+    </div>
+  )
+}
+
+// ─── Onglet SQL Editor ────────────────────────────────────────────────────────
+function SqlTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [sql, setSql]       = useState('SELECT * FROM player_profiles LIMIT 10;')
+  const [result, setResult] = useState<unknown[] | null>(null)
+  const [error, setError]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState<string[]>([])
+
+  async function run() {
+    if (!sql.trim()) return
+    setLoading(true); setError(null); setResult(null)
+    try {
+      const res = await fetch('/api/admin/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sql }),
+      })
+      const json = await res.json()
+      if (json.error) { setError(json.error); onMsg('Erreur SQL', false) }
+      else {
+        const rows = Array.isArray(json.data) ? json.data : json.data ? [json.data] : []
+        setResult(rows)
+        onMsg(`✅ ${rows.length} ligne(s) retournée(s)`)
+        setHistory(h => [sql, ...h.filter(s => s !== sql)].slice(0, 10))
+      }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Erreur') }
+    finally { setLoading(false) }
+  }
+
+  const cols = result && result.length > 0 ? Object.keys(result[0] as object) : []
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-white/8 bg-white/2">
+          <span className="text-xs font-bold text-white/40 uppercase tracking-wider">SQL Editor</span>
+          <button onClick={run} disabled={loading}
+            className="px-4 py-1.5 rounded-lg bg-[#7b2bff] text-white text-xs font-bold hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+            {loading ? '…' : '▶ Exécuter'}
+          </button>
+        </div>
+        <textarea
+          value={sql}
+          onChange={e => setSql(e.target.value)}
+          onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run() } }}
+          className="w-full h-40 bg-transparent text-sm font-mono text-white/90 p-4 focus:outline-none resize-none placeholder:text-white/20"
+          placeholder="SELECT * FROM player_profiles LIMIT 10;"
+          spellCheck={false}
+        />
+      </div>
+
+      <p className="text-white/25 text-xs">Ctrl+Entrée pour exécuter · Service role (bypass RLS)</p>
+
+      {history.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {history.map((h, i) => (
+            <button key={i} onClick={() => setSql(h)}
+              className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-white hover:border-white/20 font-mono truncate max-w-xs">
+              {h.slice(0, 50)}{h.length > 50 ? '…' : ''}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 rounded-2xl border border-red-500/20 bg-red-900/10 text-red-400 text-sm font-mono whitespace-pre-wrap">
+          {error}
+        </div>
+      )}
+
+      {result !== null && (
+        <div>
+          <p className="text-white/40 text-xs mb-2">{result.length} ligne(s)</p>
+          {result.length === 0 ? (
+            <div className="p-4 rounded-2xl border border-white/8 bg-white/3 text-white/30 text-sm text-center">
+              Requête exécutée — aucune ligne retournée.
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/8 overflow-auto max-h-[50vh]">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/8 bg-white/3 sticky top-0">
+                    {cols.map(c => (
+                      <th key={c} className="text-left px-3 py-2 text-white/50 font-semibold uppercase tracking-wider whitespace-nowrap">{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.map((row, i) => (
+                    <tr key={i} className={`border-b border-white/5 hover:bg-white/3 ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                      {cols.map(c => {
+                        const val = (row as Record<string, unknown>)[c]
+                        const str = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val) : String(val)
+                        return (
+                          <td key={c} className="px-3 py-2 font-mono text-white/70 max-w-[200px] truncate" title={str}>
+                            {val === null ? <span className="text-white/20">null</span> : str}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
