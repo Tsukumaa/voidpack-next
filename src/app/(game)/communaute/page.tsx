@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Swords, Star, RefreshCw, Search, Trophy, UserPlus, X, Send } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -152,8 +152,8 @@ export default function CommunautePage() {
             )}
             {user && (
               <button onClick={() => setShowFriends(true)}
-                className="relative px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
-                👥 Amis {friends.length > 0 && `(${friends.length})`}
+                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
+                <Users size={12} /> Amis {friends.length > 0 && `(${friends.length})`}
                 {pendingRequests.length > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center">
                     {pendingRequests.length}
@@ -165,14 +165,26 @@ export default function CommunautePage() {
         </div>
 
         {/* Tabs ladder */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-          {(['xp', 'combat'] as const).map(tab => (
-            <button key={tab} onClick={() => setLadder(tab)}
-              className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all',
-                ladder === tab ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60')}>
-              {tab === 'xp' ? 'Ladder XP' : 'Ladder Combat'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            {(['xp', 'combat'] as const).map(tab => (
+              <button key={tab} onClick={() => setLadder(tab)}
+                className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  ladder === tab ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60')}>
+                {tab === 'xp' ? 'Ladder XP' : 'Ladder Combat'}
+              </button>
+            ))}
+          </div>
+          <div className="relative group flex-shrink-0">
+            <div className="w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-white/40 text-[11px] font-bold cursor-default hover:border-white/40 hover:text-white/60 transition-colors">
+              i
+            </div>
+            <div className="absolute right-0 top-8 w-56 p-3 rounded-xl bg-[#0f0c1f] border border-white/10 text-white/60 text-xs leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-30">
+              {ladder === 'xp'
+                ? 'Le ladder XP classe les joueurs selon leur expérience totale accumulée en ouvrant des boosters.'
+                : 'Le ladder Combat classe les joueurs selon leurs victoires en combat multijoueur.'}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -195,7 +207,7 @@ export default function CommunautePage() {
                 {/* Rang */}
                 <div className="w-8 text-center flex-shrink-0">
                   {rank <= 3 ? (
-                    <span className="text-lg">{rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</span>
+                    <Medal size={18} style={{ color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : '#cd7f32' }} />
                   ) : (
                     <span className="text-white/30 text-xs font-bold">#{rank}</span>
                   )}
@@ -228,10 +240,10 @@ export default function CommunautePage() {
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
-                    <span className="text-white/30 text-[11px]">📚 {entry.unique_cards} cartes</span>
+                    <span className="flex items-center gap-1 text-white/30 text-[11px]"><BookOpen size={10} /> {entry.unique_cards} cartes</span>
                     {entry.void_cards > 0 && (
-                      <span className="text-[11px] font-bold" style={{ color: RARITY_COLOR.void }}>
-                        ⬡ {entry.void_cards} void
+                      <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: RARITY_COLOR.void }}>
+                        <Hexagon size={10} /> {entry.void_cards} void
                       </span>
                     )}
                   </div>
@@ -250,15 +262,6 @@ export default function CommunautePage() {
 
       </div> {/* fin colonne principale */}
 
-      {/* Colonne droite desktop */}
-      <div className="hidden lg:block lg:w-[300px] lg:flex-shrink-0 lg:sticky lg:top-20">
-        <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Infos</p>
-          <p className="text-white/60 text-xs leading-relaxed">
-            Le ladder XP classe les joueurs selon leur expérience totale accumulée en ouvrant des boosters.
-          </p>
-        </div>
-      </div>
       </div> {/* fin lg:flex */}
 
       {/* Modal amis */}
@@ -286,8 +289,8 @@ export default function CommunautePage() {
       {!chatFriend && friends.length > 0 && user && (
         <div className="fixed bottom-24 right-4 z-40">
           <button onClick={() => setShowFriends(true)}
-            className="w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center text-xl hover:scale-105 transition-transform">
-            💬
+            className="w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
+            <MessageCircle size={20} className="text-white" />
           </button>
         </div>
       )}
@@ -364,7 +367,7 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
 
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-black text-white text-base"><Users size={13} className='inline mr-1' />Amis</h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white text-xl">✕</button>
+          <button onClick={onClose} className="text-white/40 hover:text-white"><X size={16} /></button>
         </div>
 
         {/* Demandes reçues */}
@@ -380,12 +383,12 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
                 <span className="flex-1 text-sm text-white">{r.username ?? 'Joueur'}</span>
                 <div className="flex gap-1.5">
                   <button onClick={() => acceptRequest(r.id)}
-                    className="px-2.5 py-1 rounded-lg bg-[#00c896]/20 hover:bg-[#00c896]/35 text-[#00c896] text-xs font-bold">
-                    ✓ Accepter
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#00c896]/20 hover:bg-[#00c896]/35 text-[#00c896] text-xs font-bold">
+                    <Check size={11} /> Accepter
                   </button>
                   <button onClick={() => declineRequest(r.id)}
                     className="px-2.5 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs font-bold">
-                    ✕
+                    <X size={11} />
                   </button>
                 </div>
               </div>
@@ -418,7 +421,7 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
                 </div>
                 <span className="flex-1 text-sm text-white">{r.username}</span>
                 {friends.some(f => f.friend_id === r.user_id) ? (
-                  <span className="text-xs text-[#00c896]">✓ Ami</span>
+                  <span className="flex items-center gap-1 text-xs text-[#00c896]"><Check size={11} /> Ami</span>
                 ) : sent.has(r.user_id) ? (
                   <span className="text-xs text-white/40">Demande envoyée</span>
                 ) : (
@@ -446,11 +449,11 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
               <div className="flex gap-1.5">
                 <button onClick={() => onChat(f)}
                   className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">
-                  💬
+                  <MessageCircle size={13} />
                 </button>
                 <button onClick={() => removeFriend(f.id)}
                   className="px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs">
-                  ✕
+                  <X size={13} />
                 </button>
               </div>
             </div>
@@ -513,9 +516,9 @@ function FloatingChat({ user, friend, onClose }: {
         </div>
         <span className="flex-1 text-sm font-bold text-white truncate">{friend.username}</span>
         <button onClick={() => setMinimized(m => !m)} className="text-white/40 hover:text-white text-xs px-1">
-          {minimized ? '▲' : '▼'}
+          {minimized ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </button>
-        <button onClick={onClose} className="text-white/40 hover:text-white text-xs px-1">✕</button>
+        <button onClick={onClose} className="text-white/40 hover:text-white px-1"><X size={13} /></button>
       </div>
 
       {!minimized && (
@@ -550,7 +553,7 @@ function FloatingChat({ user, friend, onClose }: {
             />
             <button onClick={send}
               className="px-3 py-1.5 rounded-xl bg-[#7b2bff] text-white text-xs font-bold hover:opacity-90">
-              →
+              <Send size={12} />
             </button>
           </div>
         </>
