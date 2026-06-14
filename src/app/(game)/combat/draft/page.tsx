@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Swords, Check, X, Zap, Sword } from 'lucide-react'
@@ -46,6 +46,10 @@ interface SelectedEntry {
 }
 
 export default function DraftPage() {
+  return <Suspense><DraftContent /></Suspense>
+}
+
+function DraftContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const isFriendly   = searchParams.get('mode') === 'friendly'
@@ -168,7 +172,7 @@ export default function DraftPage() {
       {/* Header */}
       <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-3 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={() => router.back()} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
+          <button onClick={() => router.push('/communaute')} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
             <ArrowLeft size={16} /> Retour
           </button>
           <button onClick={handleQueue} disabled={!ready}
