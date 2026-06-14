@@ -785,7 +785,7 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
 // ─── Onglet SQL Editor ────────────────────────────────────────────────────────
 function SqlTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
-  const [sql, setSql]       = useState('SELECT * FROM player_profiles LIMIT 10;')
+  const [sql, setSql]       = useState('')
   const [result, setResult] = useState<unknown[] | null>(null)
   const [error, setError]   = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
