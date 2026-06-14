@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown, Swords } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown, Swords, Sword } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -280,6 +280,11 @@ export default function CommunautePage() {
           pendingRequests={pendingRequests}
           onClose={() => setShowFriends(false)}
           onChat={(f) => { setChatFriend(f); setShowFriends(false) }}
+          onChallenge={(f) => {
+            sessionStorage.setItem('challenge_friend', JSON.stringify({ id: f.friend_id, username: f.username }))
+            setShowFriends(false)
+            window.location.href = '/combat/draft?mode=friendly'
+          }}
           onRefresh={() => { loadFriends(); loadPendingRequests() }}
         />
       )}
@@ -307,12 +312,13 @@ export default function CommunautePage() {
 }
 
 // ─── Modal Amis ───────────────────────────────────────────────────────────────
-function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefresh }: {
+function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChallenge, onRefresh }: {
   user: { id: string } | null
   friends: Friend[]
   pendingRequests: Friend[]
   onClose: () => void
   onChat: (f: Friend) => void
+  onChallenge: (f: Friend) => void
   onRefresh: () => void
 }) {
   const [search, setSearch]   = useState('')
@@ -455,6 +461,11 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onRefre
               </div>
               <span className="flex-1 text-sm text-white">{f.username ?? 'Joueur'}</span>
               <div className="flex gap-1.5">
+                <button onClick={() => onChallenge(f)}
+                  className="px-2 py-1 rounded-lg bg-[#7b2bff]/15 hover:bg-[#7b2bff]/30 text-[#a78bfa] text-xs"
+                  title="Défier en partie amicale">
+                  <Sword size={13} />
+                </button>
                 <button onClick={() => onChat(f)}
                   className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">
                   <MessageCircle size={13} />
