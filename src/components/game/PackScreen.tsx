@@ -123,7 +123,7 @@ export function PackScreen() {
       )}
 
       {/* Centrage vertical plein écran (sous statusbar, au-dessus navbar) */}
-      <div className="relative flex flex-col items-center justify-center gap-6 w-full" style={{ height: 'calc(100svh - 120px)' }}>
+      <div className="relative flex flex-col items-center justify-center gap-6 w-full overflow-hidden" style={{ height: 'calc(100svh - 180px)' }}>
 
         {hasCredits ? (
           /* ── Carrousel boosters ── */

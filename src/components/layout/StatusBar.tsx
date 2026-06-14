@@ -2,6 +2,7 @@
 import { Flame, Gift, Coffee } from 'lucide-react'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useGameStore } from '@/store/game'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -118,7 +119,7 @@ export function StatusBar() {
         </div>
       </div>
 
-      {showShop && <ShopModal onClose={() => setShowShop(false)} />}
+      {showShop && createPortal(<ShopModal onClose={() => setShowShop(false)} />, document.body)}
     </header>
   )
 }

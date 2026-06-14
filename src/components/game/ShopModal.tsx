@@ -56,7 +56,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
   const canUse = (skin: CardBack) => isSubscriber || unlocked.includes(skin.id)
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
+    <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={onClose}>
       <div onClick={e => e.stopPropagation()}
         className="w-full sm:w-[680px] lg:w-[820px] h-[92vh] sm:h-[85vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-[#0a0612] border border-white/10 overflow-hidden">
