@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Swords, Sword, Copy, Check } from 'lucide-react'
 import { useGameStore } from '@/store/game'
@@ -7,6 +7,10 @@ import { joinMatchmaking, leaveMatchmaking } from '@/lib/game/combat-multiplayer
 import { createClient } from '@/lib/supabase/client'
 
 export default function MatchmakingPage() {
+  return <Suspense><MatchmakingContent /></Suspense>
+}
+
+function MatchmakingContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const isFriendly   = searchParams.get('mode') === 'friendly'
