@@ -145,17 +145,17 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         {/* Stats */}
         {showStats && <>
           {cost != null && (
-            <div style={{ position:'absolute', top:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`${r.bg1}f0`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:r.b2, fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 6px ${r.glow}66` }}>
+            <div style={{ position:'absolute', top:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66` }}>
               {cost}
             </div>
           )}
           {atk != null && (
-            <div style={{ position:'absolute', bottom:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`${r.bg1}f0`, border:'2px solid #ff6b4a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#ff9a7a', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:'0 0 6px #ff6b4a55' }}>
+            <div style={{ position:'absolute', bottom:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66` }}>
               {atk}
             </div>
           )}
           {def != null && (
-            <div style={{ position:'absolute', bottom:statInset, right:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`${r.bg1}f0`, border:'2px solid #60a5fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#93c5fd', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:'0 0 6px #60a5fa55' }}>
+            <div style={{ position:'absolute', bottom:statInset, right:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66` }}>
               {def}
             </div>
           )}
