@@ -81,10 +81,13 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
           ? `linear-gradient(160deg, ${r.orb1} 0%, ${r.orb2} 50%, ${r.bg1} 100%)`
           : `linear-gradient(135deg, ${r.bg1} 0%, ${r.bg2} 100%)`,
         overflow: 'hidden',
+        borderRadius: 10,
       }}>
 
-        {/* Artwork */}
-        {children}
+        {/* Artwork clippé aux coins */}
+        <div style={{ position:'absolute', inset:0, borderRadius:10, overflow:'hidden' }}>
+          {children}
+        </div>
 
         {/* Overlay dégradé bas (full art) */}
         {r.fullart && (
