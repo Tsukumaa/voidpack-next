@@ -16,7 +16,8 @@ export async function GET(request: Request) {
     if (!exchangeError) {
       return NextResponse.redirect(`${origin}/pack`)
     }
-    return NextResponse.redirect(`${origin}/pack?error=auth_failed`)
+    console.error('[auth/callback] exchangeCodeForSession error:', exchangeError)
+    return NextResponse.redirect(`${origin}/pack?error=${encodeURIComponent(exchangeError.message)}`)
   }
 
   return NextResponse.redirect(`${origin}/pack`)
