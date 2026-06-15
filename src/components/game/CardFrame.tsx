@@ -68,6 +68,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         borderRadius: 12,
         background: borderGrad,
         boxShadow: `0 0 16px ${r.glow}44`,
+        overflow: 'hidden',
         ...style,
       }}
     >
