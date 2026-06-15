@@ -73,8 +73,9 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
       }}
     >
       <div style={{
-        position: 'absolute',
-        inset: '2.5px',
+        position: 'relative',
+        width: '100%',
+        height: '100%',
         borderRadius: 10,
         background: r.fullart
           ? `linear-gradient(160deg, ${r.orb1} 0%, ${r.orb2} 50%, ${r.bg1} 100%)`
@@ -83,7 +84,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
       }}>
 
         {/* Artwork clippé aux coins */}
-        <div style={{ position:'absolute', inset:0, borderRadius:10, overflow:'hidden' }}>
+        <div style={{ position:'absolute', inset:0, borderRadius:8, overflow:'hidden' }}>
           {children}
         </div>
 
@@ -142,22 +143,21 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
 
         {/* Stats */}
         {showStats && <>
-          {[
-            { val: cost, pos: { top: statInset, left: statInset } },
-            { val: atk,  pos: { bottom: statInset, left: statInset } },
-            { val: def,  pos: { bottom: statInset, right: statInset } },
-          ].map(({ val, pos }, i) => val != null && (
-            <div key={i} style={{ position:'absolute', ...pos, width:statSize, height:statSize, borderRadius:'50%',
-              background:`radial-gradient(circle at 30% 30%, #ffffff44 0%, ${r.b2} 40%, ${r.bg1} 100%)`,
-              border:`2px solid ${r.b2}`,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:statFont, fontWeight:900, color:'#fff',
-              fontFamily:'monospace', zIndex:10, pointerEvents:'none',
-              textShadow:'0 1px 3px #000, 0 0 6px #000',
-              boxShadow:`0 0 10px ${r.glow}99, inset 0 1px 3px #ffffff55, inset 0 -1px 2px #00000088` }}>
-              {val}
+          {cost != null && (
+            <div style={{ position:'absolute', top:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66`, textShadow:'0 1px 3px #000' }}>
+              {cost}
             </div>
-          ))}
+          )}
+          {atk != null && (
+            <div style={{ position:'absolute', bottom:statInset, left:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66`, textShadow:'0 1px 3px #000' }}>
+              {atk}
+            </div>
+          )}
+          {def != null && (
+            <div style={{ position:'absolute', bottom:statInset, right:statInset, width:statSize, height:statSize, borderRadius:'50%', background:`radial-gradient(circle at 35% 35%, ${r.b2}cc, ${r.bg1}ee)`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:statFont, fontWeight:800, color:'#fff', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 8px ${r.glow}88, inset 0 1px 2px ${r.b2}66`, textShadow:'0 1px 3px #000' }}>
+              {def}
+            </div>
+          )}
         </>}
       </div>
     </div>
