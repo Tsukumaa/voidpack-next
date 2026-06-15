@@ -127,17 +127,17 @@ export function CardFrame({ rarity, children, cost, atk, def, className = '', st
         {/* Stats */}
         {showStats && <>
           {cost != null && (
-            <div style={{ position:'absolute', top:5, left:5, width:22, height:22, borderRadius:'50%', background:`${r.bg1}ee`, border:`1.5px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:r.b2, fontFamily:'monospace', zIndex:10, pointerEvents:'none' }}>
+            <div style={{ position:'absolute', top:4, left:4, width:30, height:30, borderRadius:'50%', background:`${r.bg1}f0`, border:`2px solid ${r.b2}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:800, color:r.b2, fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:`0 0 6px ${r.glow}66` }}>
               {cost}
             </div>
           )}
           {atk != null && (
-            <div style={{ position:'absolute', bottom:5, left:5, width:22, height:22, borderRadius:'50%', background:`${r.bg1}ee`, border:'1.5px solid #ff6b4a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#ff9a7a', fontFamily:'monospace', zIndex:10, pointerEvents:'none' }}>
+            <div style={{ position:'absolute', bottom:4, left:4, width:30, height:30, borderRadius:'50%', background:`${r.bg1}f0`, border:'2px solid #ff6b4a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:800, color:'#ff9a7a', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:'0 0 6px #ff6b4a55' }}>
               {atk}
             </div>
           )}
           {def != null && (
-            <div style={{ position:'absolute', bottom:5, right:5, width:22, height:22, borderRadius:'50%', background:`${r.bg1}ee`, border:'1.5px solid #60a5fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'#93c5fd', fontFamily:'monospace', zIndex:10, pointerEvents:'none' }}>
+            <div style={{ position:'absolute', bottom:4, right:4, width:30, height:30, borderRadius:'50%', background:`${r.bg1}f0`, border:'2px solid #60a5fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:800, color:'#93c5fd', fontFamily:'monospace', zIndex:10, pointerEvents:'none', boxShadow:'0 0 6px #60a5fa55' }}>
               {def}
             </div>
           )}
