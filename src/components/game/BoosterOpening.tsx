@@ -193,7 +193,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
                 boxShadow:`0 0 14px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.4)}`,
                 animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
               }}>
-              <CardFrame rarity={card.rarity} style={{ position:'absolute', inset:0 }}>
+              <CardFrame rarity={card.rarity} name={card.name} style={{ position:'absolute', inset:0 }}>
                 {card.artUrl
                   ? <Image src={card.artUrl} alt={card.name} fill className="object-cover" unoptimized />
                   : <Image src="/assets/dos.png" alt={card.name} fill className="object-cover" />
@@ -501,7 +501,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                     rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'}
                     className="absolute inset-0 rounded-2xl"
                   >
-                    <CardFrame rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'} style={{ position:'absolute', inset:0 }}>
+                    <CardFrame rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'} name={cardPhase === 'revealed' ? currentCard.name : undefined} style={{ position:'absolute', inset:0 }}>
                       {currentCard.artUrl
                         ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-cover" unoptimized />
                         : <div className="w-full h-full flex items-center justify-center">

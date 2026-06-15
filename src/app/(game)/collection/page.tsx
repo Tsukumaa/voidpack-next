@@ -192,6 +192,7 @@ export default function CollectionPage() {
                     >
                       <CardFrame
                         rarity={card.rarity}
+                        name={card.name}
                         cost={card.cost}
                         atk={card.atk}
                         def={card.def}

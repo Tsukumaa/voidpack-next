@@ -42,6 +42,7 @@ const RARITY: Record<string, {
 interface CardFrameProps {
   rarity: string
   children?: React.ReactNode
+  name?: string | null
   cost?: number | null
   atk?: number | null
   def?: number | null
@@ -50,7 +51,7 @@ interface CardFrameProps {
   style?: React.CSSProperties
 }
 
-export function CardFrame({ rarity, children, cost, atk, def, size = 'sm', className = '', style = {} }: CardFrameProps) {
+export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm', className = '', style = {} }: CardFrameProps) {
   const statSize  = size === 'lg' ? 42 : size === 'md' ? 34 : 30
   const statFont  = size === 'lg' ? 16 : size === 'md' ? 14 : 13
   const statInset = size === 'lg' ? 6  : size === 'md' ? 5  : 4
@@ -98,6 +99,15 @@ export function CardFrame({ rarity, children, cost, atk, def, size = 'sm', class
         {rarity === 'void' && (
           <div style={{ position:'absolute', inset:0, pointerEvents:'none',
             background:`repeating-linear-gradient(45deg, ${r.glow}08 0px, ${r.glow}08 1px, transparent 1px, transparent 8px)` }} />
+        )}
+
+        {/* Nom centré en haut */}
+        {name && (
+          <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:10, pointerEvents:'none', display:'flex', justifyContent:'center', padding:'6px 28px 4px' }}>
+            <span style={{ fontSize: size === 'lg' ? 13 : 9, fontWeight:800, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em', textShadow:`0 1px 6px #000, 0 0 12px ${r.glow}88`, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }}>
+              {name}
+            </span>
+          </div>
         )}
 
         {/* Point lumineux haut centre */}
