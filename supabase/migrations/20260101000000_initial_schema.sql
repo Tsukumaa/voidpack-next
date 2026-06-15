@@ -1264,7 +1264,7 @@ $$;
 create or replace function public.get_friend_collection(p_friend_id uuid)
 returns table(card_id text, rarity text, family text, qty bigint, metadata jsonb)
 language sql security definer as $$
-  select pc.card_id, pc.rarity, pc.family, count(*) as qty, max(pc.metadata) as metadata
+  select pc.card_id, pc.rarity, pc.family, count(*) as qty, (array_agg(pc.metadata))[1] as metadata
   from public.player_cards pc
   where pc.user_id = p_friend_id
     and exists (select 1 from public.friendships f where f.status = 'accepted'
