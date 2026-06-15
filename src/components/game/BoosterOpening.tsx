@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
+import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
 
 interface Card {
@@ -184,26 +185,21 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
           {cards.map((card, i) => (
-            <button key={i} onClick={() => setSelected(card)}
-              className="relative rounded-xl overflow-hidden active:scale-95 transition-transform flex-shrink-0"
+            <div key={i} onClick={() => setSelected(card)}
+              className="relative active:scale-95 transition-transform flex-shrink-0 cursor-pointer"
               style={{
                 width: 'clamp(120px, 18vw, 200px)',
                 height: 'clamp(168px, 25vw, 280px)',
-                background:RARITY_BG[card.rarity]??RARITY_BG.common,
-                boxShadow:`0 0 10px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.3)}`,
-                border:`1px solid ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.25)}`,
+                boxShadow:`0 0 14px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.4)}`,
                 animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
               }}>
-              {card.artUrl
-                ? <Image src={card.artUrl} alt={card.name} fill className="object-contain" unoptimized />
-                : <Image src="/assets/dos.png" alt={card.name} fill className="object-cover" />
-              }
-              <div className="absolute bottom-0 inset-x-0 h-5 bg-gradient-to-t from-black/70 to-transparent flex items-end justify-center pb-0.5">
-                <span className="text-[7px] font-black uppercase tracking-wider" style={{ color:RARITY_COLOR[card.rarity] }}>
-                  {card.rarity}
-                </span>
-              </div>
-            </button>
+              <CardFrame rarity={card.rarity} style={{ position:'absolute', inset:0 }}>
+                {card.artUrl
+                  ? <Image src={card.artUrl} alt={card.name} fill className="object-cover" unoptimized />
+                  : <Image src="/assets/dos.png" alt={card.name} fill className="object-cover" />
+                }
+              </CardFrame>
+            </div>
           ))}
         </div>
       </div>
@@ -504,15 +500,16 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   <CardHover
                     rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'}
                     className="absolute inset-0 rounded-2xl"
-                    style={{ overflow: 'hidden' }}
                   >
-                    {currentCard.artUrl
-                      ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-contain" unoptimized />
-                      : <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-20 h-20 rounded-full opacity-40"
-                            style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
-                        </div>
-                    }
+                    <CardFrame rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'} style={{ position:'absolute', inset:0 }}>
+                      {currentCard.artUrl
+                        ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-cover" unoptimized />
+                        : <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-20 h-20 rounded-full opacity-40"
+                              style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
+                          </div>
+                      }
+                    </CardFrame>
                   </CardHover>
                 </div>
               </div>
