@@ -54,7 +54,7 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
             boxShadow: `0 0 80px ${hexToRgba(color, .5)}, 0 0 160px ${hexToRgba(color, .2)}`,
           }}
         >
-          <CardFrame rarity={rarity} style={{ position: 'absolute', inset: 0 }}>
+          <CardFrame rarity={rarity} name={name} style={{ position: 'absolute', inset: 0 }}>
             {artUrl
               ? <Image src={artUrl} alt={name} fill className="object-cover" unoptimized />
               : <div className="w-full h-full flex items-center justify-center">
