@@ -203,6 +203,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   }, [rarity, isVoid])
 
   const onLeave = useCallback(() => {
+    cancelAnimationFrame(rafRef.current)
     setHovered(false)
     hoveredRef.current = false
     const card = cardRef.current
