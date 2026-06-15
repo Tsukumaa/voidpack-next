@@ -44,6 +44,9 @@ interface GroupedCard {
   image_url: string | null
   description: string | null
   latest_at: string
+  cost: number | null
+  atk: number | null
+  def: number | null
 }
 
 export default function CollectionPage() {
@@ -66,13 +69,20 @@ export default function CollectionPage() {
       .eq('user_id', user.id)
       .order('obtained_at', { ascending: false })
 
-    // Charger les infos des cartes (artwork)
+    // Charger les infos des cartes (artwork + stats combat)
     const { data: cardDefs } = await sb
       .from('custom_cards')
-      .select('id, name, image_url, rarity, family, description')
+      .select('id, name, image_url, rarity, family, description, metadata')
 
-    const defMap: Record<string, { name: string; image_url: string | null; description: string | null }> = {}
-    for (const d of cardDefs ?? []) defMap[d.id] = { name: d.name, image_url: d.image_url, description: d.description ?? null }
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
+    for (const d of cardDefs ?? []) defMap[d.id] = {
+      name: d.name,
+      image_url: d.image_url,
+      description: d.description ?? null,
+      cost: d.metadata?.combat?.cost ?? null,
+      atk:  d.metadata?.combat?.atk  ?? null,
+      def:  d.metadata?.combat?.hp   ?? null,
+    }
 
     // Grouper par card_id
     const groups: Record<string, GroupedCard> = {}
@@ -88,6 +98,9 @@ export default function CollectionPage() {
           image_url: def?.image_url ?? c.metadata?.image ?? null,
           description: def?.description ?? null,
           latest_at: c.obtained_at,
+          cost: def?.cost ?? null,
+          atk:  def?.atk  ?? null,
+          def:  def?.def  ?? null,
         }
       }
       groups[c.card_id].count++
@@ -179,6 +192,9 @@ export default function CollectionPage() {
                     >
                       <CardFrame
                         rarity={card.rarity}
+                        cost={card.cost}
+                        atk={card.atk}
+                        def={card.def}
                         style={{ position: 'absolute', inset: 0 }}
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
