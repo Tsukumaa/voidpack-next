@@ -1,18 +1,11 @@
 'use client'
 import Image from 'next/image'
 import { CardHover } from '@/components/game/CardHover'
+import { CardFrame } from '@/components/game/CardFrame'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
-  rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
-}
-const RARITY_BG: Record<string, string> = {
-  void:      'radial-gradient(ellipse at 50% 0%, #1a0a3a 0%, #050210 60%, #000 100%)',
-  legendary: 'radial-gradient(ellipse at 50% 0%, #2a1800 0%, #100800 60%, #000 100%)',
-  epic:      'radial-gradient(ellipse at 50% 0%, #1a0a2e 0%, #0a0518 60%, #000 100%)',
-  rare:      'radial-gradient(ellipse at 50% 0%, #0a1628 0%, #040810 60%, #000 100%)',
-  uncommon:  'radial-gradient(ellipse at 50% 0%, #0a1f10 0%, #040a06 60%, #000 100%)',
-  common:    'radial-gradient(ellipse at 50% 0%, #111118 0%, #060608 60%, #000 100%)',
+  void: '#7b2bff', legendary: '#f59e0b', epic: '#a855f7',
+  rare: '#3b82f6', common: '#9ca3af',
 }
 
 function hexToRgba(hex: string, a: number) {
@@ -55,21 +48,21 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
         onClick={e => e.stopPropagation()}
       >
         {/* Carte avec hover effect */}
-        <CardHover rarity={rarity} className="relative w-full rounded-3xl overflow-hidden"
+        <CardHover rarity={rarity} className="relative w-full"
           style={{
             aspectRatio: '0.714',
-            background: RARITY_BG[rarity] ?? RARITY_BG.common,
-            boxShadow: `0 0 100px ${hexToRgba(color, .65)}, 0 0 200px ${hexToRgba(color, .25)}`,
-            border: `1px solid ${hexToRgba(color, .5)}`,
+            boxShadow: `0 0 80px ${hexToRgba(color, .5)}, 0 0 160px ${hexToRgba(color, .2)}`,
           }}
         >
-          {artUrl
-            ? <Image src={artUrl} alt={name} fill className="object-contain" unoptimized />
-            : <div className="w-full h-full flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full opacity-30"
-                  style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
-              </div>
-          }
+          <CardFrame rarity={rarity} style={{ position: 'absolute', inset: 0 }}>
+            {artUrl
+              ? <Image src={artUrl} alt={name} fill className="object-cover" unoptimized />
+              : <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full opacity-30"
+                    style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
+                </div>
+            }
+          </CardFrame>
         </CardHover>
 
         {/* Infos */}
