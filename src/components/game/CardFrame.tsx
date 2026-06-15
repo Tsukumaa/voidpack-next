@@ -74,7 +74,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
     >
       <div style={{
         position: 'absolute',
-        inset: 0,
+        inset: '2.5px',
         borderRadius: 10,
         background: r.fullart
           ? `linear-gradient(160deg, ${r.orb1} 0%, ${r.orb2} 50%, ${r.bg1} 100%)`
