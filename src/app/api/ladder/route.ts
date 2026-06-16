@@ -26,30 +26,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(rows)
   }
 
-  // collection ladder: rank by card count
+  // collection ladder: XP en premier, nombre de cartes en égalité
   const rows = await db
-    .select({ userId: playerCards.userId, total: count() })
+    .select({
+      userId:        playerCards.userId,
+      total:         count(),
+      xp:            playerProfiles.xp,
+      level:         playerProfiles.level,
+      username:      playerProfiles.username,
+      avatarUrl:     playerProfiles.avatarUrl,
+      highestRarity: playerProfiles.highestRarity,
+    })
     .from(playerCards)
+    .leftJoin(playerProfiles, eq(playerCards.userId, playerProfiles.userId))
     .groupBy(playerCards.userId)
-    .orderBy(desc(count()))
+    .orderBy(desc(playerProfiles.xp), desc(count()))
     .limit(limit)
 
-  const userIds = rows.map(r => r.userId)
-  const profiles = userIds.length
-    ? await db.query.playerProfiles.findMany({
-        where: (t, { inArray }) => inArray(t.userId, userIds),
-      })
-    : []
-
-  return NextResponse.json(rows.map(r => {
-    const p = profiles.find(p => p.userId === r.userId)
-    return {
-      ...r,
-      username:  p?.username,
-      avatarUrl: p?.avatarUrl,
-      xp:        p?.xp ?? 0,
-      level:     p?.level ?? 1,
-      highestRarity: p?.highestRarity ?? null,
-    }
-  }))
+  return NextResponse.json(rows.map(r => ({
+    ...r,
+    xp:    r.xp    ?? 0,
+    level: r.level ?? 1,
+  })))
 }
