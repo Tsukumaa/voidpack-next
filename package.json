@@ -12,7 +12,8 @@
     "db:push:prod": "dotenv -e .env.prod -- drizzle-kit push",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:import:dev": "dotenv -e .env.local -- node scripts/import-seed.mjs",
-    "db:import:prod": "dotenv -e .env.prod -- node scripts/import-seed.mjs"
+    "db:import:prod": "dotenv -e .env.prod -- node scripts/import-seed.mjs",
+    "ship": "git push origin main && npx vercel deploy --prod"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
