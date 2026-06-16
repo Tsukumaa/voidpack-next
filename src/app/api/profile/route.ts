@@ -4,6 +4,29 @@ import { db } from '@/lib/db'
 import { playerProfiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
+function toSnake(p: Record<string, unknown> | null) {
+  if (!p) return null
+  return {
+    user_id:           p.userId,
+    username:          p.username,
+    avatar_url:        p.avatarUrl,
+    level:             p.level,
+    xp:                p.xp,
+    packs_opened:      p.packsOpened,
+    highest_rarity:    p.highestRarity,
+    void_pulls:        p.voidPulls,
+    current_streak:    p.currentStreak,
+    best_streak:       p.bestStreak,
+    twitch_id:         p.twitchId,
+    twitch_login:      p.twitchLogin,
+    is_admin:          false,
+    selected_card_back: p.selectedCardBack ?? null,
+    unlocked_card_backs: null,
+    created_at:        p.createdAt,
+    updated_at:        p.updatedAt,
+  }
+}
+
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json(null, { status: 401 })
@@ -11,7 +34,7 @@ export async function GET() {
   const profile = await db.query.playerProfiles.findFirst({
     where: eq(playerProfiles.userId, session.user.id),
   })
-  return NextResponse.json(profile ?? null)
+  return NextResponse.json(toSnake(profile as unknown as Record<string, unknown>))
 }
 
 export async function PATCH(req: NextRequest) {
