@@ -188,7 +188,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
       </div>
 
       {/* Grille petites cartes */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">
         <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
           {cards.map((card, i) => (
             <div key={i} onClick={() => setSelected(card)}
@@ -196,6 +196,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
               style={{
                 width: 'clamp(120px, 18vw, 200px)',
                 height: 'clamp(168px, 25vw, 280px)',
+                borderRadius: 12,
                 boxShadow:`0 0 14px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.4)}`,
                 animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
               }}>
