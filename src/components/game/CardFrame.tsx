@@ -107,6 +107,12 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
             background:`repeating-linear-gradient(45deg, ${r.glow}08 0px, ${r.glow}08 1px, transparent 1px, transparent 8px)` }} />
         )}
 
+        {/* Dégradé sombre haut — backdrop du nom */}
+        {name && (
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:'30%', zIndex:5, pointerEvents:'none',
+            background:'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 40%, transparent 100%)' }} />
+        )}
+
         {/* Nom centré en haut */}
         {name && (
           <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:10, pointerEvents:'none', display:'flex', justifyContent:'center', padding:'6px 28px 4px' }}>
