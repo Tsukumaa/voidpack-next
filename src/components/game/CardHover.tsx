@@ -231,7 +231,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
 
   if (rarity === 'common') {
     return (
-      <div ref={cardRef} className={className} style={{ ...style, transition: 'transform 0.1s ease' }}
+      <div ref={cardRef} className={className} style={{ ...style, borderRadius: 12, transition: 'transform 0.1s ease' }}
         onMouseMove={onMove} onMouseLeave={onLeave} onMouseEnter={onEnter}>
         {children}
       </div>
@@ -242,7 +242,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     <div
       ref={cardRef}
       className={className}
-      style={{ ...style, transformStyle: 'preserve-3d', willChange: 'transform' }}
+      style={{ ...style, borderRadius: 12, transformStyle: 'preserve-3d', willChange: 'transform', isolation: 'isolate' }}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       onMouseEnter={onEnter}
@@ -251,18 +251,18 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
 
       {/* Glow overlay */}
       <div ref={glowRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-150"
-        style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 2 }} />
+        style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 2, borderRadius: 12 }} />
 
       {/* Shimmer overlay */}
       {RARITY_SHIMMER[rarity] !== 'none' && (
         <div ref={shimRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-100"
-          style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
+          style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3, borderRadius: 12 }} />
       )}
 
       {/* Holo foil — void uniquement, effet holographique pleine carte */}
       {isVoid && (
         <div ref={holoRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-150"
-          style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3 }} />
+          style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3, borderRadius: 12 }} />
       )}
 
       {/* Void : glow respirant derrière — contrôlé par rAF */}
@@ -278,27 +278,27 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       {/* Void : étoiles canvas — visibles au hover, plus nombreuses */}
       {isVoid && (
         <canvas ref={starCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-200"
-          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen', opacity: hovered ? 1 : 0.35}} />
+          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen', opacity: hovered ? 1 : 0.35, borderRadius: 12}} />
       )}
 
       {/* Legendary : éclat doré aux coins */}
       {rarity === 'legendary' && (
         <>
           <div className="absolute top-0 left-0 w-8 h-8 pointer-events-none z-4"
-            style={{ background: 'radial-gradient(circle at 0% 0%, rgba(255,215,0,0.4), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle at 0% 0%, rgba(255,215,0,0.4), transparent 70%)', borderTopLeftRadius: 12 }} />
           <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none z-4"
-            style={{ background: 'radial-gradient(circle at 100% 0%, rgba(255,215,0,0.4), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle at 100% 0%, rgba(255,215,0,0.4), transparent 70%)', borderTopRightRadius: 12 }} />
           <div className="absolute bottom-0 left-0 w-8 h-8 pointer-events-none z-4"
-            style={{ background: 'radial-gradient(circle at 0% 100%, rgba(255,215,0,0.3), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle at 0% 100%, rgba(255,215,0,0.3), transparent 70%)', borderBottomLeftRadius: 12 }} />
           <div className="absolute bottom-0 right-0 w-8 h-8 pointer-events-none z-4"
-            style={{ background: 'radial-gradient(circle at 100% 100%, rgba(255,215,0,0.3), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(circle at 100% 100%, rgba(255,215,0,0.3), transparent 70%)', borderBottomRightRadius: 12 }} />
         </>
       )}
 
       {/* Legendary : braises canvas (hover only) */}
       {isLegendary && hovered && (
         <canvas ref={emberCanvasRef} className="absolute inset-0 pointer-events-none rounded-[inherit]"
-          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen'}} />
+          style={{zIndex:4,width:'100%',height:'100%',mixBlendMode:'screen',borderRadius:12}} />
       )}
     </div>
   )
