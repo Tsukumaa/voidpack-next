@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerCards } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 
 export async function GET() {
   const session = await auth()
@@ -12,7 +12,7 @@ export async function GET() {
     .select()
     .from(playerCards)
     .where(eq(playerCards.userId, session.user.id))
-    .orderBy(desc(playerCards.obtainedAt))
+    .orderBy(desc(playerCards.lastObtainedAt))
 
   return NextResponse.json(rows)
 }
@@ -31,6 +31,13 @@ export async function POST(req: NextRequest) {
     metadata: c.metadata ?? '{}',
   }))
 
-  const inserted = await db.insert(playerCards).values(rows).returning()
-  return NextResponse.json(inserted)
+  await db.insert(playerCards).values(rows).onConflictDoUpdate({
+    target: [playerCards.userId, playerCards.cardId],
+    set: {
+      count:         sql`${playerCards.count} + 1`,
+      lastObtainedAt: sql`datetime('now')`,
+    },
+  })
+
+  return NextResponse.json({ ok: true })
 }

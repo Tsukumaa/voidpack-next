@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, uniqueIndex, index, primaryKey } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 const now = sql`(datetime('now'))`
@@ -67,17 +67,17 @@ export const cardBacks = sqliteTable('card_backs', {
 
 // ── player_cards ──────────────────────────────────────────────────────────────
 export const playerCards = sqliteTable('player_cards', {
-  id:         text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId:     text('user_id').notNull(),
-  cardId:     text('card_id').notNull(),
-  rarity:     text('rarity').notNull(),
-  family:     text('family').notNull().default('global'),
-  obtainedAt: text('obtained_at').notNull().default(now),
-  metadata:   text('metadata').notNull().default('{}'), // JSON
+  userId:          text('user_id').notNull(),
+  cardId:          text('card_id').notNull(),
+  rarity:          text('rarity').notNull(),
+  family:          text('family').notNull().default('global'),
+  count:           integer('count').notNull().default(1),
+  firstObtainedAt: text('first_obtained_at').notNull().default(now),
+  lastObtainedAt:  text('last_obtained_at').notNull().default(now),
+  metadata:        text('metadata').notNull().default('{}'), // JSON
 }, (t) => [
+  primaryKey({ columns: [t.userId, t.cardId] }),
   index('player_cards_user_id_idx').on(t.userId),
-  index('player_cards_user_card_idx').on(t.userId, t.cardId),
-  index('player_cards_user_family_idx').on(t.userId, t.family),
 ])
 
 // ── booster_codes ─────────────────────────────────────────────────────────────

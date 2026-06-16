@@ -79,35 +79,25 @@ export default function CollectionPage() {
       }
     }
 
-    // Grouper par card_id
-    const groups: Record<string, GroupedCard> = {}
-    for (const c of rawCards ?? []) {
-      const cardKey = c.card_id ?? c.cardId
-      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
-      if (!groups[cardKey]) {
-        const def = defMap[cardKey]
-        groups[cardKey] = {
-          card_id: cardKey,
-          rarity: c.rarity,
-          family: c.family,
-          count: 0,
-          name: def?.name ?? meta?.name ?? cardKey,
-          image_url: def?.image_url ?? meta?.image ?? null,
-          description: def?.description ?? null,
-          latest_at: c.obtained_at ?? c.obtainedAt,
-          cost: def?.cost ?? null,
-          atk:  def?.atk  ?? null,
-          def:  def?.def  ?? null,
-        }
+    const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
+      const cardKey = c.card_id ?? c.cardId ?? ''
+      const def = defMap[cardKey]
+      return {
+        card_id:     cardKey,
+        rarity:      c.rarity,
+        family:      c.family,
+        count:       c.count ?? 1,
+        name:        def?.name ?? cardKey,
+        image_url:   def?.image_url ?? null,
+        description: def?.description ?? null,
+        latest_at:   c.last_obtained_at ?? '',
+        cost:        def?.cost ?? null,
+        atk:         def?.atk  ?? null,
+        def:         def?.def  ?? null,
       }
-      groups[cardKey].count++
-    }
-
-    // Trier par rareté puis nom
-    const sorted = Object.values(groups).sort((a, b) => {
+    }).sort((a: GroupedCard, b: GroupedCard) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
-      if (ri !== 0) return ri
-      return a.name.localeCompare(b.name)
+      return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })
 
     setCards(sorted)

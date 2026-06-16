@@ -4,7 +4,7 @@ import { useGameStore } from '@/store/game'
 import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 
@@ -55,14 +55,16 @@ export default function ProfilPage() {
       fetch('/api/achievements').then(r => r.json()).catch(() => []),
     ])
 
-    if (cardsRes?.cards) {
+    const cardsList = Array.isArray(cardsRes) ? cardsRes : (cardsRes?.cards ?? [])
+    if (cardsList.length >= 0) {
       const byRarity: Record<string, number> = {}
-      const unique = new Set<string>()
-      for (const c of cardsRes.cards) {
-        byRarity[c.rarity] = (byRarity[c.rarity] ?? 0) + 1
-        unique.add(c.cardId ?? c.card_id)
+      let totalCards = 0
+      for (const c of cardsList) {
+        const cnt = c.count ?? 1
+        byRarity[c.rarity] = (byRarity[c.rarity] ?? 0) + cnt
+        totalCards += cnt
       }
-      setStats({ totalCards: cardsRes.cards.length, uniqueCards: unique.size, byRarity })
+      setStats({ totalCards, uniqueCards: cardsList.length, byRarity })
     }
 
     if (streakRes) {

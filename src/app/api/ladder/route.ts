@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { combatStats, playerCards, playerProfiles } from '@/lib/db/schema'
-import { eq, desc, count } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   const type  = req.nextUrl.searchParams.get('type') ?? 'combat'
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const rows = await db
     .select({
       userId:        playerCards.userId,
-      total:         count(),
+      total:         sql<number>`SUM(${playerCards.count})`,
       xp:            playerProfiles.xp,
       level:         playerProfiles.level,
       username:      playerProfiles.username,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     .from(playerCards)
     .leftJoin(playerProfiles, eq(playerCards.userId, playerProfiles.userId))
     .groupBy(playerCards.userId)
-    .orderBy(desc(playerProfiles.xp), desc(count()))
+    .orderBy(desc(playerProfiles.xp), desc(sql`SUM(${playerCards.count})`))
     .limit(limit)
 
   return NextResponse.json(rows.map(r => ({
