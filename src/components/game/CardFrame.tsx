@@ -69,6 +69,8 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         background: borderGrad,
         boxShadow: `0 0 16px ${r.glow}44`,
         overflow: 'hidden',
+        transform: 'translateZ(0)',
+        isolation: 'isolate',
         ...style,
       }}
     >
@@ -81,6 +83,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
           ? `linear-gradient(160deg, ${r.orb1} 0%, ${r.orb2} 50%, ${r.bg1} 100%)`
           : `linear-gradient(135deg, ${r.bg1} 0%, ${r.bg2} 100%)`,
         overflow: 'hidden',
+        transform: 'translateZ(0)',
       }}>
 
         {/* Artwork clippé aux coins */}
