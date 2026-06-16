@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Sword } from 'lucide-react'
 import { useGameStore } from '@/store/game'
-import { createClient } from '@/lib/supabase/client'
 
 export default function JoinPage() {
   const { id }   = useParams<{ id: string }>()
@@ -14,13 +13,10 @@ export default function JoinPage() {
 
   useEffect(() => {
     if (!user) return
-    createClient()
-      .from('game_sessions')
-      .select('id, status, player1_id')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: e }) => {
-        if (e || !data) { setError('Session introuvable'); setStatus('error'); return }
+    fetch(`/api/combat/session/${id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) { setError('Session introuvable'); setStatus('error'); return }
         if (data.player1_id === user.id) { router.replace(`/combat/${id}`); return }
         if (data.status !== 'waiting') { setError('Cette partie a déjà commencé'); setStatus('error'); return }
         setStatus('ready')
@@ -33,27 +29,12 @@ export default function JoinPage() {
     if (!deckRaw) { router.push(`/combat/draft?mode=friendly&join=${id}`); return }
     const deck = JSON.parse(deckRaw)
 
-    const sb = createClient()
-    const { error: e } = await sb.from('game_sessions').update({
-      player2_id: user.id,
-      status: 'active',
-      current_turn: null, // le serveur détermine qui commence
-      state: sb.rpc ? undefined : undefined, // on update via RPC idéalement
-    }).eq('id', id).eq('status', 'waiting')
-
-    if (e) { setError('Impossible de rejoindre'); return }
-
-    // Mettre à jour le state avec le deck p2
-    await sb.from('game_sessions').select('state').eq('id', id).single().then(async ({ data }) => {
-      if (!data) return
-      const newState = { ...data.state, p2_deck: deck, p2_hand: [], p2_board: [] }
-      await sb.from('game_sessions').update({
-        player2_id: user.id,
-        status: 'active',
-        current_turn: data.state.p1_id ?? user.id,
-        state: newState,
-      }).eq('id', id)
+    const res = await fetch(`/api/combat/session/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deck }),
     })
+    if (!res.ok) { setError('Impossible de rejoindre'); return }
 
     sessionStorage.removeItem('draft_deck')
     router.push(`/combat/${id}`)
@@ -79,7 +60,7 @@ export default function JoinPage() {
         <>
           <div className="text-center">
             <p className="text-white font-bold text-lg">Défi reçu !</p>
-            <p className="text-white/40 text-sm mt-1">Partie amicale · Pas de gain d'elo</p>
+            <p className="text-white/40 text-sm mt-1">Partie amicale · Pas de gain d&apos;elo</p>
           </div>
           <button onClick={join}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#7b2bff] text-white font-bold hover:bg-[#6920e0] transition-colors">

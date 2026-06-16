@@ -1,7 +1,6 @@
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -76,20 +75,25 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
     if (!user || saving || saved) return
     setSaving(true)
     try {
-      const sb = createClient()
-      const rows = cards.map(c => ({
-        user_id: user.id, card_id: c.id, rarity: c.rarity,
-        family: c.family ?? 'void',
-        metadata: { name: c.name, image_url: c.artUrl ?? null, source: 'pack' },
-      }))
-      await sb.from('player_cards').insert(rows)
+      // Save cards
+      await fetch('/api/collection', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cards.map(c => ({
+          cardId: c.id, rarity: c.rarity, family: c.family ?? 'void',
+          metadata: JSON.stringify({ name: c.name, image_url: c.artUrl ?? null, source: 'pack' }),
+        }))),
+      })
+
       const totalXP = cards.reduce((sum, c) => sum + (XP_PER_RARITY[c.rarity] ?? 10), 0)
       setXpGain(totalXP)
-      const { data: updated } = await sb
-        .from('player_profiles')
-        .update({ xp: (profile?.xp ?? 0) + totalXP })
-        .eq('user_id', user.id)
-        .select('level, xp').single()
+
+      // Update XP
+      const xpRes = await fetch('/api/profile/xp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xp: totalXP }),
+      })
+      const updated = xpRes.ok ? await xpRes.json() : null
+
       if (updated && profile && updated.level > (profile.level ?? 1)) {
         setLevelUp(updated.level)
         const colors = ['#a855f7','#c084fc','#7b2bff','#e879f9','#ffffff','#d8b4fe']
@@ -102,10 +106,12 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
       }
       if (updated) setProfile({ ...profile!, ...updated })
 
-      // Succès + missions
-      const { data: allCards } = await sb.from('player_cards').select('card_id').eq('user_id', user.id)
-      const uniqueCount = new Set((allCards ?? []).map((c: {card_id: string}) => c.card_id)).size
-      const { data: packData } = await sb.from('player_profiles').select('packs_opened').eq('user_id', user.id).single()
+      // Achievements
+      const [allCards, packData] = await Promise.all([
+        fetch('/api/collection').then(r => r.ok ? r.json() : []),
+        fetch('/api/profile').then(r => r.ok ? r.json() : null),
+      ])
+      const uniqueCount = new Set(allCards.map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId)).size
       await checkAfterPackOpen(cards, packData?.packs_opened ?? 1, uniqueCount, boosterType)
 
       setSaved(true); setShowXP(true)
@@ -230,12 +236,10 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
 
   useEffect(() => {
-    const sb = createClient()
-    sb.from('card_backs')
-      .select('gradient,pattern')
-      .eq('id', profile?.selected_card_back ?? 'default')
-      .maybeSingle()
-      .then(({ data }) => { if (data) setCardBack(data) })
+    const id = profile?.selected_card_back ?? 'default'
+    fetch(`/api/card-backs?id=${encodeURIComponent(id)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setCardBack(data) })
   }, [profile?.selected_card_back])
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)

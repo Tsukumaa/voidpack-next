@@ -1,5 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { customCards } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 const RARITY_WEIGHTS: Record<string, number> = {
   common:    60,
@@ -22,23 +25,17 @@ function weightedRoll(pool: { rarity: string }[]): number {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { booster_type = 'void', count = 5 } = await req.json()
 
-  const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
+  const pool = booster_type === 'void'
+    ? await db.select().from(customCards)
+    : await db.select().from(customCards).where(eq(customCards.family, booster_type))
 
-  // Pool de cartes (filtré par famille si pas void)
-  let query = sb.from('custom_cards').select('id, name, rarity, family, image_url, description')
-  if (booster_type !== 'void') query = query.eq('family', booster_type)
-  const { data: pool, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Cartes placeholder si aucune carte dans cette famille
-  if (!pool || !pool.length) {
-    const rarities = ['common','uncommon','rare','epic','legendary']
+  if (!pool.length) {
+    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
     return NextResponse.json({
       cards: Array.from({ length: count }, (_, i) => ({
         id: `placeholder-${i}`,
@@ -50,23 +47,21 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Tirage pondéré AVEC remise si pool < count (pour toujours avoir `count` cartes)
   const picked: typeof pool = []
   for (let i = 0; i < count; i++) {
-    const idx = weightedRoll(pool)
-    picked.push(pool[idx])
+    picked.push(pool[weightedRoll(pool)])
   }
 
-  // Garantir au moins une carte uncommon+
   const hasGood = picked.some(c => c.rarity !== 'common')
-  if (!hasGood && picked.length > 0) {
+  if (!hasGood) {
     const goodPool = pool.filter(c => c.rarity !== 'common')
     if (goodPool.length) picked[picked.length - 1] = goodPool[Math.floor(Math.random() * goodPool.length)]
   }
 
   return NextResponse.json({
     cards: picked.map(c => ({
-      id: c.id, name: c.name, rarity: c.rarity, family: c.family, artUrl: c.image_url ?? null, description: (c as any).description || null,
+      id: c.id, name: c.name, rarity: c.rarity, family: c.family,
+      artUrl: c.imageUrl ?? null, description: c.description ?? null,
     }))
   })
 }

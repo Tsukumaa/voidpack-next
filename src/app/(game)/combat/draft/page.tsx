@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { ArrowLeft, Swords, Check, X, Zap, Sword } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 
@@ -65,30 +64,30 @@ function DraftContent() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const sb = createClient()
 
-    const { data: rawCards } = await sb
-      .from('player_cards')
-      .select('card_id, rarity, family, metadata')
-      .eq('user_id', user.id)
-
-    const { data: cardDefs } = await sb
-      .from('custom_cards')
-      .select('id, name, image_url, rarity, family, metadata')
+    const [rawCards, cardDefs] = await Promise.all([
+      fetch('/api/collection').then(r => r.ok ? r.json() : []),
+      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+    ])
 
     const defMap: Record<string, { name: string; image_url: string | null; metadata: Record<string, unknown> }> = {}
-    for (const d of cardDefs ?? []) defMap[d.id] = { name: d.name, image_url: d.image_url, metadata: d.metadata ?? {} }
+    for (const d of cardDefs ?? []) {
+      const meta = typeof d.metadata === 'string' ? JSON.parse(d.metadata || '{}') : (d.metadata ?? {})
+      defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
+    }
 
     const groups: Record<string, DraftCard> = {}
     for (const c of rawCards ?? []) {
-      if (!groups[c.card_id]) {
-        const def = defMap[c.card_id]
-        const combat = (def?.metadata?.combat ?? c.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
-        groups[c.card_id] = {
-          card_id:    c.card_id,
+      const cardKey = c.card_id ?? c.cardId
+      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata || '{}') : (c.metadata ?? {})
+      if (!groups[cardKey]) {
+        const def = defMap[cardKey]
+        const combat = (def?.metadata?.combat ?? meta?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
+        groups[cardKey] = {
+          card_id:    cardKey,
           rarity:     c.rarity,
           family:     c.family,
-          name:       def?.name ?? c.card_id,
+          name:       def?.name ?? meta?.name ?? cardKey,
           image_url:  def?.image_url ?? null,
           ownedCount: 0,
           atk:        combat.atk ?? 1,
@@ -96,7 +95,7 @@ function DraftContent() {
           cost:       combat.cost ?? 1,
         }
       }
-      groups[c.card_id].ownedCount++
+      groups[cardKey].ownedCount++
     }
 
     const sorted = Object.values(groups).sort((a, b) => {

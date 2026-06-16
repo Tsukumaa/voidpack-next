@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -76,8 +75,6 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('players')
   const [msg, setMsg] = useState('')
   const [msgOk, setMsgOk] = useState(true)
-  const sb = createClient()
-
   function showMsg(text: string, ok = true) {
     setMsg(text); setMsgOk(ok)
     setTimeout(() => setMsg(''), 4000)
@@ -129,7 +126,7 @@ export default function AdminPage() {
 
       {/* Contenu */}
       <div className="p-6">
-        {tab === 'players'  && <PlayersTab  sb={sb} onMsg={showMsg} />}
+        {tab === 'players'  && <PlayersTab  onMsg={showMsg} />}
         {tab === 'families' && <FamiliesTab onMsg={showMsg} />}
         {tab === 'cards'    && <CardsTab    onMsg={showMsg} />}
         {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
@@ -142,7 +139,7 @@ export default function AdminPage() {
 }
 
 // ─── Onglet Joueurs (garde sb anon — lecture + rpc seulement) ─────────────────
-function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg: (msg: string, ok?: boolean) => void }) {
+function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch]   = useState('')
@@ -157,32 +154,32 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await sb.from('player_profiles')
-      .select('user_id,username,avatar_url,level,xp,packs_opened,current_streak,void_pulls,highest_rarity,unlocked_card_backs')
-      .order('xp', { ascending: false }).limit(200)
+    const data = await fetch('/api/admin/players').then(r => r.json()).catch(() => [])
     setPlayers(data ?? [])
     setLoading(false)
-  }, [sb])
+  }, [])
 
   useEffect(() => {
     load()
-    adminDb('select', 'families', { select: 'key,label', order: 'label' }).then((data) => {
+    fetch('/api/families').then(r => r.json()).then((data: Family[]) => {
       setFamilies([
         { value: 'void', label: 'VOID Pack (global)' },
-        ...((data ?? []) as Family[]).map((f) => ({ value: f.key, label: `${f.label} Pack` })),
+        ...(data ?? []).map((f) => ({ value: f.key, label: `${f.label} Pack` })),
       ])
     }).catch(() => setFamilies([{ value: 'void', label: 'VOID Pack (global)' }]))
     adminDb('select', 'card_backs', { order: 'order_index' }).then((data) => setCardBacks(data ?? [])).catch(() => {})
-  }, [load, sb])
+  }, [load])
 
   async function credit() {
     if (!modal) return
     setCrediting(true)
     try {
-      for (let i = 0; i < cQty; i++) {
-        const { error } = await sb.rpc('credit_booster_to_user', { p_user_id: modal.user_id, p_booster_type: cType, p_source: 'admin' })
-        if (error) throw error
-      }
+      const res = await fetch('/api/admin/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'credit_booster', userId: modal.user_id, data: { boosterType: cType, qty: cQty, source: 'admin' } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
       onMsg(`✅ ${cQty}x "${cType}" → ${modal.username}`)
       setModal(null)
     } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
@@ -197,10 +194,12 @@ function PlayersTab({ sb, onMsg }: { sb: ReturnType<typeof createClient>; onMsg:
 
     setSavingBacks(true)
     try {
-      const { error } = await sb.from('player_profiles')
-        .update({ unlocked_card_backs: next })
-        .eq('user_id', backModal.user_id)
-      if (error) throw error
+      const res = await fetch('/api/admin/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_card_backs', userId: backModal.user_id, data: { unlockedCardBacks: next } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
       setBackModal({ ...backModal, unlocked_card_backs: next })
       setPlayers(ps => ps.map(p => p.user_id === backModal.user_id ? { ...p, unlocked_card_backs: next } : p))
     } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }

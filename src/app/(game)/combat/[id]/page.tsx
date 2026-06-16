@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Flag, Zap, Heart, Shield } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import {
@@ -31,6 +30,7 @@ interface GameState {
   p1_hand: BoardCard[]; p2_hand: BoardCard[]
   turn: number
   winner?: string
+  [key: string]: unknown
 }
 
 export default function CombatPage() {
@@ -63,13 +63,11 @@ export default function CombatPage() {
   useEffect(() => {
     if (!user) return
 
-    const sb = createClient()
-    sb.from('game_sessions').select('*').eq('id', id).single().then(({ data }) => {
-      if (data) {
-        syncState(data)
-        setLoading(false)
-      }
-    })
+    fetch(`/api/combat/session/${id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) { syncState(data); setLoading(false) }
+      })
 
     onSessionUpdate((sess: Record<string, unknown>) => {
       syncState(sess)
@@ -110,7 +108,7 @@ export default function CombatPage() {
 
     setGameState(newState)
     addLog(`Tu joues ${card.name}`)
-    await submitAction('play_card', { card_id: card.uid }, newState)
+    await submitAction('play_card', { card_id: card.uid }, newState as unknown as null)
     setSelectedCard(null)
   }
 
@@ -151,7 +149,7 @@ export default function CombatPage() {
 
     setGameState(newState)
     setSelectedCard(null)
-    await submitAction('attack', { attacker: attacker.uid, target: target === 'face' ? 'face' : target.uid }, newState)
+    await submitAction('attack', { attacker: attacker.uid, target: target === 'face' ? 'face' : target.uid }, newState as unknown as null)
   }
 
   async function handleEndTurn() {

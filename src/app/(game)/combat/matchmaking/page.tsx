@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Swords, Sword, Copy, Check } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { joinMatchmaking, leaveMatchmaking } from '@/lib/game/combat-multiplayer'
-import { createClient } from '@/lib/supabase/client'
 
 export default function MatchmakingPage() {
   return <Suspense><MatchmakingContent /></Suspense>
@@ -63,61 +62,45 @@ function MatchmakingContent() {
 
   async function startFriendlySession(deck: unknown[]) {
     try {
-      const sb = createClient()
       const friendRaw = sessionStorage.getItem('challenge_friend')
       const friend = friendRaw ? JSON.parse(friendRaw) as { id: string; username: string } : null
 
-      // Créer une session privée en attente
-      const { data: sess, error: sessErr } = await sb
-        .from('game_sessions')
-        .insert({
-          player1_id: user!.id,
-          status: 'waiting',
-          state: {
-            p1_hp: 30, p2_hp: 30,
-            p1_mana: 1, p1_max_mana: 1,
-            p2_mana: 0, p2_max_mana: 0,
-            p1_board: [], p2_board: [],
-            p1_deck: deck, p2_deck: [],
-            p1_hand: [], p2_hand: [],
-            turn: 1, ranked: false,
-          },
-        })
-        .select('id')
-        .single()
-
-      if (sessErr || !sess) throw new Error('Impossible de créer la session')
+      const res = await fetch('/api/combat/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deck, ranked: false }),
+      })
+      if (!res.ok) throw new Error('Impossible de créer la session')
+      const sess = await res.json()
 
       setSessionId(sess.id)
 
-      // Envoyer DM à l'ami avec le lien
       if (friend) {
         const joinUrl = `${window.location.origin}/combat/join/${sess.id}`
-        await sb.from('direct_messages').insert({
-          sender_id: user!.id,
-          receiver_id: friend.id,
-          content: `⚔️ Je te défie en partie amicale ! Rejoins ici : ${joinUrl}`,
+        await fetch('/api/social/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receiverId: friend.id, content: `⚔️ Je te défie en partie amicale ! Rejoins ici : ${joinUrl}` }),
         })
       }
 
       setStatus('waiting_friend')
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
 
-      // Écouter quand l'ami rejoint
-      sb.channel(`friendly:${sess.id}`)
-        .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'game_sessions',
-          filter: `id=eq.${sess.id}`,
-        }, (payload) => {
-          if (payload.new.status === 'active') {
+      // Polling pour détecter quand l'ami rejoint
+      const pollJoin = setInterval(async () => {
+        const r = await fetch(`/api/combat/session/${sess.id}`)
+        if (r.ok) {
+          const s = await r.json()
+          if (s.status === 'active') {
+            clearInterval(pollJoin)
             clearInterval(timerRef.current!)
             sessionStorage.removeItem('draft_deck')
             sessionStorage.removeItem('challenge_friend')
             setStatus('matched')
             setTimeout(() => router.push(`/combat/${sess.id}`), 800)
           }
-        })
-        .subscribe()
+        }
+      }, 2000)
 
     } catch (e: unknown) {
       setError((e as Error).message)
@@ -128,7 +111,7 @@ function MatchmakingContent() {
   async function cancel() {
     if (!isFriendly) await leaveMatchmaking()
     else if (sessionId) {
-      await createClient().from('game_sessions').delete().eq('id', sessionId)
+      await fetch(`/api/combat/session/${sessionId}`, { method: 'DELETE' })
     }
     router.back()
   }

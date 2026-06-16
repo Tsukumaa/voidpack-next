@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Image from 'next/image'
 import { useGameStore } from '@/store/game'
 import { useBoosterCredits } from '@/hooks/useBoosterCredits'
-import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { BoosterOpening } from './BoosterOpening'
 import type { BoosterCredit } from '@/types/player'
@@ -48,11 +47,12 @@ export function PackScreen() {
 
   useEffect(() => {
     if (!types.length) return
-    const sb   = createClient()
-    const keys = types.map(t => `booster_image_${t}`)
-    sb.from('settings').select('key,value').in('key', keys).then(({ data }) => {
+    fetch('/api/settings').then(r => r.json()).then((data: Record<string, string>) => {
       const map: Record<string, string> = {}
-      for (const row of data ?? []) map[row.key.replace('booster_image_', '')] = row.value
+      for (const type of types) {
+        const key = `booster_image_${type}`
+        if (data[key]) map[type] = data[key]
+      }
       setBoosterImages(map)
     })
   }, [types.join(',')]) // eslint-disable-line
@@ -81,9 +81,12 @@ export function PackScreen() {
     const credit = credits[0]
     setLoading(true)
     try {
-      const supabase = createClient()
-      const { error: claimErr } = await supabase.rpc('claim_booster_credit', { p_id: credit.id })
-      if (claimErr) throw claimErr
+      const claimRes = await fetch('/api/booster/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: credit.id }),
+      })
+      if (!claimRes.ok) throw new Error('Erreur claim crédit')
 
       const res = await fetch('/api/booster/open', {
         method: 'POST',

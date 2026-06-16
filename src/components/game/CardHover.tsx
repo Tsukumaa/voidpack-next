@@ -60,10 +60,11 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     if (!isVoid) return
     const card = cardRef.current
     if (!card) return
+    const cardEl: HTMLDivElement = card
     let raf = 0, t = 0
     function frame() {
       t += 0.016
-      applyTransform(card, t)
+      applyTransform(cardEl, t)
       if (glowBehindRef.current) {
         const breathe = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * (Math.PI * 2 / 4)))
         glowBehindRef.current.style.opacity = String(breathe)
@@ -78,9 +79,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   // Void étoiles canvas
   useEffect(() => {
     if (!isVoid) return
-    const canvas = starCanvasRef.current
+    const canvasEl = starCanvasRef.current
     const card = cardRef.current
-    if (!canvas || !card) return
+    if (!canvasEl || !card) return
+    const canvas: HTMLCanvasElement = canvasEl
     canvas.width = card.offsetWidth || 260
     canvas.height = card.offsetHeight || 365
     const ctx = canvas.getContext('2d')!
@@ -121,9 +123,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   // Legendary braises canvas
   useEffect(() => {
     if (!isLegendary || !hovered) return
-    const canvas = emberCanvasRef.current
+    const canvasEl2 = emberCanvasRef.current
     const card = cardRef.current
-    if (!canvas || !card) return
+    if (!canvasEl2 || !card) return
+    const canvas: HTMLCanvasElement = canvasEl2
     canvas.width = card.offsetWidth || 260
     canvas.height = card.offsetHeight || 365
     const ctx = canvas.getContext('2d')!

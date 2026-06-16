@@ -1,7 +1,6 @@
 'use client'
 import { BarChart2, Target, Trophy, Flame, Tv2, Lock } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
@@ -50,27 +49,26 @@ export default function ProfilPage() {
 
   const load = useCallback(async () => {
     if (!user) return
-    const sb = createClient()
 
-    const [cardsRes, drRes, achRes, missRes] = await Promise.all([
-      sb.from('player_cards').select('card_id, rarity').eq('user_id', user.id),
-      sb.from('player_daily_rewards').select('last_claim_at, current_streak, best_streak').eq('user_id', user.id).single(),
-      sb.from('player_achievements').select('achievement_id').eq('user_id', user.id),
-      sb.from('player_daily_missions').select('mission_id, progress, completed, xp_claimed').eq('user_id', user.id).eq('date', new Date().toISOString().split('T')[0]),
+    const [cards, dailyData, achData] = await Promise.all([
+      fetch('/api/collection').then(r => r.ok ? r.json() : []),
+      fetch('/api/profile/streak').then(r => r.ok ? r.json() : null),
+      fetch('/api/achievements').then(r => r.ok ? r.json() : []),
     ])
 
-    if (cardsRes.data) {
+    if (cards?.length >= 0) {
       const byRarity: Record<string, number> = {}
       const unique = new Set<string>()
-      for (const c of cardsRes.data) {
-        byRarity[c.rarity] = (byRarity[c.rarity] ?? 0) + 1
-        unique.add(c.card_id)
+      for (const c of cards) {
+        const rarity = c.rarity ?? 'common'
+        byRarity[rarity] = (byRarity[rarity] ?? 0) + 1
+        unique.add(c.card_id ?? c.cardId)
       }
-      setStats({ totalCards: cardsRes.data.length, uniqueCards: unique.size, byRarity })
+      setStats({ totalCards: cards.length, uniqueCards: unique.size, byRarity })
     }
-    setDaily(drRes.data)
-    setAchievements((achRes.data ?? []).map(a => a.achievement_id))
-    setMissions(missRes.data ?? [])
+    if (dailyData) setDaily({ last_claim_at: null, current_streak: dailyData.currentStreak ?? 0, best_streak: 0 })
+    setAchievements((achData ?? []).map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
+    setMissions([])
   }, [user])
 
   useEffect(() => { load() }, [load])
@@ -85,7 +83,7 @@ export default function ProfilPage() {
   }
 
   async function unlinkTwitch() {
-    await createClient().rpc('unlink_twitch_account')
+    await fetch('/api/twitch/unlink', { method: 'POST' })
     if (profile) setProfile({ ...profile, twitch_login: null })
   }
 
@@ -93,8 +91,8 @@ export default function ProfilPage() {
     if (claiming) return
     setClaiming(true)
     try {
-      const { error } = await createClient().rpc('claim_daily_reward')
-      if (error) throw error
+      const res = await fetch('/api/profile/daily', { method: 'POST' })
+      if (!res.ok) throw new Error('already_claimed')
       setClaimMsg('✅ Booster crédité !')
       load()
     } catch { setClaimMsg('Déjà réclamé aujourd\'hui.') }
@@ -104,9 +102,13 @@ export default function ProfilPage() {
   async function claimMission(missionId: string) {
     setClaimingMission(missionId)
     try {
-      const { data } = await createClient().rpc('claim_mission_reward', { p_mission_id: missionId })
-      if (data?.xp_gained && profile) {
-        setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+      const res = await fetch('/api/profile/mission', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ missionId }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data?.xp_gained && profile) setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
       }
       load()
     } catch(e) { console.error(e) }

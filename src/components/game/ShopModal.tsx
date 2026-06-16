@@ -2,8 +2,6 @@
 import { Lock, Check, Coffee, Crown, Gift, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
-import { createClient } from '@/lib/supabase/client'
-
 const KOFI_URL = 'https://ko-fi.com/voidpack'
 
 interface CardBack { id: string; name: string; gradient: string; pattern: string }
@@ -19,18 +17,20 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
   const isSubscriber = profile?.is_subscriber ?? false
 
   useEffect(() => {
-    createClient()
-      .from('card_backs')
-      .select('id,name,gradient,pattern')
-      .eq('active', true)
-      .order('order_index')
-      .then(({ data }) => { setCardBacks(data ?? []); setLoading(false) })
+    fetch('/api/card-backs')
+      .then(r => r.json())
+      .then(data => { setCardBacks(data ?? []); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [])
 
   async function selectBack(id: string) {
     if (!profile) return
     setProfile({ ...profile, selected_card_back: id })
-    await createClient().from('player_profiles').update({ selected_card_back: id }).eq('user_id', profile.user_id)
+    await fetch('/api/profile/card-back', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardBackId: id }),
+    })
   }
 
   async function checkout(mode: 'subscription' | 'payment', skin?: CardBack) {

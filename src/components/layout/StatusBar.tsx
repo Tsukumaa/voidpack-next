@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useGameStore } from '@/store/game'
-import { createClient } from '@/lib/supabase/client'
+import { signIn, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { ShopModal } from '@/components/game/ShopModal'
 
@@ -29,23 +29,16 @@ export function StatusBar() {
 
   useEffect(() => {
     if (!user) return
-    createClient()
-      .from('player_daily_rewards')
-      .select('current_streak')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => setStreak(data?.current_streak ?? 0))
+    fetch('/api/profile/streak')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setStreak(data?.currentStreak ?? 0))
   }, [user?.id]) // eslint-disable-line
 
   async function handleAuth() {
-    const supabase = createClient()
     if (user) {
-      await supabase.auth.signOut()
+      await signOut({ callbackUrl: '/pack' })
     } else {
-      await supabase.auth.signInWithOAuth({
-        provider: 'discord',
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      })
+      await signIn('discord', { callbackUrl: '/pack' })
     }
   }
 
@@ -73,7 +66,7 @@ export function StatusBar() {
           <div className="w-px h-4 bg-white/10 mx-1" />
           <div className="flex items-center gap-1 text-xs font-bold">
             <Flame size={13} className="text-[#ff9a3d]" />
-            <span className="text-white/70">{streak ?? profile?.current_streak ?? 0}j</span>
+            <span className="text-white/70">{streak ?? 0}j</span>
           </div>
         </div>
 

@@ -1,7 +1,6 @@
 /**
- * settings.js — Paramètres globaux VOID Pack depuis Supabase
+ * settings.js — Paramètres globaux VOID Pack
  */
-import { getSupabaseClient } from '@/lib/supabase/client';
 
 let _settings = {};
 
@@ -11,13 +10,9 @@ export function getSetting(key, fallback = '') {
 
 export async function loadSettings() {
   try {
-    const supabase = await getSupabaseClient();
-    const { data, error } = await supabase.rpc('get_void_settings');
-    if (error) throw error;
-    if (data) {
-      _settings = {};
-      for (const row of data) _settings[row.key] = row.value;
-    }
+    const res = await fetch('/api/settings');
+    if (!res.ok) throw new Error(await res.text());
+    _settings = await res.json();
     console.info('[VOID Pack] Settings chargés:', Object.keys(_settings).length);
   } catch (e) {
     console.warn('[VOID Pack] Settings fallback:', e?.message);
@@ -25,8 +20,11 @@ export async function loadSettings() {
 }
 
 export async function saveSetting(key, value) {
-  const supabase = await getSupabaseClient();
-  const { error } = await supabase.rpc('set_void_setting', { p_key: key, p_value: value });
-  if (error) throw error;
+  const res = await fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, value }),
+  });
+  if (!res.ok) throw new Error(await res.text());
   _settings[key] = value;
 }

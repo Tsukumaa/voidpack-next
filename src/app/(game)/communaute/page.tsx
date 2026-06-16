@@ -2,7 +2,6 @@
 import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown, Swords, Sword } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 
@@ -53,81 +52,42 @@ export default function CommunautePage() {
 
   const loadLadder = useCallback(async () => {
     setLoading(true)
-    const sb = createClient()
-
-    const { data: profiles } = await sb
-      .from('player_profiles')
-      .select('user_id, username, avatar_url, xp, level, highest_rarity')
-      .order('xp', { ascending: false })
-      .limit(50)
-
-    // Charger les stats cartes pour chaque joueur
-    const { data: cardStats } = await sb
-      .from('player_cards')
-      .select('user_id, rarity, card_id')
-
-    const statsMap: Record<string, { unique: Set<string>; void: number }> = {}
-    for (const c of cardStats ?? []) {
-      if (!statsMap[c.user_id]) statsMap[c.user_id] = { unique: new Set(), void: 0 }
-      statsMap[c.user_id].unique.add(c.card_id)
-      if (c.rarity === 'void') statsMap[c.user_id].void++
-    }
-
-    setEntries((profiles ?? []).map(p => ({
-      ...p,
-      unique_cards: statsMap[p.user_id]?.unique.size ?? 0,
-      void_cards:   statsMap[p.user_id]?.void ?? 0,
+    const data = await fetch('/api/ladder?type=collection&limit=50').then(r => r.ok ? r.json() : [])
+    setEntries(data.map((e: Record<string, unknown>) => ({
+      user_id:       e.userId ?? e.user_id,
+      username:      e.username,
+      avatar_url:    e.avatarUrl ?? e.avatar_url,
+      xp:            e.xp ?? 0,
+      level:         e.level ?? 1,
+      highest_rarity: e.highestRarity ?? e.highest_rarity ?? null,
+      unique_cards:  e.total ?? e.unique_cards ?? 0,
+      void_cards:    e.void_cards ?? 0,
     })))
     setLoading(false)
   }, [])
 
   const loadFriends = useCallback(async () => {
     if (!user) return
-    const sb = createClient()
-    const { data } = await sb
-      .from('friendships')
-      .select('id, sender_id, receiver_id, status')
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .eq('status', 'accepted')
-
-    if (!data) return
-
-    const friendIds = data.map(f => f.sender_id === user.id ? f.receiver_id : f.sender_id)
-    if (!friendIds.length) { setFriends([]); return }
-
-    const { data: profiles } = await sb
-      .from('player_profiles')
-      .select('user_id, username, avatar_url')
-      .in('user_id', friendIds)
-
-    setFriends(data.map(f => {
-      const fid = f.sender_id === user.id ? f.receiver_id : f.sender_id
-      const profile = profiles?.find(p => p.user_id === fid)
-      return { id: f.id, friend_id: fid, username: profile?.username ?? null, avatar_url: profile?.avatar_url ?? null, status: f.status }
-    }))
+    const data = await fetch('/api/social/friends').then(r => r.ok ? r.json() : [])
+    setFriends(data.map((f: Record<string, unknown>) => ({
+      id:         f.friendshipId ?? f.id,
+      friend_id:  f.userId ?? f.friend_id,
+      username:   f.username ?? null,
+      avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
+      status:     f.status ?? 'accepted',
+    })))
   }, [user])
 
   const loadPendingRequests = useCallback(async () => {
     if (!user) return
-    const sb = createClient()
-    const { data } = await sb
-      .from('friendships')
-      .select('id, sender_id, receiver_id, status')
-      .eq('receiver_id', user.id)
-      .eq('status', 'pending')
-
-    if (!data || !data.length) { setPendingRequests([]); return }
-
-    const senderIds = data.map(f => f.sender_id)
-    const { data: profiles } = await sb
-      .from('player_profiles')
-      .select('user_id, username, avatar_url')
-      .in('user_id', senderIds)
-
-    setPendingRequests(data.map(f => {
-      const profile = profiles?.find(p => p.user_id === f.sender_id)
-      return { id: f.id, friend_id: f.sender_id, username: profile?.username ?? null, avatar_url: profile?.avatar_url ?? null, status: f.status }
-    }))
+    const data = await fetch('/api/social/friends/pending').then(r => r.ok ? r.json() : [])
+    setPendingRequests(data.map((f: Record<string, unknown>) => ({
+      id:         f.friendshipId ?? f.id,
+      friend_id:  f.senderId ?? f.friend_id,
+      username:   f.username ?? null,
+      avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
+      status:     'pending',
+    })))
   }, [user])
 
   useEffect(() => { loadLadder() }, [loadLadder])
@@ -329,47 +289,41 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChall
   async function searchUsers(q: string) {
     if (!q.trim() || !user) return
     setLoading(true)
-    const { data } = await createClient()
-      .from('player_profiles')
-      .select('user_id, username, avatar_url')
-      .ilike('username', `%${q}%`)
-      .neq('user_id', user.id)
-      .limit(10)
+    const data = await fetch(`/api/social/search?q=${encodeURIComponent(q)}`).then(r => r.ok ? r.json() : [])
     setResults(data ?? [])
     setLoading(false)
   }
 
   async function sendRequest(targetId: string) {
     if (!user) return
-    // Vérifier qu'aucune relation n'existe déjà dans un sens ou l'autre
-    const sb = createClient()
-    const { data: existing } = await sb
-      .from('friendships')
-      .select('id')
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${user.id})`)
-      .limit(1)
-    if (existing && existing.length > 0) {
-      setSent(s => new Set([...s, targetId]))
-      return
-    }
-    await sb.from('friendships').insert({
-      sender_id: user.id, receiver_id: targetId, status: 'pending'
+    await fetch('/api/social/friends', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiverId: targetId }),
     })
     setSent(s => new Set([...s, targetId]))
   }
 
   async function removeFriend(friendshipId: number) {
-    await createClient().from('friendships').delete().eq('id', friendshipId)
+    await fetch('/api/social/friends', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendshipId }),
+    })
     onRefresh()
   }
 
   async function acceptRequest(friendshipId: number) {
-    await createClient().from('friendships').update({ status: 'accepted' }).eq('id', friendshipId)
+    await fetch('/api/social/friends', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendshipId, accept: true }),
+    })
     onRefresh()
   }
 
   async function declineRequest(friendshipId: number) {
-    await createClient().from('friendships').delete().eq('id', friendshipId)
+    await fetch('/api/social/friends', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ friendshipId, accept: false }),
+    })
     onRefresh()
   }
 
@@ -493,36 +447,29 @@ function FloatingChat({ user, friend, onClose }: {
   const [input, setInput]       = useState('')
   const [minimized, setMinimized] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const sb = createClient()
 
   const load = useCallback(async () => {
-    const { data } = await sb
-      .from('direct_messages')
-      .select('*')
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friend.friend_id}),and(sender_id.eq.${friend.friend_id},receiver_id.eq.${user.id})`)
-      .order('created_at', { ascending: true })
-      .limit(50)
+    const data = await fetch(`/api/social/messages?with=${friend.friend_id}&limit=50`).then(r => r.ok ? r.json() : [])
     setMessages(data ?? [])
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [user.id, friend.friend_id]) // eslint-disable-line
 
   useEffect(() => {
     load()
-    // Realtime
-    const channel = sb
-      .channel(`dm-${user.id}-${friend.friend_id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, () => load())
-      .subscribe()
-    return () => { sb.removeChannel(channel) }
+    // Polling toutes les 3s à la place du Realtime
+    const interval = setInterval(load, 3000)
+    return () => clearInterval(interval)
   }, [load]) // eslint-disable-line
 
   async function send() {
     if (!input.trim()) return
     const content = input.trim()
     setInput('')
-    await sb.from('direct_messages').insert({
-      sender_id: user.id, receiver_id: friend.friend_id, content,
+    await fetch('/api/social/messages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiverId: friend.friend_id, content }),
     })
+    load()
   }
 
   return (

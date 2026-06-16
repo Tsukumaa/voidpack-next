@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -60,50 +59,47 @@ export default function CollectionPage() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const sb = createClient()
 
-    // Charger la collection du joueur
-    const { data: rawCards } = await sb
-      .from('player_cards')
-      .select('id, card_id, rarity, family, obtained_at, metadata')
-      .eq('user_id', user.id)
-      .order('obtained_at', { ascending: false })
-
-    // Charger les infos des cartes (artwork + stats combat)
-    const { data: cardDefs } = await sb
-      .from('custom_cards')
-      .select('id, name, image_url, rarity, family, description, metadata')
+    const [rawCards, cardDefs] = await Promise.all([
+      fetch('/api/collection').then(r => r.ok ? r.json() : []),
+      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+    ])
 
     const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
-    for (const d of cardDefs ?? []) defMap[d.id] = {
-      name: d.name,
-      image_url: d.image_url,
-      description: d.description ?? null,
-      cost: d.metadata?.combat?.cost ?? null,
-      atk:  d.metadata?.combat?.atk  ?? null,
-      def:  d.metadata?.combat?.hp   ?? null,
+    for (const d of cardDefs ?? []) {
+      const meta = typeof d.metadata === 'string' ? JSON.parse(d.metadata || '{}') : (d.metadata ?? {})
+      defMap[d.id] = {
+        name: d.name,
+        image_url: d.imageUrl ?? d.image_url,
+        description: d.description ?? null,
+        cost: meta?.combat?.cost ?? null,
+        atk:  meta?.combat?.atk  ?? null,
+        def:  meta?.combat?.hp   ?? null,
+      }
     }
 
     // Grouper par card_id
     const groups: Record<string, GroupedCard> = {}
     for (const c of rawCards ?? []) {
-      if (!groups[c.card_id]) {
-        const def = defMap[c.card_id]
-        groups[c.card_id] = {
-          card_id: c.card_id,
+      const cardKey = c.card_id ?? c.cardId
+      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata || '{}') : (c.metadata ?? {})
+      if (!groups[cardKey]) {
+        const def = defMap[cardKey]
+        groups[cardKey] = {
+          card_id: cardKey,
           rarity: c.rarity,
           family: c.family,
           count: 0,
-          name: def?.name ?? c.metadata?.name ?? c.card_id,
-          image_url: def?.image_url ?? c.metadata?.image ?? null,
+          name: def?.name ?? meta?.name ?? cardKey,
+          image_url: def?.image_url ?? meta?.image ?? null,
           description: def?.description ?? null,
-          latest_at: c.obtained_at,
+          latest_at: c.obtained_at ?? c.obtainedAt,
           cost: def?.cost ?? null,
           atk:  def?.atk  ?? null,
           def:  def?.def  ?? null,
         }
       }
-      groups[c.card_id].count++
+      groups[cardKey].count++
     }
 
     // Trier par rareté puis nom
@@ -116,9 +112,9 @@ export default function CollectionPage() {
     setCards(sorted)
 
     // Familles disponibles
-    const famKeys = [...new Set(sorted.map(c => c.family))].filter(Boolean)
-    const { data: famData } = await sb.from('families').select('key, label').in('key', famKeys)
-    setFamilies((famData ?? []).map(f => ({ key: f.key, label: f.label })))
+    const famRes = await fetch('/api/families')
+    const famData = famRes.ok ? await famRes.json() : []
+    setFamilies(famData)
 
     setLoading(false)
   }, [user])

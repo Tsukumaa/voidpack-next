@@ -1,6 +1,3 @@
-import { getFam, getFamOrder, getFamRegistry } from '@/lib/game/families-registry';
-import { getSupabaseClient, getUser } from '@/lib/supabase/client';
-
 import {
   PACK_TYPES as BOOSTER_TYPES,
   PACK_TYPE_LABELS as BOOSTER_TYPE_LABELS,
@@ -46,23 +43,8 @@ export function getBoosterLabel(type) {
   return BOOSTER_TYPE_LABELS[type] ?? BOOSTER_TYPE_LABELS[BOOSTER_TYPES.VOID];
 }
 
-function getPoolForBoosterType(type) {
-  return getPackPool(type);
-}
-
-
-async function getAuthenticatedUser() {
-  const user = await getUser();
-
-  if (!user) {
-    throw new BoosterCodeError('Connecte-toi avec Discord pour utiliser un code booster.', 'AUTH_REQUIRED');
-  }
-
-  return user;
-}
-
-function normalizeSupabaseError(error) {
-  const message = error?.message ?? 'Code booster invalide.';
+function normalizeApiError(data, fallback = 'Code booster invalide.') {
+  const message = data?.error ?? fallback;
 
   if (/Connexion Discord/i.test(message)) return new BoosterCodeError(message, 'AUTH_REQUIRED');
   if (/manquant|format/i.test(message)) return new BoosterCodeError(message, 'INVALID_FORMAT');
@@ -71,38 +53,38 @@ function normalizeSupabaseError(error) {
   if (/expir/i.test(message)) return new BoosterCodeError(message, 'EXPIRED');
   if (/déjà|utilisé/i.test(message)) return new BoosterCodeError(message, 'ALREADY_USED');
 
-  return new BoosterCodeError(message, 'SUPABASE_ERROR');
+  return new BoosterCodeError(message, 'API_ERROR');
 }
 
-export async function redeemBoosterCode(rawCode, { supabase } = {}) {
-  const user = await getAuthenticatedUser();
+export async function redeemBoosterCode(rawCode) {
   const code = assertValidBoosterCode(rawCode);
-  const resolvedClient = supabase ?? await getSupabaseClient();
 
-  const { data, error } = await resolvedClient.rpc('redeem_booster_code', {
-    input_code: code,
+  const res = await fetch('/api/booster/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
   });
 
-  if (error) {
-    throw normalizeSupabaseError(error);
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw normalizeApiError(data);
   }
 
-  const redemption = Array.isArray(data) ? data[0] : data;
-
-  if (!redemption?.redemption_id) {
-    throw new BoosterCodeError('Réponse Supabase invalide pour ce code booster.', 'INVALID_RESPONSE');
+  if (!data?.redemptionId) {
+    throw new BoosterCodeError('Réponse invalide pour ce code booster.', 'INVALID_RESPONSE');
   }
 
   return Object.freeze({
-    redemptionId: redemption.redemption_id,
-    codeId: redemption.code_id,
-    boosterType: redemption.booster_type ?? BOOSTER_TYPES.VOID,
+    redemptionId: data.redemptionId,
+    codeId: data.codeId,
+    boosterType: data.boosterType ?? BOOSTER_TYPES.VOID,
     code,
-    normalizedCode: redemption.code ?? code,
-    userId: user.id,
-    redeemedAt: redemption.redeemed_at ?? new Date().toISOString(),
-    remainingRedemptions: Number(redemption.remaining_redemptions ?? 0),
-    metadata: redemption.metadata ?? {},
+    normalizedCode: data.normalizedCode ?? code,
+    userId: data.userId,
+    redeemedAt: data.redeemedAt ?? new Date().toISOString(),
+    remainingRedemptions: Number(data.remainingRedemptions ?? 0),
+    metadata: data.metadata ?? {},
   });
 }
 
@@ -130,40 +112,28 @@ function serializeCardsForCompletion(cards) {
   }));
 }
 
-export async function completeBoosterRedemption(redemptionId, cards, { supabase } = {}) {
+export async function completeBoosterRedemption(redemptionId, cards) {
   if (!redemptionId) {
     throw new BoosterCodeError('Redemption booster manquante.', 'MISSING_REDEMPTION');
   }
 
-  const resolvedClient = supabase ?? await getSupabaseClient();
   const serializedCards = serializeCardsForCompletion(cards);
 
-  const { data, error } = await resolvedClient.rpc('complete_booster_redemption', {
-    input_redemption_id: redemptionId,
-    input_cards: serializedCards,
+  const res = await fetch('/api/booster/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ redemptionId, cards: serializedCards }),
   });
 
-  if (error) {
-    throw normalizeSupabaseError(error);
-  }
+  const data = await res.json();
+  if (!res.ok) throw normalizeApiError(data);
 
   return data;
 }
 
-export async function getMyBoosterRedemptions({ supabase, limit = 20 } = {}) {
-  const user = await getAuthenticatedUser();
-  const resolvedClient = supabase ?? await getSupabaseClient();
-
-  const { data, error } = await resolvedClient
-    .from('booster_code_redemptions')
-    .select('id,code_id,user_id,status,redeemed_at,completed_at,cards,metadata')
-    .eq('user_id', user.id)
-    .order('redeemed_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    throw normalizeSupabaseError(error);
-  }
-
+export async function getMyBoosterRedemptions({ limit = 20 } = {}) {
+  const res = await fetch(`/api/booster/redemptions?limit=${limit}`);
+  const data = await res.json();
+  if (!res.ok) throw normalizeApiError(data);
   return Object.freeze(data ?? []);
 }

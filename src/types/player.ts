@@ -8,6 +8,7 @@ export interface PlayerProfile {
   highest_rarity: string | null
   void_pulls: number
   is_admin: boolean
+  is_subscriber?: boolean
   created_at: string
   twitch_login: string | null
   selected_card_back: string | null

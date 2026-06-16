@@ -1,42 +1,32 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { sql } from 'drizzle-orm'
 
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+// Generic admin table operations via Drizzle raw SQL
 export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const { action, table, data, eq: eqFilter } = await req.json()
-  const sb = getAdminClient()
 
   try {
     let result
-
     if (action === 'select') {
-      const q = sb.from(table).select(data?.select ?? '*')
-      if (data?.order) q.order(data.order)
-      result = await q
+      result = await db.run(sql.raw(`SELECT ${data?.select ?? '*'} FROM ${table}${data?.order ? ` ORDER BY ${data.order}` : ''}`))
     } else if (action === 'insert') {
-      result = await sb.from(table).insert(data)
+      const cols = Object.keys(data).join(', ')
+      const vals = Object.values(data).map(v => `'${v}'`).join(', ')
+      result = await db.run(sql.raw(`INSERT INTO ${table} (${cols}) VALUES (${vals})`))
     } else if (action === 'update') {
-      result = await sb.from(table).update(data).eq(eqFilter.col, eqFilter.val)
+      const sets = Object.entries(data).map(([k, v]) => `${k}='${v}'`).join(', ')
+      result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}='${eqFilter.val}'`))
     } else if (action === 'delete') {
-      result = await sb.from(table).delete().eq(eqFilter.col, eqFilter.val)
-    } else if (action === 'upsert') {
-      result = await sb.from(table).upsert(data, { onConflict: eqFilter?.onConflict ?? 'id' })
+      result = await db.run(sql.raw(`DELETE FROM ${table} WHERE ${eqFilter.col}='${eqFilter.val}'`))
     } else {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
-
-    if (result.error) {
-      return NextResponse.json({ error: result.error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ data: result.data })
+    return NextResponse.json({ data: result.rows })
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
