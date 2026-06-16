@@ -33,9 +33,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, account, profile }) {
       if (account?.provider === 'discord' && profile) {
         token.discordId = profile.id as string
-
+      }
+      // Re-check admin on every token refresh so changes take effect without re-login
+      if (token.discordId) {
         const admin = await db.query.adminUsers.findFirst({
-          where: eq(adminUsers.discordId, profile.id as string),
+          where: eq(adminUsers.discordId, token.discordId as string),
         })
         token.isAdmin = !!admin
       }
