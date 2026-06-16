@@ -11,13 +11,13 @@ const RARITY: Record<string, {
     b1:'#8a8f9e', b2:'#b0b5c2', b3:'#6a6f7e',
     glow:'#9ca3af', bg1:'#0e0f14', bg2:'#0a0b10',
     orb1:'#1e2030', orb2:'#2a2d3a', orb3:'#1e2030',
-    fullart: true,
+    fullart: false,
   },
   rare: {
     b1:'#1a4a9e', b2:'#60a5fa', b3:'#0f2d7a',
     glow:'#3b82f6', bg1:'#080c1a', bg2:'#060a14',
     orb1:'#0a1a40', orb2:'#0f2255', orb3:'#200a30',
-    fullart: true,
+    fullart: false,
   },
   epic: {
     b1:'#7a2ab5', b2:'#d580ff', b3:'#5a1a8a',
@@ -107,18 +107,20 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
             background:`repeating-linear-gradient(45deg, ${r.glow}08 0px, ${r.glow}08 1px, transparent 1px, transparent 8px)` }} />
         )}
 
+        {/* Dégradé sombre haut — backdrop du nom */}
+        {name && (
+          <div style={{ position:'absolute', top:0, left:0, right:0, height:'30%', zIndex:5, pointerEvents:'none',
+            background:'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.35) 40%, transparent 100%)' }} />
+        )}
+
         {/* Nom centré en haut */}
         {name && (
           <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:10, pointerEvents:'none', display:'flex', justifyContent:'center', padding:'6px 28px 4px' }}>
-            <span style={{ fontSize: size === 'lg' ? 13 : 9, fontWeight:800, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em', textShadow:`0 1px 6px #000, 0 0 12px ${r.glow}88`, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }}>
+            <span style={{ fontSize: size === 'lg' ? 13 : 9, fontWeight:800, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em', textShadow:'0 1px 3px #000, 0 0 3px rgba(0,0,0,.85)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%', padding:'0 6px' }}>
               {name}
             </span>
           </div>
         )}
-
-        {/* Point lumineux haut centre */}
-        <div style={{ position:'absolute', top:3, left:'50%', transform:'translateX(-50%)', width:4, height:4, borderRadius:'50%', background:r.glow, boxShadow:`0 0 6px ${r.glow}`, pointerEvents:'none' }} />
-
 
         {/* Coins haut */}
         <div style={{ position:'absolute', top:4, left:4, width:1.5, height:22, background:`linear-gradient(to bottom, ${r.b2}, transparent)`, pointerEvents:'none' }} />
