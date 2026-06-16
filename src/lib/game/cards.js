@@ -162,29 +162,7 @@ export const PITY_RULES = Object.freeze({
 
 export const DEFAULT_PACK_SIZE = 5;
 
-// ─────────────────────────────────────────────
-// CARD POOL (placeholder — remplacé en runtime par les cartes custom admin)
-// ─────────────────────────────────────────────
-
-export const CARD_POOL = Object.freeze([
-  { id: 'c-001', name: 'Signal Parasite',     rarity: RARITY_KEYS.COMMON,    family: 'neon-divide',    character: 'Archive',   image: null },
-  { id: 'c-002', name: 'Neon Static',         rarity: RARITY_KEYS.COMMON,    family: 'harmony',        character: 'Archive',   image: null },
-  { id: 'c-003', name: 'Back Alley Runner',   rarity: RARITY_KEYS.COMMON,    family: 'ash-district',   character: 'Crew',      image: null },
-  { id: 'c-004', name: 'Bluffs Lookout',      rarity: RARITY_KEYS.COMMON,    family: 'pacific-bluffs', character: 'Scout',     image: null },
-  { id: 'r-001', name: 'Electric Witness',    rarity: RARITY_KEYS.RARE,      family: 'harmony',        character: 'Oracle',    image: null },
-  { id: 'r-002', name: 'Blue Shift Duelist',  rarity: RARITY_KEYS.RARE,      family: 'pacific-bluffs', character: 'Duelist',   image: null },
-  { id: 'r-003', name: 'Midnight Protocol',   rarity: RARITY_KEYS.RARE,      family: 'neon-divide',    character: 'System',    image: null },
-  { id: 'r-004', name: 'Ashline Pursuit',     rarity: RARITY_KEYS.RARE,      family: 'ash-district',   character: 'Hunter',    image: null },
-  { id: 'e-001', name: 'Violet Fracture',     rarity: RARITY_KEYS.EPIC,      family: 'harmony',        character: 'Anomaly',   image: null },
-  { id: 'e-002', name: 'Psyblade Bloom',      rarity: RARITY_KEYS.EPIC,      family: 'pacific-bluffs', character: 'Blade',     image: null },
-  { id: 'e-003', name: 'Dreamcore Hacker',    rarity: RARITY_KEYS.EPIC,      family: 'neon-divide',    character: 'Hacker',    image: null },
-  { id: 'e-004', name: 'Cinder Mirage',       rarity: RARITY_KEYS.EPIC,      family: 'ash-district',   character: 'Mirage',    image: null },
-  { id: 'l-001', name: 'Golden Singularity',  rarity: RARITY_KEYS.LEGENDARY, family: 'harmony',        character: 'Legend',    image: null },
-  { id: 'l-002', name: 'Solar Crown',         rarity: RARITY_KEYS.LEGENDARY, family: 'pacific-bluffs', character: 'Monarch',   image: null },
-  { id: 'l-003', name: 'Ember Sovereign',     rarity: RARITY_KEYS.LEGENDARY, family: 'ash-district',   character: 'Sovereign', image: null },
-  { id: 'v-001', name: 'VOID Origin',         rarity: RARITY_KEYS.VOID,      family: 'global',         character: 'VOID',      image: null },
-  { id: 'v-002', name: 'Event Horizon Bloom', rarity: RARITY_KEYS.VOID,      family: 'global',         character: 'VOID',      image: null },
-]);
+export const CARD_POOL = Object.freeze([]);
 
 // ─────────────────────────────────────────────
 // PITY STATE

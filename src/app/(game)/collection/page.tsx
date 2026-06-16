@@ -84,56 +84,50 @@ export default function CollectionPage() {
       }
     }
 
-    // Grouper par card_id
-    const groups: Record<string, GroupedCard> = {}
-    for (const c of rawCards ?? []) {
-      const cardKey = c.card_id ?? c.cardId
-      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
-      if (!groups[cardKey]) {
-        const def = defMap[cardKey]
-        groups[cardKey] = {
-          card_id: cardKey,
-          rarity: c.rarity,
-          family: c.family,
-          count: 0,
-          name: def?.name ?? meta?.name ?? cardKey,
-          image_url: def?.image_url ?? meta?.image ?? null,
-          description: def?.description ?? null,
-          latest_at: c.obtained_at ?? c.obtainedAt,
-          cost: def?.cost ?? null,
-          atk:  def?.atk  ?? null,
-          def:  def?.def  ?? null,
-          owned: true,
-        }
-      }
-      groups[cardKey].count++
-    }
-
-    // Ajouter les cartes non possédées (placeholders verrouillés)
-    for (const d of cardDefs ?? []) {
-      if (groups[d.id]) continue
-      const def = defMap[d.id]
-      groups[d.id] = {
-        card_id: d.id,
-        rarity: d.rarity ?? 'common',
-        family: d.family ?? d.familyKey ?? '',
-        count: 0,
-        name: def?.name ?? d.name ?? d.id,
-        image_url: def?.image_url ?? null,
+    const ownedList: GroupedCard[] = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
+      const cardKey = c.card_id ?? c.cardId ?? ''
+      const def = defMap[cardKey]
+      return {
+        card_id:     cardKey,
+        rarity:      c.rarity,
+        family:      c.family,
+        count:       c.count ?? 1,
+        name:        def?.name ?? cardKey,
+        image_url:   def?.image_url ?? null,
         description: def?.description ?? null,
-        latest_at: '',
-        cost: def?.cost ?? null,
-        atk:  def?.atk  ?? null,
-        def:  def?.def  ?? null,
-        owned: false,
+        latest_at:   c.last_obtained_at ?? '',
+        cost:        def?.cost ?? null,
+        atk:         def?.atk  ?? null,
+        def:         def?.def  ?? null,
+        owned:       true,
       }
-    }
+    })
 
-    // Trier par rareté puis nom
-    const sorted = Object.values(groups).sort((a, b) => {
+    // Cartes non possédées → placeholders verrouillés
+    const ownedIds = new Set(ownedList.map(c => c.card_id))
+    const lockedList: GroupedCard[] = (cardDefs ?? [])
+      .filter((d: { id: string }) => !ownedIds.has(d.id))
+      .map((d: { id: string; name?: string; rarity?: string; family?: string; familyKey?: string }) => {
+        const def = defMap[d.id]
+        return {
+          card_id:     d.id,
+          rarity:      d.rarity ?? 'common',
+          family:      d.family ?? d.familyKey ?? '',
+          count:       0,
+          name:        def?.name ?? d.name ?? d.id,
+          image_url:   def?.image_url ?? null,
+          description: def?.description ?? null,
+          latest_at:   '',
+          cost:        def?.cost ?? null,
+          atk:         def?.atk  ?? null,
+          def:         def?.def  ?? null,
+          owned:       false,
+        }
+      })
+
+    const sorted = [...ownedList, ...lockedList].sort((a, b) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
-      if (ri !== 0) return ri
-      return a.name.localeCompare(b.name)
+      return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })
 
     setCards(sorted)
@@ -150,14 +144,14 @@ export default function CollectionPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="sticky top-0 z-20 pt-14 pb-2 mb-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="sticky top-20 z-20 py-4 mb-5 backdrop-blur-md flex flex-col justify-center rounded-xl">
+        <div className="flex items-center justify-center gap-3 mb-3">
           <h2 className="font-bold text-white text-base">Ma collection</h2>
           <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
         </div>
 
         {/* Filtres */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
           <button onClick={() => setFilter('all')}
             className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
               filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
@@ -197,7 +191,7 @@ export default function CollectionPage() {
             return (
               <div key={r}>
                 <button onClick={() => toggleSection(r)}
-                  className="flex items-center gap-2 mb-3 w-full group">
+                  className="flex items-center gap-2 mb-3 w-full">
                   <ChevronDown size={14} className="transition-transform duration-300 shrink-0"
                     style={{ color: RARITY_COLOR[r], transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
                   <span className="text-xs font-bold uppercase tracking-widest" style={{ color: RARITY_COLOR[r] }}>{r}</span>
@@ -207,7 +201,7 @@ export default function CollectionPage() {
                 <div className="grid transition-[grid-template-rows] duration-300 ease-out"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
                   <div className="overflow-hidden">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-4 pb-4 px-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4">
                       {group.map(card => (
                     !card.owned ? (
                       <div

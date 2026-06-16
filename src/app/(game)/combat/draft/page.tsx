@@ -15,7 +15,7 @@ const MAX_COPIES: Record<string, number> = {
 
 const RARITY_ORDER = ['void', 'legendary', 'epic', 'rare', 'uncommon', 'common']
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
@@ -76,29 +76,24 @@ function DraftContent() {
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
 
-    const groups: Record<string, DraftCard> = {}
-    for (const c of rawCards ?? []) {
-      const cardKey = c.card_id ?? c.cardId
-      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
-      if (!groups[cardKey]) {
-        const def = defMap[cardKey]
-        const combat = (def?.metadata?.combat ?? meta?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
-        groups[cardKey] = {
-          card_id:    cardKey,
-          rarity:     c.rarity,
-          family:     c.family,
-          name:       def?.name ?? meta?.name ?? cardKey,
-          image_url:  def?.image_url ?? null,
-          ownedCount: 0,
-          atk:        combat.atk ?? 1,
-          hp:         combat.hp ?? 2,
-          cost:       combat.cost ?? 1,
-        }
+    const sorted_unsorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
+      const cardKey = c.card_id ?? c.cardId ?? ''
+      const def = defMap[cardKey]
+      const combat = (def?.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
+      return {
+        card_id:    cardKey,
+        rarity:     c.rarity,
+        family:     c.family,
+        name:       def?.name ?? cardKey,
+        image_url:  def?.image_url ?? null,
+        ownedCount: c.count ?? 1,
+        atk:        combat.atk ?? 1,
+        hp:         combat.hp ?? 2,
+        cost:       combat.cost ?? 1,
       }
-      groups[cardKey].ownedCount++
-    }
+    })
 
-    const sorted = Object.values(groups).sort((a, b) => {
+    const sorted = sorted_unsorted.sort((a: DraftCard, b: DraftCard) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
       return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })

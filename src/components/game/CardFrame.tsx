@@ -148,13 +148,6 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
           </svg>
         </div>
 
-        {/* Orbes coins (standard) */}
-        {!r.fullart && <>
-          <div style={{ position:'absolute', top:5, left:5, width:26, height:26, borderRadius:'50%', background:`linear-gradient(135deg, ${r.orb1}, ${r.orb2})`, border:`1.5px solid ${r.b2}`, boxShadow:`0 0 6px ${r.glow}55`, pointerEvents:'none' }} />
-          <div style={{ position:'absolute', bottom:5, left:5, width:22, height:22, borderRadius:'50%', background:`linear-gradient(135deg, ${r.orb2}, ${r.orb1})`, border:`1.5px solid ${r.b2}`, pointerEvents:'none' }} />
-          <div style={{ position:'absolute', bottom:5, right:5, width:22, height:22, borderRadius:'50%', background:`linear-gradient(135deg, ${r.orb3}, ${r.orb1})`, border:`1.5px solid ${r.b2}`, pointerEvents:'none' }} />
-        </>}
-
         {/* Stats */}
         {showStats && <>
           {cost != null && (
