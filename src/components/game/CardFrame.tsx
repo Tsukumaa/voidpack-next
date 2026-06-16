@@ -123,10 +123,6 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
           </div>
         )}
 
-        {/* Point lumineux haut centre */}
-        <div style={{ position:'absolute', top:3, left:'50%', transform:'translateX(-50%)', width:4, height:4, borderRadius:'50%', background:r.glow, boxShadow:`0 0 6px ${r.glow}`, pointerEvents:'none' }} />
-
-
         {/* Coins haut */}
         <div style={{ position:'absolute', top:4, left:4, width:1.5, height:22, background:`linear-gradient(to bottom, ${r.b2}, transparent)`, pointerEvents:'none' }} />
         <div style={{ position:'absolute', top:4, left:4, width:22, height:1.5, background:`linear-gradient(to right, ${r.b2}, transparent)`, pointerEvents:'none' }} />

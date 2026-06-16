@@ -103,7 +103,6 @@ export default function CollectionPage() {
       }
     })
 
-    // Cartes non possédées → placeholders verrouillés
     const ownedIds = new Set(ownedList.map(c => c.card_id))
     const lockedList: GroupedCard[] = (cardDefs ?? [])
       .filter((d: { id: string }) => !ownedIds.has(d.id))
@@ -144,7 +143,7 @@ export default function CollectionPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="sticky top-20 z-20 py-4 mb-5 backdrop-blur-md flex flex-col justify-center rounded-xl">
+      <div className="sticky top-20 z-20 py-4 mb-5 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
         <div className="flex items-center justify-center gap-3 mb-3">
           <h2 className="font-bold text-white text-base">Ma collection</h2>
           <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
@@ -214,8 +213,8 @@ export default function CollectionPage() {
                           className="w-full h-full object-cover select-none"
                           style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                          <Lock size={24} className="text-white/45" />
-                          <span className="text-white/30 text-[9px] font-bold uppercase tracking-widest">Verrouillée</span>
+                          <Lock size={24} className="text-white/50" />
+                          <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
                         </div>
                       </div>
                     ) : (
