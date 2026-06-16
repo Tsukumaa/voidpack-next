@@ -41,9 +41,15 @@ export async function GET(req: NextRequest) {
       })
     : []
 
-  return NextResponse.json(rows.map(r => ({
-    ...r,
-    username:  profiles.find(p => p.userId === r.userId)?.username,
-    avatarUrl: profiles.find(p => p.userId === r.userId)?.avatarUrl,
-  })))
+  return NextResponse.json(rows.map(r => {
+    const p = profiles.find(p => p.userId === r.userId)
+    return {
+      ...r,
+      username:  p?.username,
+      avatarUrl: p?.avatarUrl,
+      xp:        p?.xp ?? 0,
+      level:     p?.level ?? 1,
+      highestRarity: p?.highestRarity ?? null,
+    }
+  }))
 }

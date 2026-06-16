@@ -165,6 +165,7 @@ export default function CommunautePage() {
             const isMe = user?.id === entry.user_id
             const rank = i + 1
             const rankColor = rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : null
+            const rankTitle = rank === 1 ? { label: 'VOID', color: '#a855f7' } : rank === 2 ? { label: 'Légendaire', color: '#ff9a3d' } : rank === 3 ? { label: 'Épique', color: '#b86dff' } : null
             return (
               <div key={entry.user_id}
                 className={cn('flex items-center gap-3 p-3 rounded-2xl border transition-all',
@@ -194,12 +195,18 @@ export default function CommunautePage() {
 
                 {/* Infos */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className={cn('font-bold text-sm truncate', isMe ? 'text-[#a78bfa]' : 'text-white')}>
                       {entry.username ?? 'Joueur'}
                       {isMe && <span className="text-xs text-white/40 font-normal ml-1">(toi)</span>}
                     </p>
-                    {entry.highest_rarity && (
+                    {rankTitle && (
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide"
+                        style={{ color: rankTitle.color, background: rankTitle.color + '22', border: `1px solid ${rankTitle.color}55` }}>
+                        {rankTitle.label}
+                      </span>
+                    )}
+                    {!rankTitle && entry.highest_rarity && (
                       <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
                         style={{ color: RARITY_COLOR[entry.highest_rarity], background: RARITY_COLOR[entry.highest_rarity] + '20' }}>
                         {entry.highest_rarity}
