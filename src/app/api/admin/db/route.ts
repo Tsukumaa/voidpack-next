@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
       result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}='${eqFilter.val}'`))
     } else if (action === 'delete') {
       result = await db.run(sql.raw(`DELETE FROM ${table} WHERE ${eqFilter.col}='${eqFilter.val}'`))
+    } else if (action === 'upsert') {
+      const cols = Object.keys(data as Record<string, unknown>).join(', ')
+      const vals = Object.values(data as Record<string, unknown>).map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')
+      const updates = Object.entries(data as Record<string, unknown>).map(([k, v]) => `${k}='${String(v).replace(/'/g, "''")}'`).join(', ')
+      const conflict = eqFilter?.onConflict ?? eqFilter?.col ?? Object.keys(data as Record<string, unknown>)[0]
+      result = await db.run(sql.raw(`INSERT INTO ${table} (${cols}) VALUES (${vals}) ON CONFLICT(${conflict}) DO UPDATE SET ${updates}`))
     } else {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
