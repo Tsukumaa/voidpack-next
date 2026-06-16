@@ -9,7 +9,7 @@ import { CardFrame } from '@/components/game/CardFrame'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
@@ -60,9 +60,10 @@ export default function CollectionPage() {
     if (!user) return
     setLoading(true)
 
-    const [rawCards, cardDefs] = await Promise.all([
+    const [rawCards, cardDefs, famData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
 
     const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
@@ -110,12 +111,7 @@ export default function CollectionPage() {
     })
 
     setCards(sorted)
-
-    // Familles disponibles
-    const famRes = await fetch('/api/families')
-    const famData = famRes.ok ? await famRes.json() : []
     setFamilies(famData)
-
     setLoading(false)
   }, [user])
 
