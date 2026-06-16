@@ -116,8 +116,6 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         {/* Point lumineux haut centre */}
         <div style={{ position:'absolute', top:3, left:'50%', transform:'translateX(-50%)', width:4, height:4, borderRadius:'50%', background:r.glow, boxShadow:`0 0 6px ${r.glow}`, pointerEvents:'none' }} />
 
-        {/* Étoile haut droite */}
-        <div style={{ position:'absolute', top:4, right:5, width:11, height:11, background:r.b2, clipPath:'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)', opacity:.9, pointerEvents:'none' }} />
 
         {/* Coins haut */}
         <div style={{ position:'absolute', top:4, left:4, width:1.5, height:22, background:`linear-gradient(to bottom, ${r.b2}, transparent)`, pointerEvents:'none' }} />
@@ -131,8 +129,14 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         <div style={{ position:'absolute', bottom:4, right:4, width:1.5, height:20, background:`linear-gradient(to top, ${r.b2}, transparent)`, pointerEvents:'none' }} />
         <div style={{ position:'absolute', bottom:4, right:4, width:20, height:1.5, background:`linear-gradient(to left, ${r.b2}, transparent)`, pointerEvents:'none' }} />
 
-        {/* Losange bas centre */}
-        <div style={{ position:'absolute', bottom:9, left:'50%', width:10, height:10, background:r.bg1, border:`1.5px solid ${r.b2}`, transform:'translateX(-50%) rotate(45deg)', pointerEvents:'none' }} />
+        {/* Icône VoidPack bas centre */}
+        <div style={{ position:'absolute', bottom:5, left:'50%', transform:'translateX(-50%)', width:16, height:16, pointerEvents:'none', opacity:.9 }}>
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', filter:`drop-shadow(0 0 3px ${r.glow})` }}>
+            <circle cx="50" cy="50" r="22" fill={r.b2} />
+            <circle cx="50" cy="50" r="13" fill={r.bg1} />
+            <polygon points="50,2 58,42 98,50 58,58 50,98 42,58 2,50 42,42" fill={r.b2} />
+          </svg>
+        </div>
 
         {/* Orbes coins (standard) */}
         {!r.fullart && <>
