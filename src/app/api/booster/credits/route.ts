@@ -14,5 +14,10 @@ export async function GET() {
       eq(boosterCredits.claimed, false)
     ),
   })
-  return NextResponse.json(credits)
+  return NextResponse.json(credits.map(c => ({
+    id:           c.id,
+    booster_type: c.boosterType,
+    source:       c.source,
+    created_at:   c.createdAt,
+  })))
 }
