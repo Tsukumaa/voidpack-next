@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { ChevronDown, Lock } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -46,6 +47,7 @@ interface GroupedCard {
   cost: number | null
   atk: number | null
   def: number | null
+  owned: boolean
 }
 
 export default function CollectionPage() {
@@ -55,6 +57,9 @@ export default function CollectionPage() {
   const [filter, setFilter]       = useState<string>('all')
   const [families, setFamilies]   = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  const toggleSection = (r: string) => setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
 
   const load = useCallback(async () => {
     if (!user) return
@@ -98,9 +103,30 @@ export default function CollectionPage() {
           cost: def?.cost ?? null,
           atk:  def?.atk  ?? null,
           def:  def?.def  ?? null,
+          owned: true,
         }
       }
       groups[cardKey].count++
+    }
+
+    // Ajouter les cartes non possédées (placeholders verrouillés)
+    for (const d of cardDefs ?? []) {
+      if (groups[d.id]) continue
+      const def = defMap[d.id]
+      groups[d.id] = {
+        card_id: d.id,
+        rarity: d.rarity ?? 'common',
+        family: d.family ?? d.familyKey ?? '',
+        count: 0,
+        name: def?.name ?? d.name ?? d.id,
+        image_url: def?.image_url ?? null,
+        description: def?.description ?? null,
+        latest_at: '',
+        cost: def?.cost ?? null,
+        atk:  def?.atk  ?? null,
+        def:  def?.def  ?? null,
+        owned: false,
+      }
     }
 
     // Trier par rareté puis nom
@@ -124,10 +150,10 @@ export default function CollectionPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-2 mb-4">
+      <div className="sticky top-0 z-20 pt-14 pb-2 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-white text-base">Ma collection</h2>
-          <span className="text-white/40 text-xs">{cards.length} cartes · {Object.values(cards).reduce((a, c) => a + c.count, 0)} copies</span>
+          <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
         </div>
 
         {/* Filtres */}
@@ -167,15 +193,38 @@ export default function CollectionPage() {
           {rarityGroups.map(r => {
             const group = filtered.filter(c => c.rarity === r)
             if (!group.length) return null
+            const isOpen = !collapsed[r]
             return (
               <div key={r}>
-                <div className="flex items-center gap-2 mb-3">
+                <button onClick={() => toggleSection(r)}
+                  className="flex items-center gap-2 mb-3 w-full group">
+                  <ChevronDown size={14} className="transition-transform duration-300 shrink-0"
+                    style={{ color: RARITY_COLOR[r], transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
                   <span className="text-xs font-bold uppercase tracking-widest" style={{ color: RARITY_COLOR[r] }}>{r}</span>
                   <div className="flex-1 h-px" style={{ background: RARITY_COLOR[r] + '30' }} />
                   <span className="text-white/30 text-xs">{group.length}</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {group.map(card => (
+                </button>
+                <div className="grid transition-[grid-template-rows] duration-300 ease-out"
+                  style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
+                  <div className="overflow-hidden">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-4 pb-4 px-1">
+                      {group.map(card => (
+                    !card.owned ? (
+                      <div
+                        key={card.card_id}
+                        className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
+                        style={{ aspectRatio: '0.714' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/assets/dos.png" alt="" draggable={false}
+                          className="w-full h-full object-cover select-none"
+                          style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                          <Lock size={24} className="text-white/45" />
+                          <span className="text-white/30 text-[9px] font-bold uppercase tracking-widest">Verrouillée</span>
+                        </div>
+                      </div>
+                    ) : (
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
@@ -188,6 +237,7 @@ export default function CollectionPage() {
                         cost={card.cost}
                         atk={card.atk}
                         def={card.def}
+                        glow={false}
                         style={{ position: 'absolute', inset: 0 }}
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
@@ -207,7 +257,10 @@ export default function CollectionPage() {
                         )}
                       </CardFrame>
                     </CardHover>
+                    )
                   ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )

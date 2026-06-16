@@ -23,6 +23,174 @@
       "metadata": "{\"combat\":{\"atk\":6,\"hp\":6,\"cost\":4,\"effects\":[]}}",
       "created_at": "2026-06-16 16:16:37",
       "updated_at": "2026-06-16 16:16:37"
+    },
+    {
+      "id": "minoua",
+      "name": "MINOUA",
+      "family": "gvn",
+      "rarity": "epic",
+      "character": null,
+      "image_url": "https://imgg.fr/r/qPF97qpw.gif",
+      "description": "Cheffe de la résistance des Gueux",
+      "metadata": "{\"combat\":{\"atk\":5,\"hp\":4,\"cost\":3,\"effects\":[]}}",
+      "created_at": "2026-06-16 18:35:27",
+      "updated_at": "2026-06-16 18:35:27"
+    },
+    {
+      "id": "ace",
+      "name": "ACE",
+      "family": "nebulor",
+      "rarity": "epic",
+      "character": null,
+      "image_url": "https://imgg.fr/r/Y79qCd4I.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":5,\"hp\":4,\"cost\":3,\"effects\":[]}}",
+      "created_at": "2026-06-16 18:35:29",
+      "updated_at": "2026-06-16 18:35:29"
+    },
+    {
+      "id": "daisy",
+      "name": "DAISY",
+      "family": "nebulor",
+      "rarity": "rare",
+      "character": null,
+      "image_url": "https://imgg.fr/r/DeJatb9z.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":3,\"hp\":3,\"cost\":2,\"effects\":[]}}",
+      "created_at": "2026-06-16 18:39:50",
+      "updated_at": "2026-06-16 18:39:50"
+    },
+    {
+      "id": "nephero",
+      "name": "NEPHERO",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/ceeeUdx4.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":2,\"hp\":1,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 18:54:39",
+      "updated_at": "2026-06-16 18:54:39"
+    },
+    {
+      "id": "harissa",
+      "name": "HARISSA",
+      "family": "gvn",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/2Rs5o2su.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":2,\"hp\":1,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 19:18:21",
+      "updated_at": "2026-06-16 19:18:21"
+    },
+    {
+      "id": "bipblue",
+      "name": "BIPBLUE",
+      "family": "gvn",
+      "rarity": "legendary",
+      "character": null,
+      "image_url": "https://imgg.fr/r/V00mxji9.gif",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":5,\"hp\":7,\"cost\":4,\"effects\":[]}}",
+      "created_at": "2026-06-16 19:23:56",
+      "updated_at": "2026-06-16 19:23:56"
+    },
+    {
+      "id": "kenia",
+      "name": "KENIA",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/WUCsgArC.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 20:04:54",
+      "updated_at": "2026-06-16 20:04:54"
+    },
+    {
+      "id": "tessan",
+      "name": "TESSAN",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/E5WJkyl1.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 20:05:36",
+      "updated_at": "2026-06-16 20:05:36"
+    },
+    {
+      "id": "dia",
+      "name": "DIA",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/80VyLSkM.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 20:06:00",
+      "updated_at": "2026-06-16 20:06:00"
+    },
+    {
+      "id": "kane",
+      "name": "KANE",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/wVhHX8iq.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 20:06:29",
+      "updated_at": "2026-06-16 20:06:29"
+    },
+    {
+      "id": "daison",
+      "name": "DAISON",
+      "family": "nebulor",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/sw2N6UDL.png",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 20:06:51",
+      "updated_at": "2026-06-16 20:06:51"
+    },
+    {
+      "id": "révolutionnaire",
+      "name": "Révolutionnaire",
+      "family": "gvn",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/uARt6mE8.webp",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":0,\"hp\":3,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 21:05:22",
+      "updated_at": "2026-06-16 21:05:22"
+    },
+    {
+      "id": "minoua-💀",
+      "name": "MINOUA 💀",
+      "family": "gvn",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/NAnDePjb.webp",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":0,\"hp\":1,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 21:06:54",
+      "updated_at": "2026-06-16 21:06:54"
+    },
+    {
+      "id": "wizebot",
+      "name": "WIZEBOT",
+      "family": "gvn",
+      "rarity": "common",
+      "character": null,
+      "image_url": "https://imgg.fr/r/Ko9Om6zz.webp",
+      "description": "",
+      "metadata": "{\"combat\":{\"atk\":1,\"hp\":2,\"cost\":1,\"effects\":[]}}",
+      "created_at": "2026-06-16 21:07:40",
+      "updated_at": "2026-06-16 21:07:40"
     }
   ],
   "families": [
@@ -52,6 +220,18 @@
     {
       "key": "booster_image_nebulor",
       "value": "https://imgg.fr/r/Ecqi8n7L.png"
+    },
+    {
+      "key": "card_back:1305638171618574376",
+      "value": "default"
+    },
+    {
+      "key": "card_back:729756136953348166",
+      "value": "default"
+    },
+    {
+      "key": "card_back:909859570342576239",
+      "value": "default"
     }
   ]
 }

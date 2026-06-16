@@ -11,13 +11,13 @@ const RARITY: Record<string, {
     b1:'#8a8f9e', b2:'#b0b5c2', b3:'#6a6f7e',
     glow:'#9ca3af', bg1:'#0e0f14', bg2:'#0a0b10',
     orb1:'#1e2030', orb2:'#2a2d3a', orb3:'#1e2030',
-    fullart: true,
+    fullart: false,
   },
   rare: {
     b1:'#1a4a9e', b2:'#60a5fa', b3:'#0f2d7a',
     glow:'#3b82f6', bg1:'#080c1a', bg2:'#060a14',
     orb1:'#0a1a40', orb2:'#0f2255', orb3:'#200a30',
-    fullart: true,
+    fullart: false,
   },
   epic: {
     b1:'#7a2ab5', b2:'#d580ff', b3:'#5a1a8a',
@@ -49,9 +49,10 @@ interface CardFrameProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   style?: React.CSSProperties
+  glow?: boolean
 }
 
-export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm', className = '', style = {} }: CardFrameProps) {
+export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm', className = '', style = {}, glow = true }: CardFrameProps) {
   const statSize  = size === 'lg' ? 42 : size === 'md' ? 34 : 30
   const statFont  = size === 'lg' ? 16 : size === 'md' ? 14 : 13
   const statInset = size === 'lg' ? 6  : size === 'md' ? 5  : 4
@@ -67,7 +68,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         padding: '2.5px',
         borderRadius: 12,
         background: borderGrad,
-        boxShadow: `0 0 16px ${r.glow}44`,
+        boxShadow: glow ? `0 0 16px ${r.glow}44` : 'none',
         overflow: 'hidden',
         transform: 'translateZ(0)',
         isolation: 'isolate',
@@ -121,6 +122,10 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
             </span>
           </div>
         )}
+
+        {/* Point lumineux haut centre */}
+        <div style={{ position:'absolute', top:3, left:'50%', transform:'translateX(-50%)', width:4, height:4, borderRadius:'50%', background:r.glow, boxShadow:`0 0 6px ${r.glow}`, pointerEvents:'none' }} />
+
 
         {/* Coins haut */}
         <div style={{ position:'absolute', top:4, left:4, width:1.5, height:22, background:`linear-gradient(to bottom, ${r.b2}, transparent)`, pointerEvents:'none' }} />
