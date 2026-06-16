@@ -10,7 +10,9 @@
     "type-check": "tsc --noEmit",
     "db:push:dev": "dotenv -e .env.local -- drizzle-kit push",
     "db:push:prod": "dotenv -e .env.prod -- drizzle-kit push",
-    "db:studio": "dotenv -e .env.local -- drizzle-kit studio"
+    "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
+    "db:import:dev": "dotenv -e .env.local -- node scripts/import-seed.mjs",
+    "db:import:prod": "dotenv -e .env.prod -- node scripts/import-seed.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

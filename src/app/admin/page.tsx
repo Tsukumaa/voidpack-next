@@ -101,6 +101,32 @@ export default function AdminPage() {
               {msg}
             </span>
           )}
+          <button
+            onClick={async () => {
+              try {
+                const [cards, families, cardBacks, settings] = await Promise.all([
+                  fetch('/api/admin/db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'select', table: 'custom_cards', data: { order: 'created_at ASC' } }) }).then(r => r.json()),
+                  fetch('/api/admin/db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'select', table: 'families', data: { order: 'order_index ASC' } }) }).then(r => r.json()),
+                  fetch('/api/admin/db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'select', table: 'card_backs', data: { order: 'order_index ASC' } }) }).then(r => r.json()),
+                  fetch('/api/admin/db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'select', table: 'settings' }) }).then(r => r.json()),
+                ])
+                const seed = { custom_cards: cards.data ?? [], families: families.data ?? [], card_backs: cardBacks.data ?? [], settings: settings.data ?? [] }
+                const blob = new Blob([JSON.stringify(seed, null, 2)], { type: 'application/json' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `voidpack-seed-${new Date().toISOString().slice(0,10)}.json`
+                a.click()
+                URL.revokeObjectURL(url)
+                showMsg('Export téléchargé ✓')
+              } catch (e) {
+                showMsg('Erreur export', false)
+              }
+            }}
+            className="px-4 py-2 rounded-lg bg-[#7b2bff]/20 border border-[#7b2bff]/30 text-sm text-[#c084fc] hover:bg-[#7b2bff]/30 transition-colors"
+          >
+            ↓ Exporter seed
+          </button>
           <a href="/pack" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
             ← Jeu
           </a>
