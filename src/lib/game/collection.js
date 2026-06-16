@@ -6,7 +6,7 @@ export const PLAYER_CARDS_TABLE = 'player_cards';
 function normalizeStoredCard(row) {
   const rarityKey = row.rarity === 'uncommon' ? 'common' : (row.rarity ?? 'common');
   const rarity = RARITIES[rarityKey] ?? RARITIES['common'];
-  const meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : (row.metadata ?? {});
+  const meta = typeof row.metadata === 'string' ? (() => { try { return JSON.parse(row.metadata || '{}') } catch { return {} } })() : (row.metadata ?? {});
 
   return Object.freeze({
     id:          row.id,

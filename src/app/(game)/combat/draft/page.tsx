@@ -72,14 +72,14 @@ function DraftContent() {
 
     const defMap: Record<string, { name: string; image_url: string | null; metadata: Record<string, unknown> }> = {}
     for (const d of cardDefs ?? []) {
-      const meta = typeof d.metadata === 'string' ? JSON.parse(d.metadata || '{}') : (d.metadata ?? {})
+      const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
 
     const groups: Record<string, DraftCard> = {}
     for (const c of rawCards ?? []) {
       const cardKey = c.card_id ?? c.cardId
-      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata || '{}') : (c.metadata ?? {})
+      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
       if (!groups[cardKey]) {
         const def = defMap[cardKey]
         const combat = (def?.metadata?.combat ?? meta?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }

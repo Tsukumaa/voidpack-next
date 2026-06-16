@@ -67,7 +67,7 @@ export default function CollectionPage() {
 
     const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
     for (const d of cardDefs ?? []) {
-      const meta = typeof d.metadata === 'string' ? JSON.parse(d.metadata || '{}') : (d.metadata ?? {})
+      const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = {
         name: d.name,
         image_url: d.imageUrl ?? d.image_url,
@@ -82,7 +82,7 @@ export default function CollectionPage() {
     const groups: Record<string, GroupedCard> = {}
     for (const c of rawCards ?? []) {
       const cardKey = c.card_id ?? c.cardId
-      const meta = typeof c.metadata === 'string' ? JSON.parse(c.metadata || '{}') : (c.metadata ?? {})
+      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
       if (!groups[cardKey]) {
         const def = defMap[cardKey]
         groups[cardKey] = {
