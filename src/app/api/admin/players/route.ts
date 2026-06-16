@@ -15,9 +15,23 @@ export async function GET(req: NextRequest) {
     .orderBy(desc(playerProfiles.xp))
     .limit(200)
 
-  const filtered = search
+  const filtered = (search
     ? rows.filter(p => p.username?.toLowerCase().includes(search.toLowerCase()))
     : rows
+  ).map(p => ({
+    user_id:             p.userId,
+    username:            p.username,
+    avatar_url:          p.avatarUrl,
+    level:               p.level,
+    xp:                  p.xp,
+    packs_opened:        p.packsOpened,
+    highest_rarity:      p.highestRarity,
+    void_pulls:          p.voidPulls,
+    current_streak:      p.currentStreak,
+    best_streak:         p.bestStreak,
+    twitch_login:        p.twitchLogin,
+    unlocked_card_backs: null,
+  }))
 
   return NextResponse.json(filtered)
 }
