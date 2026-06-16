@@ -11,13 +11,13 @@ const RARITY: Record<string, {
     b1:'#8a8f9e', b2:'#b0b5c2', b3:'#6a6f7e',
     glow:'#9ca3af', bg1:'#0e0f14', bg2:'#0a0b10',
     orb1:'#1e2030', orb2:'#2a2d3a', orb3:'#1e2030',
-    fullart: false,
+    fullart: true,
   },
   rare: {
     b1:'#1a4a9e', b2:'#60a5fa', b3:'#0f2d7a',
     glow:'#3b82f6', bg1:'#080c1a', bg2:'#060a14',
     orb1:'#0a1a40', orb2:'#0f2255', orb3:'#200a30',
-    fullart: false,
+    fullart: true,
   },
   epic: {
     b1:'#7a2ab5', b2:'#d580ff', b3:'#5a1a8a',
