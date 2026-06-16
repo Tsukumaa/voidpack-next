@@ -45,9 +45,24 @@ export const customCards = sqliteTable('custom_cards', {
 
 // ── families ──────────────────────────────────────────────────────────────────
 export const families = sqliteTable('families', {
-  key:       text('key').primaryKey(),
-  label:     text('label').notNull(),
-  createdAt: text('created_at').notNull().default(now),
+  key:        text('key').primaryKey(),
+  label:      text('label').notNull(),
+  color:      text('color'),
+  description: text('description'),
+  orderIndex: integer('order_index').notNull().default(0),
+  createdAt:  text('created_at').notNull().default(now),
+})
+
+// ── card_backs ────────────────────────────────────────────────────────────────
+export const cardBacks = sqliteTable('card_backs', {
+  id:         text('id').primaryKey(),
+  name:       text('name').notNull(),
+  gradient:   text('gradient'),
+  pattern:    text('pattern'),
+  active:     integer('active', { mode: 'boolean' }).notNull().default(true),
+  orderIndex: integer('order_index').notNull().default(0),
+  price:      integer('price').notNull().default(0),
+  createdAt:  text('created_at').notNull().default(now),
 })
 
 // ── player_cards ──────────────────────────────────────────────────────────────
