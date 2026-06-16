@@ -33,7 +33,7 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   common:    '#9ca3af',
   uncommon:  '#22c55e',
   rare:      '#3b82f6',
-  epic:      '#a855f7',
+  epic:      '#ec4899',
   legendary: '#f59e0b',
   void:      '#7b2bff',
 }

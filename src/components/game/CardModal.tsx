@@ -4,7 +4,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#7b2bff', legendary: '#f59e0b', epic: '#a855f7',
+  void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899',
   rare: '#3b82f6', common: '#9ca3af',
 }
 

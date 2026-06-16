@@ -581,7 +581,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     onMsg(`🗑 "${card.name}" supprimée`); load()
   }
 
-  const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#a855f7', rare: '#3b82f6', uncommon: '#22c55e', common: '#9ca3af' }
+  const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', uncommon: '#22c55e', common: '#9ca3af' }
 
   const filtered = cards.filter(c =>
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&

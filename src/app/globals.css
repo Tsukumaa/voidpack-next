@@ -38,7 +38,7 @@
 @layer utilities {
   .text-rarity-common    { color: #9ca3af; }
   .text-rarity-rare      { color: #3b82f6; }
-  .text-rarity-epic      { color: #a855f7; }
+  .text-rarity-epic      { color: #ec4899; }
   .text-rarity-legendary { color: #f59e0b; }
   .text-rarity-void      { color: #7b2bff; }
 }

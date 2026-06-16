@@ -181,7 +181,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         const shimX = x * 100
         const color = rarity === 'legendary' ? 'rgba(255,215,0,0.35)'
           : rarity === 'void' ? 'rgba(192,132,252,0.30)'
-          : rarity === 'epic' ? 'rgba(200,150,255,0.28)'
+          : rarity === 'epic' ? 'rgba(236,72,153,0.28)'
           : 'rgba(147,210,255,0.25)'
         shimRef.current.style.background = `linear-gradient(105deg, transparent ${shimX - 15}%, ${color} ${shimX}%, transparent ${shimX + 15}%)`
         shimRef.current.style.opacity = '1'

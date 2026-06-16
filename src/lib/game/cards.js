@@ -111,8 +111,8 @@ export const RARITIES = Object.freeze({
     key: RARITY_KEYS.EPIC,
     label: 'Épique',
     weight: 800,            // 8.0%
-    color: '#a855f7',
-    accent: 'violet',
+    color: '#ec4899',
+    accent: 'rose',
     flashIntensity: 0.55,
     holoLevel: 3,
     hasCinematicReveal: false,
