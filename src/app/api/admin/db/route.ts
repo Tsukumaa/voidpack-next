@@ -16,11 +16,12 @@ export async function POST(req: NextRequest) {
       result = await db.run(sql.raw(`SELECT ${data?.select ?? '*'} FROM ${table}${data?.order ? ` ORDER BY ${data.order}` : ''}`))
     } else if (action === 'insert') {
       const cols = Object.keys(data).join(', ')
-      const vals = Object.values(data).map(v => `'${v}'`).join(', ')
+      const vals = Object.values(data).map(v => `'${String(v === null || v === undefined ? '' : v).replace(/'/g, "''")}'`).join(', ')
       result = await db.run(sql.raw(`INSERT INTO ${table} (${cols}) VALUES (${vals})`))
     } else if (action === 'update') {
-      const sets = Object.entries(data).map(([k, v]) => `${k}='${v}'`).join(', ')
-      result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}='${eqFilter.val}'`))
+      const esc = (v: unknown) => `'${String(v === null || v === undefined ? '' : v).replace(/'/g, "''")}'`
+      const sets = Object.entries(data).map(([k, v]) => `${k}=${esc(v)}`).join(', ')
+      result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}=${esc(eqFilter.val)}`))
     } else if (action === 'delete') {
       result = await db.run(sql.raw(`DELETE FROM ${table} WHERE ${eqFilter.col}='${eqFilter.val}'`))
     } else if (action === 'upsert') {

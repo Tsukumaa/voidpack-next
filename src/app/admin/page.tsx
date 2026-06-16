@@ -541,7 +541,10 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     setLoading(true)
     try {
       const data = await adminDb('select', 'custom_cards', { order: 'name' })
-      setCards(data ?? [])
+      setCards((data ?? []).map((c: Card & { metadata: unknown }) => ({
+        ...c,
+        metadata: typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata) } catch { return {} } })() : (c.metadata ?? {}),
+      })))
     } finally { setLoading(false) }
   }, [])
 
@@ -558,7 +561,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         name: form.name, family: form.family, rarity: form.rarity,
         image_url: form.image_url,
         description: form.description ?? '',
-        metadata: { combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } }
+        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } })
       }
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
