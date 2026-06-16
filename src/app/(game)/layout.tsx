@@ -2,6 +2,7 @@ import { StatusBar } from '@/components/layout/StatusBar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 import { AuthProvider } from '@/components/layout/AuthProvider'
+import { AdminFab } from '@/components/layout/AdminFab'
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +21,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
 
         {/* Bottom nav */}
         <BottomNav />
+
+        {/* Bouton admin flottant — visible uniquement pour les admins */}
+        <AdminFab />
       </div>
     </AuthProvider>
   )
