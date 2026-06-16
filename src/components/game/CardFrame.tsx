@@ -110,7 +110,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         {/* Nom centré en haut */}
         {name && (
           <div style={{ position:'absolute', top:0, left:0, right:0, zIndex:10, pointerEvents:'none', display:'flex', justifyContent:'center', padding:'6px 28px 4px' }}>
-            <span style={{ fontSize: size === 'lg' ? 13 : 9, fontWeight:800, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em', textShadow:`0 1px 6px #000, 0 0 12px ${r.glow}88`, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }}>
+            <span style={{ fontSize: size === 'lg' ? 13 : 9, fontWeight:800, color:'#fff', textTransform:'uppercase', letterSpacing:'.06em', textShadow:'0 1px 3px #000, 0 0 3px rgba(0,0,0,.85)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }}>
               {name}
             </span>
           </div>
