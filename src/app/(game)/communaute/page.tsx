@@ -165,7 +165,7 @@ export default function CommunautePage() {
             const isMe = user?.id === entry.user_id
             const rank = i + 1
             const rankColor = rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : rank === 3 ? '#cd7f32' : null
-            const rankTitle = rank === 1 ? { label: 'VOID', color: '#a855f7' } : rank === 2 ? { label: 'Légendaire', color: '#ff9a3d' } : rank === 3 ? { label: 'Épique', color: '#b86dff' } : null
+            const rankTitle = rank === 1 ? { label: 'VOID', color: '#a855f7' } : rank === 2 ? { label: 'Légendaire', color: '#ff9a3d' } : rank === 3 ? { label: 'Épique', color: '#ec4899' } : null
             return (
               <div key={entry.user_id}
                 className={cn('flex items-center gap-3 p-3 rounded-2xl border transition-all',
