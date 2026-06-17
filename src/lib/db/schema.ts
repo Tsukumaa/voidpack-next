@@ -45,6 +45,13 @@ export const customCards = sqliteTable('custom_cards', {
   updatedAt:   text('updated_at').notNull().default(now),
 })
 
+export const artists = sqliteTable('artists', {
+  id:        integer('id').primaryKey({ autoIncrement: true }),
+  name:      text('name').notNull().unique(),
+  url:       text('url'),
+  createdAt: text('created_at').notNull().default(now),
+})
+
 // ── families ──────────────────────────────────────────────────────────────────
 export const families = sqliteTable('families', {
   key:        text('key').primaryKey(),
