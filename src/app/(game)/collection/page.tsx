@@ -200,7 +200,7 @@ export default function CollectionPage() {
                 <div className="grid transition-[grid-template-rows] duration-300 ease-out"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
                   <div className="overflow-hidden">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-5">
                       {group.map(card => (
                     !card.owned ? (
                       <div
@@ -243,12 +243,13 @@ export default function CollectionPage() {
                             </div>
                           )}
                         </button>
-                        {card.count > 1 && (
-                          <div className="absolute top-6 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-20">
-                            {card.count}
-                          </div>
-                        )}
                       </CardFrame>
+                      {card.count > 1 && (
+                        <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-black/80 border-2 flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                          style={{ borderColor: RARITY_COLOR[card.rarity] + '66', boxShadow: `0 0 8px ${RARITY_COLOR[card.rarity]}66` }}>
+                          {card.count}
+                        </div>
+                      )}
                     </CardHover>
                     )
                   ))}
