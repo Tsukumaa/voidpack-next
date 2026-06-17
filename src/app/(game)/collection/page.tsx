@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
 import { ChevronDown, Lock } from 'lucide-react'
 import { useGameStore } from '@/store/game'
@@ -60,6 +60,16 @@ export default function CollectionPage() {
   const [families, setFamilies]   = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [famOpen, setFamOpen]     = useState(false)
+  const famRef                    = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (famRef.current && !famRef.current.contains(e.target as Node)) setFamOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
 
   const toggleSection = (r: string) => setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
 
@@ -173,17 +183,38 @@ export default function CollectionPage() {
             </button>
           ))}
           {families.length > 0 && (
-            <select
-              value={families.some(f => f.key === filter) ? filter : ''}
-              onChange={e => setFilter(e.target.value || 'all')}
-              className="px-3 py-1 rounded-full text-xs font-bold bg-transparent border border-white/10 text-white/40 focus:outline-none cursor-pointer"
-              style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', color:'#a78bfa', borderColor:'rgba(123,43,255,0.4)' } : {}}
-            >
-              <option value="" style={{ background:'#0a0a14' }}>Famille…</option>
-              {families.map(f => (
-                <option key={f.key} value={f.key} style={{ background:'#0a0a14' }}>{f.label}</option>
-              ))}
-            </select>
+            <div ref={famRef} className="relative">
+              <button
+                onClick={() => setFamOpen(v => !v)}
+                className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
+                  families.some(f => f.key === filter)
+                    ? 'text-[#a78bfa]'
+                    : 'text-white/40 hover:text-white/60')}
+                style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
+              >
+                {families.find(f => f.key === filter)?.label ?? 'Famille'}
+                <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
+              </button>
+              {famOpen && (
+                <div className="absolute top-full mt-1 left-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
+                  style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
+                  {families.some(f => f.key === filter) && (
+                    <button onClick={() => { setFilter('all'); setFamOpen(false) }}
+                      className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
+                      Toutes les familles
+                    </button>
+                  )}
+                  {families.map(f => (
+                    <button key={f.key}
+                      onClick={() => { setFilter(f.key); setFamOpen(false) }}
+                      className={cn('w-full text-left px-4 py-2 text-xs font-bold transition-colors',
+                        filter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

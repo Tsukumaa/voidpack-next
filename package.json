@@ -13,7 +13,7 @@
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:import:dev": "dotenv -e .env.local -- node scripts/import-seed.mjs",
     "db:import:prod": "dotenv -e .env.prod -- node scripts/import-seed.mjs",
-    "ship": "git push origin main && npx vercel deploy --prod",
+    "ship": "git push origin main",
     "db:migrate:dev": "dotenv -e .env.local -- node scripts/migrate-cards-count.mjs",
     "db:migrate:prod": "dotenv -e .env.prod -- node scripts/migrate-cards-count.mjs"
   },
