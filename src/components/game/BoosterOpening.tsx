@@ -55,7 +55,7 @@ function hexToRgba(hex: string, a: number) {
 interface Particle { id:number; x:number; y:number; color:string; size:number; delay:number; dur:number; vx:number; vy:number }
 
 type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
-type CardPhase = 'back'|'suspense'|'revealed'
+type CardPhase = 'back'|'suspense'|'revealed'|'hiding'
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
 function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]; boosterType?: string; onClose: () => void }) {
@@ -379,7 +379,14 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       setRevealedColor('')
       if (!isLast) {
         setBgStyle('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
-        setCardIndex(i => i+1); setCardPhase('back')
+        locked.current = true
+        setCardPhase('hiding')
+        // Attendre la fin du flip retour (950ms) avant de changer de carte
+        later(() => {
+          setCardIndex(i => i + 1)
+          setCardPhase('back')
+          locked.current = false
+        }, 960)
       } else { setPhase('results') }
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
