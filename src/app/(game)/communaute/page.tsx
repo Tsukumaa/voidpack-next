@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { useSocialStore } from '@/store/social'
@@ -42,6 +42,7 @@ export default function CommunautePage() {
   const [friends, setFriends]         = useState<Friend[]>([])
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([])
   const [addedFromLadder, setAddedFromLadder] = useState<Set<string>>(new Set())
+  const [sentPending, setSentPending] = useState<Set<string>>(new Set())
 
   const loadLadder = useCallback(async () => {
     setLoading(true)
@@ -83,8 +84,14 @@ export default function CommunautePage() {
     })))
   }, [user])
 
+  const loadSentPending = useCallback(async () => {
+    if (!user) return
+    const data = await fetch('/api/social/friends/pending?direction=sent').then(r => r.ok ? r.json() : [])
+    setSentPending(new Set(data.map((f: Record<string, unknown>) => (f.userId ?? f.receiverId) as string)))
+  }, [user])
+
   useEffect(() => { loadLadder() }, [loadLadder])
-  useEffect(() => { if (user) { loadFriends(); loadPendingRequests() } }, [loadFriends, loadPendingRequests, user])
+  useEffect(() => { if (user) { loadFriends(); loadPendingRequests(); loadSentPending() } }, [loadFriends, loadPendingRequests, loadSentPending, user])
 
   const myRank = user ? entries.findIndex(e => e.user_id === user.id) + 1 : 0
 
@@ -95,6 +102,7 @@ export default function CommunautePage() {
     })
     if (res.ok || res.status === 409) {
       setAddedFromLadder(s => new Set([...s, targetId]))
+      setSentPending(s => new Set([...s, targetId]))
     }
   }
 
@@ -242,9 +250,12 @@ export default function CommunautePage() {
                       disabled>
                       <Check size={13} className="text-[#00c896]" />
                     </button>
-                  ) : addedFromLadder.has(entry.user_id) ? (
-                    <button className="ml-1 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center" disabled>
-                      <Check size={13} className="text-white/30" />
+                  ) : (sentPending.has(entry.user_id) || addedFromLadder.has(entry.user_id)) ? (
+                    <button
+                      className="ml-1 flex-shrink-0 w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+                      title="Demande en attente"
+                      disabled>
+                      <Clock size={13} className="text-white/40" />
                     </button>
                   ) : (
                     <button
