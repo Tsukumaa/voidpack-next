@@ -502,7 +502,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   transform:cardPhase==='revealed'?'rotateY(180deg)':'rotateY(0deg)',
                   transitionTimingFunction:'cubic-bezier(.16,.88,.18,1)' }}>
                 <div className={cn('absolute inset-0 rounded-2xl overflow-hidden', cardPhase==='suspense'&&'animate-[cardShake_.15s_ease-in-out_infinite]')}
-                  style={{ backfaceVisibility:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
+                  style={{ backfaceVisibility:'hidden' }}>
                   <CardBackDisplay gradient={cardBack.gradient} pattern={cardBack.pattern} imageUrl={cardBack.imageUrl} />
                   {!cardBack.imageUrl && (
                     <div className="absolute inset-0 flex items-center justify-center">
