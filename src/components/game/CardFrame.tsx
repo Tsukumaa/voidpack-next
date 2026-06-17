@@ -88,7 +88,7 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
       }}>
 
         {/* Artwork clippé aux coins */}
-        <div style={{ position:'absolute', inset:0, background:'#000', clipPath:'inset(0 round 8px)', transform:'translateZ(0)' }}>
+        <div style={{ position:'absolute', inset:0, borderRadius:8, overflow:'hidden', background:'#000', transform:'translateZ(0)', isolation:'isolate' }}>
           {children}
         </div>
 
