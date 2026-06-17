@@ -12,22 +12,29 @@ export async function POST(req: NextRequest) {
 
   try {
     let result
+    // Serialize a JS value to a SQLite literal (handles null, boolean, number, string)
+    const lit = (v: unknown): string => {
+      if (v === null || v === undefined) return 'NULL'
+      if (typeof v === 'boolean') return v ? '1' : '0'
+      if (typeof v === 'number') return String(v)
+      return `'${String(v).replace(/'/g, "''")}'`
+    }
+
     if (action === 'select') {
       result = await db.run(sql.raw(`SELECT ${data?.select ?? '*'} FROM ${table}${data?.order ? ` ORDER BY ${data.order}` : ''}`))
     } else if (action === 'insert') {
       const cols = Object.keys(data).join(', ')
-      const vals = Object.values(data).map(v => `'${String(v === null || v === undefined ? '' : v).replace(/'/g, "''")}'`).join(', ')
+      const vals = Object.values(data).map(lit).join(', ')
       result = await db.run(sql.raw(`INSERT INTO ${table} (${cols}) VALUES (${vals})`))
     } else if (action === 'update') {
-      const esc = (v: unknown) => `'${String(v === null || v === undefined ? '' : v).replace(/'/g, "''")}'`
-      const sets = Object.entries(data).map(([k, v]) => `${k}=${esc(v)}`).join(', ')
-      result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}=${esc(eqFilter.val)}`))
+      const sets = Object.entries(data).map(([k, v]) => `${k}=${lit(v)}`).join(', ')
+      result = await db.run(sql.raw(`UPDATE ${table} SET ${sets} WHERE ${eqFilter.col}=${lit(eqFilter.val)}`))
     } else if (action === 'delete') {
-      result = await db.run(sql.raw(`DELETE FROM ${table} WHERE ${eqFilter.col}='${eqFilter.val}'`))
+      result = await db.run(sql.raw(`DELETE FROM ${table} WHERE ${eqFilter.col}=${lit(eqFilter.val)}`))
     } else if (action === 'upsert') {
       const cols = Object.keys(data as Record<string, unknown>).join(', ')
-      const vals = Object.values(data as Record<string, unknown>).map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')
-      const updates = Object.entries(data as Record<string, unknown>).map(([k, v]) => `${k}='${String(v).replace(/'/g, "''")}'`).join(', ')
+      const vals = Object.values(data as Record<string, unknown>).map(lit).join(', ')
+      const updates = Object.entries(data as Record<string, unknown>).map(([k, v]) => `${k}=${lit(v)}`).join(', ')
       const conflict = eqFilter?.onConflict ?? eqFilter?.col ?? Object.keys(data as Record<string, unknown>)[0]
       result = await db.run(sql.raw(`INSERT INTO ${table} (${cols}) VALUES (${vals}) ON CONFLICT(${conflict}) DO UPDATE SET ${updates}`))
     } else {
