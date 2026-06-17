@@ -161,7 +161,7 @@ export default function CollectionPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="sticky top-20 z-20 py-4 mb-5 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
+      <div className="sticky top-20 z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
         <div className="flex items-center justify-center gap-3 mb-3">
           <h2 className="font-bold text-white text-base">Ma collection</h2>
           <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
