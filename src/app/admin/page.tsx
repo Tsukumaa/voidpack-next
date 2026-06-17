@@ -762,7 +762,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       </svg>
                     </button>
                     {artistOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1 z-50 max-h-56 overflow-y-auto rounded-xl"
+                      <div className="absolute bottom-full left-0 right-0 mb-1 z-50 max-h-56 overflow-y-auto rounded-xl"
                         style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
                         {form.artist && (
                           <button type="button"
