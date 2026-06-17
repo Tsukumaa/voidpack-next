@@ -36,6 +36,8 @@ export const customCards = sqliteTable('custom_cards', {
   family:      text('family').notNull().default('global'),
   rarity:      text('rarity').notNull().default('common'),
   character:   text('character'),
+  artist:      text('artist'),
+  artistUrl:   text('artist_url'),
   imageUrl:    text('image_url'),
   description: text('description'),
   metadata:    text('metadata').notNull().default('{}'), // JSON

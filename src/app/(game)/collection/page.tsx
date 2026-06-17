@@ -48,6 +48,8 @@ interface GroupedCard {
   atk: number | null
   def: number | null
   owned: boolean
+  artist: string | null
+  artistUrl: string | null
 }
 
 export default function CollectionPage() {
@@ -71,7 +73,7 @@ export default function CollectionPage() {
       fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
 
-    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
     for (const d of cardDefs ?? []) {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = {
@@ -81,6 +83,8 @@ export default function CollectionPage() {
         cost: meta?.combat?.cost ?? null,
         atk:  meta?.combat?.atk  ?? null,
         def:  meta?.combat?.hp   ?? null,
+        artist: d.artist ?? null,
+        artistUrl: d.artistUrl ?? d.artist_url ?? null,
       }
     }
 
@@ -100,6 +104,8 @@ export default function CollectionPage() {
         atk:         def?.atk  ?? null,
         def:         def?.def  ?? null,
         owned:       true,
+        artist: def?.artist ?? null,
+        artistUrl: def?.artistUrl ?? null,
       }
     })
 
@@ -121,6 +127,8 @@ export default function CollectionPage() {
           atk:         def?.atk  ?? null,
           def:         def?.def  ?? null,
           owned:       false,
+          artist: def?.artist ?? null,
+          artistUrl: def?.artistUrl ?? null,
         }
       })
 
@@ -271,6 +279,8 @@ export default function CollectionPage() {
           artUrl={selected.image_url}
           description={selected.description}
           count={selected.count}
+          artist={selected.artist}
+          artistUrl={selected.artistUrl}
           onClose={() => setSelected(null)}
         />
       )}

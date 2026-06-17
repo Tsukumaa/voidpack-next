@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     cards: picked.map(c => ({
       id: c.id, name: c.name, rarity: c.rarity, family: c.family,
       artUrl: c.imageUrl ?? null, description: c.description ?? null,
+      artist: c.artist ?? null, artistUrl: c.artistUrl ?? null,
     }))
   })
 }

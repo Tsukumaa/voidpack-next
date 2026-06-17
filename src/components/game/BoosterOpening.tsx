@@ -15,6 +15,8 @@ interface Card {
   family?: string
   artUrl?: string
   description?: string | null
+  artist?: string | null
+  artistUrl?: string | null
 }
 
 interface Props {
@@ -219,6 +221,8 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
           family={selected.family}
           artUrl={selected.artUrl}
           description={selected.description}
+          artist={selected.artist}
+          artistUrl={selected.artistUrl}
           onClose={() => setSelected(null)}
         />
       )}
@@ -528,6 +532,20 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color:revealedColor||'#9ca3af' }}>
               {currentCard.rarity}
             </p>
+            {currentCard.artist && (
+              <p className="text-white/35 text-[10px] mt-0.5">
+                🎨 Artiste:{' '}
+                {currentCard.artistUrl ? (
+                  <a href={currentCard.artistUrl} target="_blank" rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">
+                    {currentCard.artist}
+                  </a>
+                ) : (
+                  currentCard.artist
+                )}
+              </p>
+            )}
           </div>
 
           <p className="text-white/30 text-xs z-10">
