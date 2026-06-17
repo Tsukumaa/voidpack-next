@@ -277,7 +277,7 @@ export default function CollectionPage() {
                 </button>
                 <div className="grid transition-[grid-template-rows] duration-300 ease-out"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
+                  <div className="overflow-visible">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
                       {group.map(card => (
                     !card.owned ? (
