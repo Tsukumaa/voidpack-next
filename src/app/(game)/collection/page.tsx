@@ -168,28 +168,28 @@ export default function CollectionPage() {
         </div>
 
         {/* Filtres */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
-          <button onClick={() => setFilter('all')}
-            className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-              filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
-            Tout
-          </button>
-          {RARITY_ORDER.filter(r => cards.some(c => c.rarity === r)).map(r => (
-            <button key={r} onClick={() => setFilter(filter === r ? 'all' : r)}
-              className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all capitalize',
-                filter === r ? 'text-white' : 'text-white/40 hover:text-white/60')}
-              style={filter === r ? { background: RARITY_COLOR[r] + '30', color: RARITY_COLOR[r] } : {}}>
-              {r}
+        <div className="flex items-center gap-2 px-4">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1 justify-center">
+            <button onClick={() => setFilter('all')}
+              className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
+                filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
+              Tout
             </button>
-          ))}
+            {RARITY_ORDER.filter(r => cards.some(c => c.rarity === r)).map(r => (
+              <button key={r} onClick={() => setFilter(filter === r ? 'all' : r)}
+                className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all capitalize',
+                  filter === r ? 'text-white' : 'text-white/40 hover:text-white/60')}
+                style={filter === r ? { background: RARITY_COLOR[r] + '30', color: RARITY_COLOR[r] } : {}}>
+                {r}
+              </button>
+            ))}
+          </div>
           {families.length > 0 && (
-            <div ref={famRef} className="relative">
+            <div ref={famRef} className="relative shrink-0">
               <button
                 onClick={() => setFamOpen(v => !v)}
                 className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-                  families.some(f => f.key === filter)
-                    ? 'text-[#a78bfa]'
-                    : 'text-white/40 hover:text-white/60')}
+                  families.some(f => f.key === filter) ? 'text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}
                 style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
               >
                 {families.find(f => f.key === filter)?.label ?? 'Famille'}
@@ -280,7 +280,8 @@ export default function CollectionPage() {
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
                           {card.image_url ? (
-                            <Image src={card.image_url} alt={card.name} fill className="object-cover" unoptimized />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={card.image_url} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <div className="w-12 h-12 rounded-full opacity-30"
