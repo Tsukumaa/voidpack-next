@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils'
 
 interface Message {
   id: number
-  sender_id: string
-  receiver_id: string
+  senderId: string
+  receiverId: string
   content: string
-  created_at: string
+  createdAt: string
 }
 
 function formatTime(raw: string) {
@@ -70,7 +70,7 @@ export function FloatingChat() {
 
     const maxId = Math.max(...data.map(m => m.id))
     if (!isFirstLoad.current && maxId > lastIdRef.current) {
-      const newMsgs = data.filter(m => m.id > lastIdRef.current && m.sender_id !== user.id)
+      const newMsgs = data.filter(m => m.id > lastIdRef.current && m.senderId !== user.id)
       if (newMsgs.length > 0 && minimized) {
         addToast({ type: 'info', title: `💬 ${chatFriend.username}`, body: newMsgs[newMsgs.length - 1].content })
       }
@@ -146,7 +146,7 @@ export function FloatingChat() {
               <p className="text-white/20 text-xs text-center pt-8">Commencez la conversation !</p>
             )}
             {messages.map((m) => {
-              const isMe = m.sender_id === user.id
+              const isMe = m.senderId === user.id
               const name = isMe ? myName : (chatFriend.username ?? '')
               const avatar = isMe ? myAvatar : chatFriend.avatar_url
               return (
@@ -158,7 +158,7 @@ export function FloatingChat() {
                       isMe ? 'bg-[#7b2bff] text-white rounded-tr-sm' : 'bg-white/8 text-white/80 rounded-tl-sm')}>
                       {m.content}
                     </div>
-                    <span className="text-[9px] text-white/20 mt-0.5 px-0.5">{formatTime(m.created_at)}</span>
+                    <span className="text-[9px] text-white/20 mt-0.5 px-0.5">{formatTime(m.createdAt)}</span>
                   </div>
                 </div>
               )

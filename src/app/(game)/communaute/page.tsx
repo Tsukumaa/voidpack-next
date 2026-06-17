@@ -284,7 +284,7 @@ export default function CommunautePage() {
 
       {/* Bouton chat flottant si amis */}
       {friends.length > 0 && user && (
-        <div className="fixed bottom-24 right-4 z-40">
+        <div className="fixed bottom-24 right-16 z-40">
           <button onClick={() => setShowFriends(true)}
             className="w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
             <MessageCircle size={20} className="text-white" />
