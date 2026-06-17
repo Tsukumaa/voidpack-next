@@ -38,6 +38,8 @@ interface Card {
   combat_hp: number
   combat_cost: number
   combat_effects: string
+  artist: string
+  artistUrl: string
 }
 
 interface Setting {
@@ -388,7 +390,7 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
       {loading ? <p className="text-white/30 text-sm">Chargement…</p> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {families.map(f => (
-            <div key={f.id} className="p-4 rounded-2xl border border-white/8 bg-white/3 flex items-start justify-between gap-3">
+            <div key={f.key} className="p-4 rounded-2xl border border-white/8 bg-white/3 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: f.color }} />
                 <div>
@@ -561,14 +563,16 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
 
-  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '' }
+  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '', artist: '', artistUrl: '' }
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const data = await adminDb('select', 'custom_cards', { order: 'name' })
-      setCards((data ?? []).map((c: Card & { metadata: unknown }) => ({
+      setCards((data ?? []).map((c: Card & { metadata: unknown; artist_url?: string }) => ({
         ...c,
+        artist:    c.artist ?? '',
+        artistUrl: c.artist_url ?? c.artistUrl ?? '',
         metadata: typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata) } catch { return {} } })() : (c.metadata ?? {}),
       })))
     } finally { setLoading(false) }
@@ -581,12 +585,15 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
 
   async function save() {
     if (!form) return
+    if (!form.artist?.trim()) { onMsg('Un artiste est requis pour créer la carte.', false); return }
     setSaving(true)
     try {
       const fields = {
         name: form.name, family: form.family, rarity: form.rarity,
         image_url: form.image_url,
-        description: form.description ?? '',
+        artist: form.artist.trim(),
+        artist_url: form.artistUrl?.trim() || null,
+        description: (form.description ?? '').trim(),
         metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } })
       }
       if (form.id) {
@@ -608,6 +615,16 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   }
 
   const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', uncommon: '#22c55e', common: '#9ca3af' }
+
+  // Sépare le tag artiste de la description libre (pour pré-remplir l'édition)
+  function splitArtist(desc?: string) {
+    const m = (desc ?? '').match(/artiste?\s*:?\s*([^[\n]+)(?:\[([^\]]+)\])?/i)
+    return {
+      artist:    m?.[1]?.trim() ?? '',
+      artistUrl: m?.[2]?.trim() ?? '',
+      text:      (desc ?? '').replace(/artiste?\s*:?[^\n]*/i, '').trim(),
+    }
+  }
 
   const filtered = cards.filter(c =>
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&
@@ -650,7 +667,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   <td className="px-4 py-3 text-white/70">{c.metadata?.combat?.hp ?? '—'}</td>
                   <td className="px-4 py-3 text-white/70">{c.metadata?.combat?.cost ?? '—'}</td>
                   <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => setForm({ ...c, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') })}
+                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
                       className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs">✏</button>
                     <button onClick={() => del(c)} className="px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs">✕</button>
                   </td>
@@ -689,6 +706,14 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 <textarea value={form.description ?? ''} onChange={e => setForm(f => f && ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none h-20`} />
               </Field>
             </div>
+            <Field label="Artiste *">
+              <input value={form.artist ?? ''} onChange={e => setForm(f => f && ({ ...f, artist: e.target.value }))}
+                className={inputCls} placeholder="Nom de l'artiste" required />
+            </Field>
+            <Field label="Lien artiste (optionnel)">
+              <input value={form.artistUrl ?? ''} onChange={e => setForm(f => f && ({ ...f, artistUrl: e.target.value }))}
+                className={inputCls} placeholder="https://… (portfolio, X, etc.)" />
+            </Field>
           </div>
           <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
         </Modal>

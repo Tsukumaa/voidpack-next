@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { ChevronDown, Lock } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -46,6 +47,9 @@ interface GroupedCard {
   cost: number | null
   atk: number | null
   def: number | null
+  owned: boolean
+  artist: string | null
+  artistUrl: string | null
 }
 
 export default function CollectionPage() {
@@ -55,6 +59,9 @@ export default function CollectionPage() {
   const [filter, setFilter]       = useState<string>('all')
   const [families, setFamilies]   = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  const toggleSection = (r: string) => setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
 
   const load = useCallback(async () => {
     if (!user) return
@@ -66,7 +73,7 @@ export default function CollectionPage() {
       fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
 
-    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null }> = {}
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
     for (const d of cardDefs ?? []) {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = {
@@ -76,10 +83,12 @@ export default function CollectionPage() {
         cost: meta?.combat?.cost ?? null,
         atk:  meta?.combat?.atk  ?? null,
         def:  meta?.combat?.hp   ?? null,
+        artist: d.artist ?? null,
+        artistUrl: d.artistUrl ?? d.artist_url ?? null,
       }
     }
 
-    const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
+    const ownedList: GroupedCard[] = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
       return {
@@ -94,8 +103,36 @@ export default function CollectionPage() {
         cost:        def?.cost ?? null,
         atk:         def?.atk  ?? null,
         def:         def?.def  ?? null,
+        owned:       true,
+        artist: def?.artist ?? null,
+        artistUrl: def?.artistUrl ?? null,
       }
-    }).sort((a: GroupedCard, b: GroupedCard) => {
+    })
+
+    const ownedIds = new Set(ownedList.map(c => c.card_id))
+    const lockedList: GroupedCard[] = (cardDefs ?? [])
+      .filter((d: { id: string }) => !ownedIds.has(d.id))
+      .map((d: { id: string; name?: string; rarity?: string; family?: string; familyKey?: string }) => {
+        const def = defMap[d.id]
+        return {
+          card_id:     d.id,
+          rarity:      d.rarity ?? 'common',
+          family:      d.family ?? d.familyKey ?? '',
+          count:       0,
+          name:        def?.name ?? d.name ?? d.id,
+          image_url:   def?.image_url ?? null,
+          description: def?.description ?? null,
+          latest_at:   '',
+          cost:        def?.cost ?? null,
+          atk:         def?.atk  ?? null,
+          def:         def?.def  ?? null,
+          owned:       false,
+          artist: def?.artist ?? null,
+          artistUrl: def?.artistUrl ?? null,
+        }
+      })
+
+    const sorted = [...ownedList, ...lockedList].sort((a, b) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
       return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })
@@ -114,14 +151,14 @@ export default function CollectionPage() {
   return (
     <div className="pb-4">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-2 mb-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="sticky top-20 z-20 py-4 mb-5 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
+        <div className="flex items-center justify-center gap-3 mb-3">
           <h2 className="font-bold text-white text-base">Ma collection</h2>
-          <span className="text-white/40 text-xs">{cards.length} cartes · {Object.values(cards).reduce((a, c) => a + c.count, 0)} copies</span>
+          <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
         </div>
 
         {/* Filtres */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
           <button onClick={() => setFilter('all')}
             className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
               filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
@@ -163,15 +200,38 @@ export default function CollectionPage() {
           {rarityGroups.map(r => {
             const group = filtered.filter(c => c.rarity === r)
             if (!group.length) return null
+            const isOpen = !collapsed[r]
             return (
               <div key={r}>
-                <div className="flex items-center gap-2 mb-3">
+                <button onClick={() => toggleSection(r)}
+                  className="flex items-center gap-2 mb-3 w-full">
+                  <ChevronDown size={14} className="transition-transform duration-300 shrink-0"
+                    style={{ color: RARITY_COLOR[r], transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
                   <span className="text-xs font-bold uppercase tracking-widest" style={{ color: RARITY_COLOR[r] }}>{r}</span>
                   <div className="flex-1 h-px" style={{ background: RARITY_COLOR[r] + '30' }} />
                   <span className="text-white/30 text-xs">{group.length}</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {group.map(card => (
+                </button>
+                <div className="grid transition-[grid-template-rows] duration-300 ease-out"
+                  style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
+                  <div className="overflow-hidden">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-5">
+                      {group.map(card => (
+                    !card.owned ? (
+                      <div
+                        key={card.card_id}
+                        className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
+                        style={{ aspectRatio: '0.714' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/assets/dos.png" alt="" draggable={false}
+                          className="w-full h-full object-cover select-none"
+                          style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                          <Lock size={24} className="text-white/50" />
+                          <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
+                        </div>
+                      </div>
+                    ) : (
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
@@ -184,6 +244,7 @@ export default function CollectionPage() {
                         cost={card.cost}
                         atk={card.atk}
                         def={card.def}
+                        glow={false}
                         style={{ position: 'absolute', inset: 0 }}
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
@@ -196,14 +257,18 @@ export default function CollectionPage() {
                             </div>
                           )}
                         </button>
-                        {card.count > 1 && (
-                          <div className="absolute top-6 right-1.5 w-5 h-5 rounded-full bg-black/70 border border-white/20 flex items-center justify-center text-[10px] font-bold text-white z-20">
-                            {card.count}
-                          </div>
-                        )}
                       </CardFrame>
+                      {card.count > 1 && (
+                        <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-black/80 border-2 flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                          style={{ borderColor: RARITY_COLOR[card.rarity] + '66', boxShadow: `0 0 8px ${RARITY_COLOR[card.rarity]}66` }}>
+                          {card.count}
+                        </div>
+                      )}
                     </CardHover>
+                    )
                   ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
@@ -220,6 +285,8 @@ export default function CollectionPage() {
           artUrl={selected.image_url}
           description={selected.description}
           count={selected.count}
+          artist={selected.artist}
+          artistUrl={selected.artistUrl}
           onClose={() => setSelected(null)}
         />
       )}

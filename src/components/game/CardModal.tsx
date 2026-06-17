@@ -20,6 +20,8 @@ interface CardModalProps {
   family?: string
   artUrl?: string | null
   description?: string | null
+  artist?: string | null
+  artistUrl?: string | null
   count?: number
   onClose: () => void
 }
@@ -34,9 +36,13 @@ function parseDescription(desc: string) {
   }
 }
 
-export function CardModal({ name, rarity, family, artUrl, description, count, onClose }: CardModalProps) {
+export function CardModal({ name, rarity, family, artUrl, description, artist, artistUrl, count, onClose }: CardModalProps) {
   const color = RARITY_COLOR[rarity] ?? '#9ca3af'
   const parsed = description ? parseDescription(description) : null
+  // Priorité aux colonnes dédiées ; fallback sur le tag dans la description (anciennes cartes)
+  const artistName = artist || parsed?.artistName || null
+  const artistLink = artistUrl || parsed?.artistUrl || null
+  const descText   = artist ? (description?.trim() || null) : (parsed?.text || null)
 
   return (
     <div
@@ -77,21 +83,21 @@ export function CardModal({ name, rarity, family, artUrl, description, count, on
           </div>
 
           {/* Description */}
-          {parsed?.text && (
-            <p className="text-white/55 text-sm leading-relaxed mt-2 px-2">{parsed.text}</p>
+          {descText && (
+            <p className="text-white/55 text-sm leading-relaxed mt-2 px-2">{descText}</p>
           )}
 
           {/* Crédits artiste */}
-          {parsed?.artistName && (
+          {artistName && (
             <div className="flex items-center justify-center gap-1.5 text-xs text-white/35 mt-1">
-              <span>🎨</span>
-              {parsed.artistUrl ? (
-                <a href={parsed.artistUrl} target="_blank" rel="noopener noreferrer"
+              <span>🎨 Artiste:</span>
+              {artistLink ? (
+                <a href={artistLink} target="_blank" rel="noopener noreferrer"
                   className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">
-                  {parsed.artistName}
+                  {artistName}
                 </a>
               ) : (
-                <span>{parsed.artistName}</span>
+                <span>{artistName}</span>
               )}
             </div>
           )}
