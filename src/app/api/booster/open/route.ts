@@ -5,11 +5,11 @@ import { customCards } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 const RARITY_WEIGHTS: Record<string, number> = {
-  common:    85,
-  rare:      10,
-  epic:       4,
-  legendary:  0.8,
-  void:       0.2,
+  common:    60,
+  rare:      24,
+  epic:      13,
+  legendary:  2.5,
+  void:       0.5,
 }
 
 function weightedRoll(pool: { rarity: string }[]): number {

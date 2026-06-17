@@ -15,7 +15,7 @@ const RARITY_COLOR: Record<string, string> = {
 }
 // Taux d'apparition par rareté (cf. RARITY_WEIGHTS dans /api/booster/open, somme = 100)
 const RARITY_RATES: Record<string, number> = {
-  common: 85, rare: 10, epic: 4, legendary: 0.8, void: 0.2,
+  common: 60, rare: 24, epic: 13, legendary: 2.5, void: 0.5,
 }
 const RARITY_BG: Record<string, string> = {
   void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
