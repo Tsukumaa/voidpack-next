@@ -1,8 +1,8 @@
 'use client'
-import { Users, MessageCircle, Search, X, Send, Medal, BookOpen, Hexagon, Check, ChevronUp, ChevronDown, Swords, Sword } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
+import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
+import { useSocialStore } from '@/store/social'
 import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,30 +25,23 @@ interface Friend {
   status: string
 }
 
-interface Message {
-  id: number
-  sender_id: string
-  receiver_id: string
-  content: string
-  created_at: string
-  read_at: string | null
-}
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function CommunautePage() {
   const { user } = useGameStore(s => ({ user: s.user }))
-  const [ladder, setLadder]         = useState<'xp' | 'combat'>('xp')
-  const [entries, setEntries]       = useState<LadderEntry[]>([])
-  const [loading, setLoading]       = useState(true)
+  const setChatFriend = useSocialStore(s => s.setChatFriend)
+  const [ladder, setLadder]           = useState<'xp' | 'combat'>('xp')
+  const [entries, setEntries]         = useState<LadderEntry[]>([])
+  const [loading, setLoading]         = useState(true)
   const [showFriends, setShowFriends] = useState(false)
-  const [chatFriend, setChatFriend] = useState<Friend | null>(null)
-  const [friends, setFriends]       = useState<Friend[]>([])
+  const [friends, setFriends]         = useState<Friend[]>([])
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([])
+  const [addedFromLadder, setAddedFromLadder] = useState<Set<string>>(new Set())
 
   const loadLadder = useCallback(async () => {
     setLoading(true)
@@ -94,6 +87,16 @@ export default function CommunautePage() {
   useEffect(() => { if (user) { loadFriends(); loadPendingRequests() } }, [loadFriends, loadPendingRequests, user])
 
   const myRank = user ? entries.findIndex(e => e.user_id === user.id) + 1 : 0
+
+  async function addFriendFromLadder(targetId: string) {
+    const res = await fetch('/api/social/friends', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiverId: targetId }),
+    })
+    if (res.ok || res.status === 409) {
+      setAddedFromLadder(s => new Set([...s, targetId]))
+    }
+  }
 
   return (
     <div className="pb-4 relative">
@@ -229,6 +232,29 @@ export default function CommunautePage() {
                   <p className="text-white font-bold text-sm">{entry.xp.toLocaleString('fr-FR')}</p>
                   <p className="text-white/30 text-[10px]">XP</p>
                 </div>
+
+                {/* Add friend */}
+                {user && !isMe && (
+                  friends.some(f => f.friend_id === entry.user_id) ? (
+                    <button
+                      className="ml-1 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                      title="Déjà ami"
+                      disabled>
+                      <Check size={13} className="text-[#00c896]" />
+                    </button>
+                  ) : addedFromLadder.has(entry.user_id) ? (
+                    <button className="ml-1 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center" disabled>
+                      <Check size={13} className="text-white/30" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => addFriendFromLadder(entry.user_id)}
+                      className="ml-1 flex-shrink-0 w-7 h-7 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 flex items-center justify-center hover:bg-[#7b2bff]/30 transition-colors"
+                      title="Ajouter en ami">
+                      <UserPlus size={13} className="text-[#a78bfa]" />
+                    </button>
+                  )
+                )}
               </div>
             )
           })}
@@ -246,7 +272,7 @@ export default function CommunautePage() {
           friends={friends}
           pendingRequests={pendingRequests}
           onClose={() => setShowFriends(false)}
-          onChat={(f) => { setChatFriend(f); setShowFriends(false) }}
+          onChat={(f) => { setChatFriend({ friend_id: f.friend_id, username: f.username, avatar_url: f.avatar_url }); setShowFriends(false) }}
           onChallenge={(f) => {
             sessionStorage.setItem('challenge_friend', JSON.stringify({ id: f.friend_id, username: f.username }))
             setShowFriends(false)
@@ -256,17 +282,8 @@ export default function CommunautePage() {
         />
       )}
 
-      {/* Chat flottant */}
-      {chatFriend && user && (
-        <FloatingChat
-          user={user}
-          friend={chatFriend}
-          onClose={() => setChatFriend(null)}
-        />
-      )}
-
       {/* Bouton chat flottant si amis */}
-      {!chatFriend && friends.length > 0 && user && (
+      {friends.length > 0 && user && (
         <div className="fixed bottom-24 right-4 z-40">
           <button onClick={() => setShowFriends(true)}
             className="w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
@@ -444,93 +461,3 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChall
   )
 }
 
-// ─── Chat flottant ────────────────────────────────────────────────────────────
-function FloatingChat({ user, friend, onClose }: {
-  user: { id: string }
-  friend: Friend
-  onClose: () => void
-}) {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput]       = useState('')
-  const [minimized, setMinimized] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  const load = useCallback(async () => {
-    const data = await fetch(`/api/social/messages?with=${friend.friend_id}&limit=50`).then(r => r.ok ? r.json() : [])
-    setMessages(data ?? [])
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-  }, [user.id, friend.friend_id]) // eslint-disable-line
-
-  useEffect(() => {
-    load()
-    // Polling toutes les 3s à la place du Realtime
-    const interval = setInterval(load, 3000)
-    return () => clearInterval(interval)
-  }, [load]) // eslint-disable-line
-
-  async function send() {
-    if (!input.trim()) return
-    const content = input.trim()
-    setInput('')
-    await fetch('/api/social/messages', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ receiverId: friend.friend_id, content }),
-    })
-    load()
-  }
-
-  return (
-    <div className="fixed bottom-24 right-4 z-50 w-72 rounded-2xl overflow-hidden shadow-2xl border border-[#7b2bff]/30"
-      style={{ background: '#0a0816' }}>
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#7b2bff]/15 border-b border-[#7b2bff]/20">
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-          {friend.username?.[0]?.toUpperCase()}
-        </div>
-        <span className="flex-1 text-sm font-bold text-white truncate">{friend.username}</span>
-        <button onClick={() => setMinimized(m => !m)} className="text-white/40 hover:text-white text-xs px-1">
-          {minimized ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </button>
-        <button onClick={onClose} className="text-white/40 hover:text-white px-1"><X size={13} /></button>
-      </div>
-
-      {!minimized && (
-        <>
-          {/* Messages */}
-          <div className="h-52 overflow-y-auto p-3 space-y-2">
-            {messages.length === 0 && (
-              <p className="text-white/20 text-xs text-center pt-8">Commencez la conversation !</p>
-            )}
-            {messages.map(m => {
-              const isMe = m.sender_id === user.id
-              return (
-                <div key={m.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
-                  <div className={cn('px-3 py-1.5 rounded-2xl text-xs max-w-[80%] break-words',
-                    isMe ? 'bg-[#7b2bff] text-white rounded-tr-sm' : 'bg-white/8 text-white/80 rounded-tl-sm')}>
-                    {m.content}
-                  </div>
-                </div>
-              )
-            })}
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="flex gap-2 p-2 border-t border-white/[0.06]">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && send()}
-              placeholder="Message…"
-              className="flex-1 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs focus:border-[#7b2bff]/60 focus:outline-none text-white"
-            />
-            <button onClick={send}
-              className="px-3 py-1.5 rounded-xl bg-[#7b2bff] text-white text-xs font-bold hover:opacity-90">
-              <Send size={12} />
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}

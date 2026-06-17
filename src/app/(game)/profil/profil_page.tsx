@@ -1,7 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
-import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
+import { useSocialStore } from '@/store/social'
+import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
+import { getMissionProgress, getClaimedMissions, markMissionClaimed, trackMissionProgress } from '@/lib/game/mission-tracker'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
@@ -35,6 +37,7 @@ interface MissionProgress {
 
 export default function ProfilPage() {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
+  const addToast = useSocialStore(s => s.addToast)
   const [stats, setStats]               = useState<{ totalCards: number; uniqueCards: number; byRarity: Record<string, number> } | null>(null)
   const [daily, setDaily]               = useState<DailyReward | null>(null)
   const [achievements, setAchievements] = useState<string[]>([])
@@ -77,7 +80,25 @@ export default function ProfilPage() {
 
     const achList = Array.isArray(achRes) ? achRes : (achRes?.achievements ?? [])
     setAchievements(achList.map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
-  }, [user])
+
+    // Charger missions depuis localStorage
+    if (user) {
+      // Auto-complete daily_login
+      trackMissionProgress(user.id, 'daily_login', 1)
+
+      const claimed = getClaimedMissions(user.id)
+      const missionList = todayMissions.map(m => {
+        const prog = getMissionProgress(user.id, m.id)
+        return {
+          mission_id: m.id,
+          progress: Math.min(prog, m.goal),
+          completed: prog >= m.goal,
+          xp_claimed: claimed.includes(m.id),
+        }
+      })
+      setMissions(missionList)
+    }
+  }, [user]) // eslint-disable-line
 
   useEffect(() => { load() }, [load])
 
@@ -94,6 +115,7 @@ export default function ProfilPage() {
   }
 
   async function claimMission(missionId: string) {
+    if (!user) return
     setClaimingMission(missionId)
     try {
       const res = await fetch('/api/profile/mission', {
@@ -102,10 +124,19 @@ export default function ProfilPage() {
         body: JSON.stringify({ missionId }),
       })
       const data = await res.json()
-      if (data?.xp_gained && profile) {
-        setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+      if (res.ok) {
+        markMissionClaimed(user.id, missionId)
+        if (data?.xp_gained && profile) {
+          setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+        }
+        const mission = todayMissions.find(m => m.id === missionId)
+        addToast({
+          type: 'mission',
+          title: `Mission complétée !`,
+          body: mission ? `${mission.label} — +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP`,
+        })
+        load()
       }
-      load()
     } catch(e) { console.error(e) }
     finally { setClaimingMission(null) }
   }

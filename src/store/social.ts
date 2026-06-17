@@ -1,0 +1,39 @@
+import { create } from 'zustand'
+
+export interface ChatFriend {
+  friend_id: string
+  username: string | null
+  avatar_url: string | null
+}
+
+export interface Toast {
+  id: string
+  type: 'friend_request' | 'mission' | 'streak' | 'info'
+  title: string
+  body?: string
+  action?: { label: string; href?: string; onClick?: () => void }
+}
+
+interface SocialStore {
+  pendingFriendCount: number
+  chatFriend: ChatFriend | null
+  toasts: Toast[]
+
+  setPendingFriendCount: (n: number) => void
+  setChatFriend: (f: ChatFriend | null) => void
+  addToast: (t: Omit<Toast, 'id'>) => void
+  removeToast: (id: string) => void
+}
+
+export const useSocialStore = create<SocialStore>((set) => ({
+  pendingFriendCount: 0,
+  chatFriend: null,
+  toasts: [],
+
+  setPendingFriendCount: (n) => set({ pendingFriendCount: n }),
+  setChatFriend: (f) => set({ chatFriend: f }),
+  addToast: (t) => set(s => ({
+    toasts: [...s.toasts, { ...t, id: `${Date.now()}_${Math.random()}` }],
+  })),
+  removeToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+}))

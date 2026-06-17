@@ -38,8 +38,32 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { receiverId } = await req.json()
-  await db.insert(friendships).values({ senderId: session.user.id, receiverId })
-  return NextResponse.json({ ok: true })
+  const uid = session.user.id
+
+  if (!receiverId || receiverId === uid) {
+    return NextResponse.json({ error: 'invalid_receiver' }, { status: 400 })
+  }
+
+  // Vérifie si une relation existe déjà dans les deux sens
+  const existing = await db
+    .select()
+    .from(friendships)
+    .where(or(
+      and(eq(friendships.senderId, uid), eq(friendships.receiverId, receiverId)),
+      and(eq(friendships.senderId, receiverId), eq(friendships.receiverId, uid)),
+    ))
+    .limit(1)
+
+  if (existing.length > 0) {
+    return NextResponse.json({ error: 'already_exists' }, { status: 409 })
+  }
+
+  try {
+    await db.insert(friendships).values({ senderId: uid, receiverId })
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json({ error: 'already_exists' }, { status: 409 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {
