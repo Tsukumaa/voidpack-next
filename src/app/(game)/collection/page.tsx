@@ -8,14 +8,14 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 
-const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
+const RARITY_ORDER = ['void','legendary','epic','rare','common']
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
-  rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
+  rare: '#4aa3ff', common: '#9ca3af',
 }
 // Taux d'apparition par rareté (cf. RARITY_WEIGHTS dans /api/booster/open, somme = 100)
 const RARITY_RATES: Record<string, number> = {
-  common: 60, uncommon: 25, rare: 10, epic: 4, legendary: 0.8, void: 0.2,
+  common: 60, rare: 10, epic: 4, legendary: 0.8, void: 0.2,
 }
 const RARITY_BG: Record<string, string> = {
   void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
