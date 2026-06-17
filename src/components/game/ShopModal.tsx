@@ -121,10 +121,9 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                     borderColor: isSelected ? '#7b2bff' : 'rgba(255,255,255,0.08)',
                     borderWidth: isSelected ? '2px' : '1px',
                   }}>
-                  <div className="aspect-[0.714] relative cursor-pointer"
-                    style={{ opacity: accessible ? 1 : 0.45, padding: '2.5px', background: 'linear-gradient(145deg, #5a1aee 0%, #c084fc 25%, #3a0acc 50%, #c084fc 75%, #5a1aee 100%)', borderRadius: 10, boxShadow: '0 0 14px #7b2bff44' }}
+                  <div className="aspect-[0.714] relative cursor-pointer overflow-hidden"
+                    style={{ opacity: accessible ? 1 : 0.45 }}
                     onClick={() => accessible && selectBack(skin.id)}>
-                  <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 8, overflow: 'hidden' }}>
                     <CardBackDisplay gradient={skin.gradient} pattern={skin.pattern} imageUrl={skin.imageUrl ?? skin.image_url} />
                     {!(skin.imageUrl ?? skin.image_url) && (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -139,7 +138,6 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                     {!accessible && (
                       <div className="absolute top-2 right-2"><Lock size={12} className="text-white/60" /></div>
                     )}
-                  </div>
                   </div>
                   <div className="p-2.5 bg-white/[0.03]">
                     <p className="text-white text-xs font-bold">{skin.name}</p>
