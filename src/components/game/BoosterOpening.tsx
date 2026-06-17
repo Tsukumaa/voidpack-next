@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { CardMedia } from '@/components/game/CardMedia'
+import { CardBackDisplay } from '@/components/game/CardBackDisplay'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
@@ -235,6 +236,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
 const DEFAULT_CARD_BACK = {
   gradient: 'linear-gradient(135deg, #1a0b2e 0%, #4a1fa8 50%, #2a0a4d 100%)',
   pattern: 'radial-gradient(circle at 50% 50%, rgba(123,43,255,0.25), transparent 60%)',
+  imageUrl: null as string | null,
 }
 
 export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
@@ -245,7 +247,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     const id = profile?.selected_card_back ?? 'default'
     fetch(`/api/card-backs?id=${encodeURIComponent(id)}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setCardBack(data) })
+      .then(data => { if (data) setCardBack({ gradient: data.gradient ?? null, pattern: data.pattern ?? null, imageUrl: data.imageUrl ?? data.image_url ?? null }) })
   }, [profile?.selected_card_back])
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)
@@ -501,14 +503,14 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   transitionTimingFunction:'cubic-bezier(.16,.88,.18,1)' }}>
                 <div className={cn('absolute inset-0 rounded-2xl overflow-hidden', cardPhase==='suspense'&&'animate-[cardShake_.15s_ease-in-out_infinite]')}
                   style={{ backfaceVisibility:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.8)', border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div className="absolute inset-0" style={{ background: cardBack.gradient }}>
-                    <div className="absolute inset-0" style={{ background: cardBack.pattern }} />
+                  <CardBackDisplay gradient={cardBack.gradient} pattern={cardBack.pattern} imageUrl={cardBack.imageUrl} />
+                  {!cardBack.imageUrl && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full border-2 border-white/30 flex items-center justify-center">
                         <div className="w-6 h-6 rounded-full bg-white/40" />
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="absolute inset-0 rounded-2xl bg-[#050210]"
                   style={{ backfaceVisibility:'hidden', transform:'rotateY(180deg)',

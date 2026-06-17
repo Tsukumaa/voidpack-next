@@ -2,9 +2,10 @@
 import { Lock, Check, Coffee, Crown, Gift, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
+import { CardBackDisplay } from '@/components/game/CardBackDisplay'
 const KOFI_URL = 'https://ko-fi.com/voidpack'
 
-interface CardBack { id: string; name: string; gradient: string; pattern: string }
+interface CardBack { id: string; name: string; gradient: string; pattern: string; imageUrl?: string | null; image_url?: string | null }
 
 export function ShopModal({ onClose }: { onClose: () => void }) {
   const { profile, setProfile } = useGameStore(s => ({ profile: s.profile, setProfile: s.setProfile }))
@@ -120,15 +121,17 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                     borderColor: isSelected ? '#7b2bff' : 'rgba(255,255,255,0.08)',
                     borderWidth: isSelected ? '2px' : '1px',
                   }}>
-                  <div className="aspect-[0.714] relative cursor-pointer"
-                    style={{ background: skin.gradient, opacity: accessible ? 1 : 0.45 }}
+                  <div className="aspect-[0.714] relative cursor-pointer overflow-hidden"
+                    style={{ opacity: accessible ? 1 : 0.45 }}
                     onClick={() => accessible && selectBack(skin.id)}>
-                    <div className="absolute inset-0" style={{ background: skin.pattern }} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
-                        <div className="w-4 h-4 rounded-full bg-white/40" />
+                    <CardBackDisplay gradient={skin.gradient} pattern={skin.pattern} imageUrl={skin.imageUrl ?? skin.image_url} />
+                    {!(skin.imageUrl ?? skin.image_url) && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
+                          <div className="w-4 h-4 rounded-full bg-white/40" />
+                        </div>
                       </div>
-                    </div>
+                    )}
                     {isSelected && (
                       <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-[#7b2bff] flex items-center justify-center"><Check size={12} className="text-white" /></div>
                     )}

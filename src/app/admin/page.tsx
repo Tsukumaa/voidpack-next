@@ -54,6 +54,7 @@ interface CardBack {
   name: string
   gradient: string
   pattern: string
+  image_url?: string
   order_index?: number
   active?: boolean
 }
@@ -459,7 +460,7 @@ function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void })
     if (!form) return
     setSaving(true)
     try {
-      const fields = { name: form.name, gradient: form.gradient, pattern: form.pattern, order_index: form.order_index ?? 0, active: form.active ?? true }
+      const fields = { name: form.name, gradient: form.gradient || null, pattern: form.pattern || null, image_url: form.image_url || null, order_index: form.order_index ?? 0, active: form.active ?? true }
       if (form.id) {
         await adminDb('update', 'card_backs', fields, { col: 'id', val: form.id })
       } else {
@@ -493,8 +494,12 @@ function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void })
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {backs.map(b => (
             <div key={b.id} className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
-              <div className="aspect-[0.714] relative" style={{ background: b.gradient }}>
-                <div className="absolute inset-0" style={{ background: b.pattern }} />
+              <div className="aspect-[0.714] relative overflow-hidden" style={b.image_url ? {} : { background: b.gradient }}>
+                {b.image_url
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={b.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                  : <div className="absolute inset-0" style={{ background: b.pattern }} />
+                }
                 {!b.active && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white/50 text-xs font-bold">
                     Inactif
@@ -518,23 +523,32 @@ function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void })
           <Field label="Nom">
             <input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Aurore Boréale" />
           </Field>
-          <Field label="Gradient CSS (background)">
-            <textarea value={form.gradient} onChange={e => setForm(f => f && ({ ...f, gradient: e.target.value }))} className={`${inputCls} resize-none h-20 font-mono text-xs`}
+          <Field label="Image URL (prioritaire sur le gradient)">
+            <input value={form.image_url ?? ''} onChange={e => setForm(f => f && ({ ...f, image_url: e.target.value }))} className={inputCls} placeholder="https://… (.png, .jpg, .webm, .gif)" />
+          </Field>
+          <Field label="Gradient CSS (si pas d'image)">
+            <textarea value={form.gradient} onChange={e => setForm(f => f && ({ ...f, gradient: e.target.value }))} className={`${inputCls} resize-none h-16 font-mono text-xs`}
               placeholder="linear-gradient(135deg, #000 0%, #7b2bff 100%)" />
           </Field>
-          <Field label="Motif/Overlay CSS (background, optionnel)">
-            <textarea value={form.pattern} onChange={e => setForm(f => f && ({ ...f, pattern: e.target.value }))} className={`${inputCls} resize-none h-20 font-mono text-xs`}
+          <Field label="Motif/Overlay CSS (optionnel)">
+            <textarea value={form.pattern} onChange={e => setForm(f => f && ({ ...f, pattern: e.target.value }))} className={`${inputCls} resize-none h-16 font-mono text-xs`}
               placeholder="radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15), transparent 60%)" />
           </Field>
           <Field label="Aperçu">
             <div className="aspect-[0.714] w-32 rounded-xl relative overflow-hidden border border-white/10">
-              <div className="absolute inset-0" style={{ background: form.gradient }} />
-              <div className="absolute inset-0" style={{ background: form.pattern }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-white/40" />
-                </div>
-              </div>
+              {form.image_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={form.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                : <>
+                    <div className="absolute inset-0" style={{ background: form.gradient }} />
+                    <div className="absolute inset-0" style={{ background: form.pattern }} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
+                        <div className="w-4 h-4 rounded-full bg-white/40" />
+                      </div>
+                    </div>
+                  </>
+              }
             </div>
           </Field>
           <Field label="Ordre d'affichage">

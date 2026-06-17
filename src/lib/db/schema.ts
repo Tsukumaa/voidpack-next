@@ -61,6 +61,7 @@ export const cardBacks = sqliteTable('card_backs', {
   name:       text('name').notNull(),
   gradient:   text('gradient'),
   pattern:    text('pattern'),
+  imageUrl:   text('image_url'),
   active:     integer('active', { mode: 'boolean' }).notNull().default(true),
   orderIndex: integer('order_index').notNull().default(0),
   price:      integer('price').notNull().default(0),
