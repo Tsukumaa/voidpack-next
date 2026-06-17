@@ -277,10 +277,9 @@ export default function CollectionPage() {
                 </button>
                 <div className="grid transition-[grid-template-rows] duration-300 ease-out"
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
-                  <div className="overflow-hidden">
+                  <div className="overflow-visible">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
-                      {group.map(card => (
-                    !card.owned ? (
+                      {group.map(card => (!card.owned ? (
                       <div
                         key={card.card_id}
                         className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
@@ -299,8 +298,8 @@ export default function CollectionPage() {
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
-                      className="relative cursor-pointer active:scale-95"
-                      style={{ aspectRatio: '0.714' }}
+                      className="relative z-50 cursor-pointer active:scale-95"
+                      style={{aspectRatio: '0.714', overflow: 'visible',}}
                     >
                       <CardFrame
                         rarity={card.rarity}
