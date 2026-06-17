@@ -1,7 +1,7 @@
 'use client'
-import Image from 'next/image'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
+import { CardMedia } from '@/components/game/CardMedia'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899',
@@ -62,7 +62,7 @@ export function CardModal({ name, rarity, family, artUrl, description, artist, a
         >
           <CardFrame rarity={rarity} name={name} style={{ position: 'absolute', inset: 0 }}>
             {artUrl
-              ? <Image src={artUrl} alt={name} fill className="object-cover" unoptimized />
+              ? <CardMedia src={artUrl} alt={name} />
               : <div className="w-full h-full flex items-center justify-center">
                   <div className="w-24 h-24 rounded-full opacity-30"
                     style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />

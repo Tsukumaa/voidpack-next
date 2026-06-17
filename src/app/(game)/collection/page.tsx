@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import { ChevronDown, Lock } from 'lucide-react'
+import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -280,8 +280,7 @@ export default function CollectionPage() {
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
                           {card.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={card.image_url} alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
+                            <CardMedia src={card.image_url} alt={card.name} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <div className="w-12 h-12 rounded-full opacity-30"

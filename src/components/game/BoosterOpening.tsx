@@ -1,7 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import Image from 'next/image'
 import { useGameStore } from '@/store/game'
+import { CardMedia } from '@/components/game/CardMedia'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
@@ -204,8 +204,9 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
               }}>
               <CardFrame rarity={card.rarity} name={card.name} style={{ position:'absolute', inset:0 }}>
                 {card.artUrl
-                  ? <Image src={card.artUrl} alt={card.name} fill className="object-cover" unoptimized />
-                  : <Image src="/assets/dos.png" alt={card.name} fill className="object-cover" />
+                  ? <CardMedia src={card.artUrl} alt={card.name} />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src="/assets/dos.png" alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
                 }
               </CardFrame>
             </div>
@@ -512,7 +513,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   >
                     <CardFrame rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'} name={cardPhase === 'revealed' ? currentCard.name : undefined} style={{ position:'absolute', inset:0 }}>
                       {currentCard.artUrl
-                        ? <Image src={currentCard.artUrl} alt={currentCard.name} fill className="object-cover" unoptimized />
+                        ? <CardMedia src={currentCard.artUrl} alt={currentCard.name} />
                         : <div className="w-full h-full flex items-center justify-center">
                             <div className="w-20 h-20 rounded-full opacity-40"
                               style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />
