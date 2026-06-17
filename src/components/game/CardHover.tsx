@@ -242,7 +242,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     <div
       ref={cardRef}
       className={className}
-      style={{ ...style, borderRadius: 12, transformStyle: 'preserve-3d', willChange: 'transform', isolation: 'isolate' }}
+      style={{ ...style, borderRadius: 12, willChange: 'transform', isolation: 'isolate' }}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       onMouseEnter={onEnter}
