@@ -13,33 +13,61 @@ interface Message {
   created_at: string
 }
 
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function FloatingChat() {
-  const user      = useGameStore(s => s.user)
+  const user       = useGameStore(s => s.user)
   const chatFriend = useSocialStore(s => s.chatFriend)
   const setChatFriend = useSocialStore(s => s.setChatFriend)
+  const addToast   = useSocialStore(s => s.addToast)
 
   const [messages, setMessages]   = useState<Message[]>([])
   const [input, setInput]         = useState('')
   const [minimized, setMinimized] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const bottomRef  = useRef<HTMLDivElement>(null)
+  const lastIdRef  = useRef<number>(0)
+  const isFirstLoad = useRef(true)
 
   // Drag state
-  const [pos, setPos]       = useState<{ x: number; y: number } | null>(null)
-  const dragRef             = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
-  const containerRef        = useRef<HTMLDivElement>(null)
+  const [pos, setPos]    = useState<{ x: number; y: number } | null>(null)
+  const dragRef          = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null)
+  const containerRef     = useRef<HTMLDivElement>(null)
 
-  // Init position bottom-right
   useEffect(() => {
     if (!chatFriend) return
     setPos(p => p ?? { x: window.innerWidth - 300, y: window.innerHeight - 380 })
+    setMessages([])
+    lastIdRef.current = 0
+    isFirstLoad.current = true
   }, [chatFriend])
 
   const load = useCallback(async () => {
     if (!chatFriend || !user) return
-    const data = await fetch(`/api/social/messages?with=${chatFriend.friend_id}&limit=50`).then(r => r.ok ? r.json() : [])
-    setMessages(data ?? [])
+    const data: Message[] = await fetch(`/api/social/messages?with=${chatFriend.friend_id}&limit=50`).then(r => r.ok ? r.json() : [])
+    if (!data?.length) return
+
+    setMessages(data)
+
+    // Notif on new incoming messages (skip on first load)
+    const maxId = Math.max(...data.map(m => m.id))
+    if (!isFirstLoad.current && maxId > lastIdRef.current) {
+      const newMsgs = data.filter(m => m.id > lastIdRef.current && m.sender_id !== user.id)
+      if (newMsgs.length > 0 && minimized) {
+        addToast({
+          type: 'info',
+          title: `💬 ${chatFriend.username}`,
+          body: newMsgs[newMsgs.length - 1].content,
+        })
+      }
+    }
+    lastIdRef.current = maxId
+    isFirstLoad.current = false
+
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-  }, [chatFriend, user])
+  }, [chatFriend, user, minimized, addToast])
 
   useEffect(() => {
     if (!chatFriend) return
@@ -59,7 +87,6 @@ export function FloatingChat() {
     load()
   }
 
-  // Drag handlers
   function onDragStart(e: React.MouseEvent) {
     const el = containerRef.current
     if (!el || !pos) return
@@ -112,18 +139,24 @@ export function FloatingChat() {
 
       {!minimized && (
         <>
-          <div className="h-52 overflow-y-auto p-3 space-y-2">
+          <div className="h-52 overflow-y-auto p-3 space-y-1">
             {messages.length === 0 && (
               <p className="text-white/20 text-xs text-center pt-8">Commencez la conversation !</p>
             )}
-            {messages.map(m => {
+            {messages.map((m, i) => {
               const isMe = m.sender_id === user.id
+              const prev = messages[i - 1]
+              const showName = !isMe && (!prev || prev.sender_id !== m.sender_id)
               return (
-                <div key={m.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
+                <div key={m.id} className={cn('flex flex-col', isMe ? 'items-end' : 'items-start')}>
+                  {showName && (
+                    <span className="text-[10px] text-white/30 ml-1 mb-0.5">{chatFriend.username}</span>
+                  )}
                   <div className={cn('px-3 py-1.5 rounded-2xl text-xs max-w-[80%] break-words',
                     isMe ? 'bg-[#7b2bff] text-white rounded-tr-sm' : 'bg-white/8 text-white/80 rounded-tl-sm')}>
                     {m.content}
                   </div>
+                  <span className="text-[9px] text-white/20 mt-0.5 mx-1">{formatTime(m.created_at)}</span>
                 </div>
               )
             })}
