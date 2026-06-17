@@ -135,13 +135,19 @@ export default function CollectionPage() {
               {r}
             </button>
           ))}
-          {families.map(f => (
-            <button key={f.key} onClick={() => setFilter(filter === f.key ? 'all' : f.key)}
-              className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-                filter === f.key ? 'bg-[#7b2bff]/30 text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}>
-              {f.label}
-            </button>
-          ))}
+          {families.length > 0 && (
+            <select
+              value={families.some(f => f.key === filter) ? filter : ''}
+              onChange={e => setFilter(e.target.value || 'all')}
+              className="px-3 py-1 rounded-full text-xs font-bold bg-transparent border border-white/10 text-white/40 focus:outline-none cursor-pointer"
+              style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', color:'#a78bfa', borderColor:'rgba(123,43,255,0.4)' } : {}}
+            >
+              <option value="" style={{ background:'#0a0a14' }}>Famille…</option>
+              {families.map(f => (
+                <option key={f.key} value={f.key} style={{ background:'#0a0a14' }}>{f.label}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 

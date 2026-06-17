@@ -20,9 +20,9 @@ const RARITY: Record<string, {
     fullart: true,
   },
   epic: {
-    b1:'#7a2ab5', b2:'#d580ff', b3:'#5a1a8a',
-    glow:'#a855f7', bg1:'#0c080f', bg2:'#08060c',
-    orb1:'#2a0a50', orb2:'#3a1265', orb3:'#300a40',
+    b1:'#8a1a4a', b2:'#ec4899', b3:'#5a0f2e',
+    glow:'#ec4899', bg1:'#0f0608', bg2:'#0a0406',
+    orb1:'#2a0a18', orb2:'#3a1228', orb3:'#300a20',
     fullart: true,
   },
   legendary: {
