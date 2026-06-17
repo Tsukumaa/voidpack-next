@@ -299,8 +299,11 @@ export default function CollectionPage() {
                     <CardHover
                       key={card.card_id}
                       rarity={card.rarity}
-                      className="relative z-50 cursor-pointer active:scale-95"
-                      style={{aspectRatio: '0.714', overflow: 'visible',}}
+                      className="relative cursor-pointer active:scale-95"
+                      style={{
+                        aspectRatio: '0.714',
+                        overflow: 'visible',
+                      }}
                     >
                       <CardFrame
                         rarity={card.rarity}
