@@ -196,7 +196,7 @@ export default function CollectionPage() {
                 <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
               </button>
               {famOpen && (
-                <div className="absolute top-full mt-1 left-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
+                <div className="absolute top-full mt-1 right-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
                   style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
                   {families.some(f => f.key === filter) && (
                     <button onClick={() => { setFilter('all'); setFamOpen(false) }}
