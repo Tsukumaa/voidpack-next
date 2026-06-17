@@ -49,25 +49,35 @@ export function StatusBar() {
       <div className="flex items-center justify-between gap-3 max-w-[520px] mx-auto">
 
         {/* Profil + Streak */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl">
-          <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex-shrink-0 flex items-center justify-center">
-            {profile?.avatar_url ? (
-              <Image src={profile.avatar_url} alt="" width={28} height={28} className="w-full h-full object-cover" unoptimized />
-            ) : (
-              <span className="text-[10px] font-bold text-white">
-                {profile?.username?.[0]?.toUpperCase() ?? '?'}
-              </span>
-            )}
+        <div className="relative rounded-full">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl">
+            <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex-shrink-0 flex items-center justify-center">
+              {profile?.avatar_url ? (
+                <Image src={profile.avatar_url} alt="" width={28} height={28} className="w-full h-full object-cover" unoptimized />
+              ) : (
+                <span className="text-[10px] font-bold text-white">
+                  {profile?.username?.[0]?.toUpperCase() ?? '?'}
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white leading-none">{profile?.username ?? 'Joueur'}</p>
+              <p className="text-[10px] text-white/50 leading-none mt-0.5">Niveau {profile?.level ?? 1}</p>
+            </div>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <div className="flex items-center gap-1 text-xs font-bold">
+              <Flame size={13} className="text-[#ff9a3d]" />
+              <span className="text-white/70">{streak ?? 0}j</span>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold text-white leading-none">{profile?.username ?? 'Joueur'}</p>
-            <p className="text-[10px] text-white/50 leading-none mt-0.5">Niveau {profile?.level ?? 1}</p>
-          </div>
-          <div className="w-px h-4 bg-white/10 mx-1" />
-          <div className="flex items-center gap-1 text-xs font-bold">
-            <Flame size={13} className="text-[#ff9a3d]" />
-            <span className="text-white/70">{streak ?? 0}j</span>
-          </div>
+
+          <div className="absolute inset-0 rounded-full pointer-events-none p-[2px]"
+            style={{
+              background: `conic-gradient(from -90deg, #00c896, #7b2bff ${xpPercent}%, rgba(255,255,255,0.07) ${xpPercent}%)`,
+              WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }} />
         </div>
 
         {/* Actions droite */}
@@ -101,14 +111,6 @@ export function StatusBar() {
             )}>
             {user ? 'Déconnexion' : 'Discord'}
           </button>
-        </div>
-      </div>
-
-      {/* XP Bar */}
-      <div className="max-w-[520px] mx-auto mt-2">
-        <div className="h-[5px] rounded-full bg-white/5 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-[#00c896] to-[#7b2bff] transition-all duration-700 ease-out"
-            style={{ width: `${xpPercent}%` }} />
         </div>
       </div>
 
