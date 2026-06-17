@@ -59,7 +59,7 @@ interface CardBack {
   active?: boolean
 }
 
-const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'void']
+const RARITIES = ['common',  'rare', 'epic', 'legendary', 'void']
 
 // ─── Helper API admin (service role, bypass RLS) ──────────────────────────────
 async function adminDb(action: string, table: string, data?: unknown, eq?: { col: string; val: unknown; onConflict?: string }) {
@@ -628,7 +628,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     onMsg(`🗑 "${card.name}" supprimée`); load()
   }
 
-  const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', uncommon: '#22c55e', common: '#9ca3af' }
+  const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', common: '#9ca3af' }
 
   // Sépare le tag artiste de la description libre (pour pré-remplir l'édition)
   function splitArtist(desc?: string) {

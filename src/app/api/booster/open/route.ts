@@ -5,8 +5,7 @@ import { customCards } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 const RARITY_WEIGHTS: Record<string, number> = {
-  common:    60,
-  uncommon:  25,
+  common:    85,
   rare:      10,
   epic:       4,
   legendary:  0.8,
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
     : await db.select().from(customCards).where(eq(customCards.family, booster_type))
 
   if (!pool.length) {
-    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
+    const rarities = ['common', 'rare', 'epic', 'legendary']
     return NextResponse.json({
       cards: Array.from({ length: count }, (_, i) => ({
         id: `placeholder-${i}`,

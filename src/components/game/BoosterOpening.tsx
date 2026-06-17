@@ -29,21 +29,20 @@ interface Props {
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
-  rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
+  rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
   void:      'radial-gradient(ellipse at 50% 0%, #1a0a3a 0%, #050210 60%, #000 100%)',
   legendary: 'radial-gradient(ellipse at 50% 0%, #2a1800 0%, #100800 60%, #000 100%)',
   epic:      'radial-gradient(ellipse at 50% 0%, #1a0a2e 0%, #0a0518 60%, #000 100%)',
   rare:      'radial-gradient(ellipse at 50% 0%, #0a1628 0%, #040810 60%, #000 100%)',
-  uncommon:  'radial-gradient(ellipse at 50% 0%, #0a1f10 0%, #040a06 60%, #000 100%)',
   common:    'radial-gradient(ellipse at 50% 0%, #111118 0%, #060608 60%, #000 100%)',
 }
 const SUSPENSE_MS: Record<string, number> = {
-  void: 2800, legendary: 2800, epic: 1500, rare: 1000, uncommon: 580, common: 420,
+  void: 2800, legendary: 2800, epic: 1500, rare: 1000, common: 420,
 }
 const PARTICLE_COUNT: Record<string, number> = {
-  void: 60, legendary: 45, epic: 28, rare: 18, uncommon: 0, common: 0,
+  void: 60, legendary: 45, epic: 28, rare: 18, common: 0,
 }
 const TEAR_Y = 14
 
@@ -71,7 +70,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
   const [lvlParticles, setLvlParticles] = useState<{id:number;x:number;y:number;c:string;s:number;d:number}[]>([])
 
   const XP_PER_RARITY: Record<string, number> = {
-    void: 500, legendary: 300, epic: 150, rare: 80, uncommon: 30, common: 10,
+    void: 500, legendary: 300, epic: 150, rare: 80, common: 10,
   }
 
   async function handleSave() {
@@ -124,7 +123,7 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
   }
 
   const bestRarity = cards.reduce((best, c) => {
-    const order = ['void','legendary','epic','rare','uncommon','common']
+    const order = ['void','legendary','epic','rare','common']
     return order.indexOf(c.rarity) < order.indexOf(best) ? c.rarity : best
   }, 'common')
 

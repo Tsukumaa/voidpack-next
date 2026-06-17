@@ -8,17 +8,16 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 
-const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
+const RARITY_ORDER = ['void','legendary','epic','rare','common']
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
-  rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
+  rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
   void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
   legendary: 'linear-gradient(135deg, #2a1500, #110800)',
   epic:      'linear-gradient(135deg, #1a0a2e, #0a0518)',
   rare:      'linear-gradient(135deg, #0a1628, #04080f)',
-  uncommon:  'linear-gradient(135deg, #0a1f10, #040a06)',
   common:    'linear-gradient(135deg, #111118, #060608)',
 }
 

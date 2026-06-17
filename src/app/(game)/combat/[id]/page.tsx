@@ -12,8 +12,8 @@ import {
 } from '@/lib/game/combat-multiplayer'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#b86dff',
-  rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  rare: '#4aa3ff', common: '#9ca3af',
 }
 
 interface BoardCard {
