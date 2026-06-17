@@ -211,7 +211,7 @@ export default function PlayerProfilePage() {
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="relative rounded-full p-[2px] shrink-0"
+          <div className="relative rounded-full p-[4px] shrink-0"
             style={{ background: `conic-gradient(from -90deg, #00c896, #7b2bff ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
             <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center">
               {profile?.avatarUrl ? (
