@@ -13,6 +13,10 @@ const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
+// Taux d'apparition par rareté (cf. RARITY_WEIGHTS dans /api/booster/open, somme = 100)
+const RARITY_RATES: Record<string, number> = {
+  common: 60, uncommon: 25, rare: 10, epic: 4, legendary: 0.8, void: 0.2,
+}
 const RARITY_BG: Record<string, string> = {
   void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
   legendary: 'linear-gradient(135deg, #2a1500, #110800)',
@@ -61,6 +65,7 @@ export default function CollectionPage() {
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [famOpen, setFamOpen]     = useState(false)
+  const [showRates, setShowRates] = useState(false)
   const famRef                    = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -168,8 +173,8 @@ export default function CollectionPage() {
         </div>
 
         {/* Filtres */}
-        <div className="flex items-center gap-2 px-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1 justify-center">
+        <div className="flex items-center justify-center gap-2 px-4">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide min-w-0">
             <button onClick={() => setFilter('all')}
               className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
                 filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
@@ -184,38 +189,67 @@ export default function CollectionPage() {
               </button>
             ))}
           </div>
+
           {families.length > 0 && (
-            <div ref={famRef} className="relative shrink-0">
-              <button
-                onClick={() => setFamOpen(v => !v)}
-                className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-                  families.some(f => f.key === filter) ? 'text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}
-                style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
-              >
-                {families.find(f => f.key === filter)?.label ?? 'Famille'}
-                <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
-              </button>
-              {famOpen && (
-                <div className="absolute top-full mt-1 right-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
-                  style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
-                  {families.some(f => f.key === filter) && (
-                    <button onClick={() => { setFilter('all'); setFamOpen(false) }}
-                      className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
-                      Toutes les familles
-                    </button>
-                  )}
-                  {families.map(f => (
-                    <button key={f.key}
-                      onClick={() => { setFilter(f.key); setFamOpen(false) }}
-                      className={cn('w-full text-left px-4 py-2 text-xs font-bold transition-colors',
-                        filter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
-                      {f.label}
-                    </button>
+            <>
+              <div className="w-px h-4 bg-white/10 shrink-0" />
+              <div ref={famRef} className="relative shrink-0">
+                <button
+                  onClick={() => setFamOpen(v => !v)}
+                  className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
+                    families.some(f => f.key === filter) ? 'text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}
+                  style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
+                >
+                  {families.find(f => f.key === filter)?.label ?? 'Famille'}
+                  <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
+                </button>
+                {famOpen && (
+                  <div className="absolute top-full mt-1 right-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
+                    style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
+                    {families.some(f => f.key === filter) && (
+                      <button onClick={() => { setFilter('all'); setFamOpen(false) }}
+                        className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
+                        Toutes les familles
+                      </button>
+                    )}
+                    {families.map(f => (
+                      <button key={f.key}
+                        onClick={() => { setFilter(f.key); setFamOpen(false) }}
+                        className={cn('w-full text-left px-4 py-2 text-xs font-bold transition-colors',
+                          filter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="w-px h-4 bg-white/10 shrink-0" />
+          <div className="relative shrink-0"
+            onMouseEnter={() => setShowRates(true)}
+            onMouseLeave={() => setShowRates(false)}>
+            <button onClick={() => setShowRates(v => !v)} aria-label="Taux d'apparition"
+              className="w-6 h-6 rounded-full border border-white/15 text-white/50 hover:text-white hover:border-white/40 flex items-center justify-center text-[11px] font-bold transition-colors">
+              ?
+            </button>
+            {showRates && (
+              <div className="absolute top-full right-0 mt-2 w-56 p-3.5 rounded-xl z-50"
+                style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
+                <p className="text-white font-bold text-xs mb-2.5">Taux d&apos;apparition</p>
+                <div className="space-y-1.5">
+                  {RARITY_ORDER.filter(r => RARITY_RATES[r] != null).map(r => (
+                    <div key={r} className="flex items-center justify-between gap-3 text-[11px]">
+                      <span className="capitalize font-bold" style={{ color: RARITY_COLOR[r] }}>{r}</span>
+                      <span className="text-white/55 font-mono">{RARITY_RATES[r]}%</span>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+                <p className="text-white/25 text-[9px] mt-2.5 leading-snug">Taux de base par booster, hors pity.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -307,7 +341,6 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Modal detail carte */}
       {selected && (
         <CardModal
           name={selected.name}
