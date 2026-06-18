@@ -39,6 +39,7 @@ export function PackScreen() {
 
   const [loading, setLoading] = useState(false)
   const [openedCards, setOpenedCards] = useState<CardResult[] | null>(null)
+  const [openSeq, setOpenSeq] = useState(0)
   const [openedType, setOpenedType] = useState<string>('void')
   const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/dos.png')
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
@@ -131,6 +132,7 @@ export function PackScreen() {
       setOpenedType(type)
       setOpenedImageUrl(boosterImages[type] || '/assets/dos.png')
       setOpenedCards(cards as CardResult[])
+      setOpenSeq(n => n + 1)
 
       removePendingCredit(credit.id)
     } catch (e) {
@@ -147,9 +149,12 @@ export function PackScreen() {
     <>
       {openedCards && (
         <BoosterOpening
+          key={openSeq}
           cards={openedCards}
           boosterImageUrl={openedImageUrl}
           boosterType={openedType}
+          onOpenAnother={handleOpen}
+          canOpenAnother={hasCredits}
           onClose={() => {
             setOpenedCards(null)
             loadCredits()

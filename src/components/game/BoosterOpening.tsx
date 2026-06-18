@@ -26,6 +26,8 @@ interface Props {
   boosterImageUrl?: string
   boosterType?: string
   onClose: () => void
+  onOpenAnother?: () => void
+  canOpenAnother?: boolean
 }
 
 const RARITY_COLOR: Record<string, string> = {
@@ -59,7 +61,7 @@ type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
 type CardPhase = 'back'|'suspense'|'revealed'|'hiding'
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
-function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void }) {
+function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpenAnother, canOpenAnother }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void; onOpenAnother?: () => void; canOpenAnother?: boolean }) {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
   const { checkAfterPackOpen } = useAchievements()
   const [selected, setSelected] = useState<Card | null>(null)
@@ -184,9 +186,18 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose }: { c
             {saving ? '…' : '+ Collection'}
           </button>
         ) : (
-          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold">
-            Terminer ✓
-          </button>
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            {canOpenAnother && onOpenAnother && (
+              <button onClick={onOpenAnother}
+                className="px-4 py-2 rounded-xl text-white text-sm font-bold shrink-0"
+                style={{ background:'linear-gradient(135deg,#7b2bff,#4a1fa8)', boxShadow:'0 0 20px rgba(123,43,255,.4)' }}>
+                Ouvrir un nouveau pack
+              </button>
+            )}
+            <button onClick={onClose} className="px-4 py-2 rounded-xl bg-white/10 text-white text-sm font-bold shrink-0">
+              Terminer
+            </button>
+          </div>
         )}
       </div>
 
@@ -273,7 +284,7 @@ const DEFAULT_CARD_BACK = {
   imageUrl: null as string | null,
 }
 
-export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
+export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose, onOpenAnother, canOpenAnother }: Props) {
   const profile = useGameStore(s => s.profile)
   const setProfileStore = useGameStore(s => s.setProfile)
   const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
@@ -466,7 +477,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     }
   }, [autoReveal, phase, cardPhase, cardIndex, rarity, handleCardTap])
 
-  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} />
+  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} onOpenAnother={onOpenAnother} canOpenAnother={canOpenAnother} />
 
   return (
     <div
