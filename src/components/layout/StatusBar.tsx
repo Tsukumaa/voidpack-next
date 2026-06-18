@@ -6,7 +6,7 @@ import {
   Coins,
   Shield,
   LogOut,
-  LogIn,
+  Link as LinkIcon,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -183,7 +183,7 @@ export function StatusBar() {
                 : 'bg-[#7b2bff]/20 border border-[#7b2bff]/40'
             )}
           >
-            {user ? <LogOut size={13} /> : <LogIn size={13} />}
+            {user ? <LogOut size={13} /> : <LinkIcon size={13} />}
 
             <span className="hidden sm:inline">
               {user
