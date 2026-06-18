@@ -13,10 +13,15 @@ async function ensureTable() {
     column      TEXT NOT NULL DEFAULT 'todo',
     tag         TEXT,
     position    INTEGER NOT NULL DEFAULT 0,
+    attachment  TEXT,
     created_by  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`)
+  // Add attachment column if table already existed without it
+  try {
+    await db.run(sql`ALTER TABLE kanban_cards ADD COLUMN attachment TEXT`)
+  } catch { /* column already exists */ }
 }
 
 export async function GET() {
@@ -36,6 +41,7 @@ export async function POST(req: NextRequest) {
     column:      body.column ?? 'todo',
     tag:         body.tag ?? null,
     position:    body.position ?? 0,
+    attachment:  body.attachment ?? null,
     createdBy:   body.createdBy ?? null,
   })
   const [card] = await db.select().from(kanbanCards).where(eq(kanbanCards.id, id))
@@ -54,6 +60,7 @@ export async function PATCH(req: NextRequest) {
   if (fields.column      !== undefined) update.column      = fields.column
   if (fields.tag         !== undefined) update.tag         = fields.tag
   if (fields.position    !== undefined) update.position    = fields.position
+  if (fields.attachment  !== undefined) update.attachment  = fields.attachment
 
   await db.update(kanbanCards).set(update).where(eq(kanbanCards.id, id))
   const [card] = await db.select().from(kanbanCards).where(eq(kanbanCards.id, id))

@@ -298,6 +298,7 @@ export const kanbanCards = sqliteTable('kanban_cards', {
   column:      text('column').notNull().default('todo'),
   tag:         text('tag'),
   position:    integer('position').notNull().default(0),
+  attachment:  text('attachment'),
   createdBy:   text('created_by'),
   createdAt:   text('created_at').notNull().default(now),
   updatedAt:   text('updated_at').notNull().default(now),
