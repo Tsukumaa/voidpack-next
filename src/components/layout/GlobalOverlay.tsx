@@ -50,7 +50,7 @@ export function GlobalOverlay() {
       const incoming = (data as { receiverId: string }[]).filter(t => t.receiverId === user!.id).length
       setPendingTradeCount(incoming)
       if (prevTradeRef.current >= 0 && incoming > prevTradeRef.current) {
-        addToast({ type: 'info', title: '🔄 Nouveau trade reçu', body: 'Quelqu\'un te propose un échange.', action: { label: 'Voir', href: '/trade' } })
+        addToast({ type: 'info', title: '🔄 Nouveau trade reçu', body: 'Quelqu\'un te propose un échange.', action: { label: 'Voir', href: '/communaute' } })
       }
       prevTradeRef.current = incoming
     }
