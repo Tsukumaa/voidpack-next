@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Swords, X, Zap, Sword, Bot } from 'lucide-react'
+import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
@@ -9,7 +9,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardMedia } from '@/components/game/CardMedia'
 
 const DECK_SIZE   = 24
-const MANA_BUDGET = 72 // coût total max (moyenne 3/carte)
+const MANA_BUDGET = 72
 
 const MAX_COPIES: Record<string, number> = {
   void: 1, legendary: 1, epic: 2, rare: 3, common: 4,
@@ -19,13 +19,6 @@ const RARITY_ORDER = ['void', 'legendary', 'epic', 'rare', 'common']
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', common: '#9ca3af',
-}
-const RARITY_BG: Record<string, string> = {
-  void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
-  legendary: 'linear-gradient(135deg, #2a1500, #110800)',
-  epic:      'linear-gradient(135deg, #1a0a2e, #0a0518)',
-  rare:      'linear-gradient(135deg, #0a1628, #04080f)',
-  common:    'linear-gradient(135deg, #111118, #060608)',
 }
 
 interface DraftCard {
@@ -45,6 +38,15 @@ interface SelectedEntry {
   qty: number
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 export default function DraftPage() {
   return <Suspense><DraftContent /></Suspense>
 }
@@ -58,17 +60,30 @@ function DraftContent() {
     : null
   const { user } = useGameStore(s => ({ user: s.user }))
   const [cards, setCards]       = useState<DraftCard[]>([])
+  const [families, setFamilies] = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected] = useState<SelectedEntry[]>([])
   const [loading, setLoading]   = useState(true)
   const [filter, setFilter]     = useState<string>('all')
+  const [search, setSearch]     = useState('')
+  const [famOpen, setFamOpen]   = useState(false)
+  const famRef                  = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (famRef.current && !famRef.current.contains(e.target as Node)) setFamOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
 
-    const [rawCards, cardDefs] = await Promise.all([
+    const [rawCards, cardDefs, famData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
 
     const defMap: Record<string, { name: string; image_url: string | null; metadata: Record<string, unknown> }> = {}
@@ -77,29 +92,23 @@ function DraftContent() {
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
 
-    const sorted_unsorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
+    const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
       const combat = (def?.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
       return {
-        card_id:    cardKey,
-        rarity:     c.rarity,
-        family:     c.family,
-        name:       def?.name ?? cardKey,
-        image_url:  def?.image_url ?? null,
+        card_id: cardKey, rarity: c.rarity, family: c.family,
+        name: def?.name ?? cardKey, image_url: def?.image_url ?? null,
         ownedCount: c.count ?? 1,
-        atk:        combat.atk ?? 1,
-        hp:         combat.hp ?? 2,
-        cost:       combat.cost ?? 1,
+        atk: combat.atk ?? 1, hp: combat.hp ?? 2, cost: combat.cost ?? 1,
       }
-    })
-
-    const sorted = sorted_unsorted.sort((a: DraftCard, b: DraftCard) => {
+    }).sort((a: DraftCard, b: DraftCard) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
       return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })
 
     setCards(sorted)
+    setFamilies(famData ?? [])
     setLoading(false)
   }, [user])
 
@@ -113,13 +122,15 @@ function DraftContent() {
     return selected.find(e => e.card.card_id === card_id)?.qty ?? 0
   }
 
-  function canAdd(card: DraftCard): { ok: boolean; reason?: string } {
-    if (totalCards >= DECK_SIZE)       return { ok: false, reason: 'Deck plein' }
-    if (manaOver)                      return { ok: false, reason: 'Budget mana dépassé' }
-    const qty = getQty(card.card_id)
+  function canAdd(card: DraftCard, currentSelected = selected): { ok: boolean; reason?: string } {
+    const curTotal = currentSelected.reduce((s, e) => s + e.qty, 0)
+    const curMana  = currentSelected.reduce((s, e) => s + e.card.cost * e.qty, 0)
+    if (curTotal >= DECK_SIZE)                    return { ok: false, reason: 'Deck plein' }
+    if (curMana > MANA_BUDGET)                    return { ok: false, reason: 'Budget mana dépassé' }
+    const qty = currentSelected.find(e => e.card.card_id === card.card_id)?.qty ?? 0
     const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
-    if (qty >= max)                    return { ok: false, reason: `Max ${max} exemplaire(s) pour cette rareté` }
-    if (totalMana + card.cost > MANA_BUDGET) return { ok: false, reason: 'Ajout dépasserait le budget mana' }
+    if (qty >= max)                               return { ok: false, reason: `Max ${max}` }
+    if (curMana + card.cost > MANA_BUDGET)        return { ok: false, reason: 'Budget mana dépassé' }
     return { ok: true }
   }
 
@@ -141,23 +152,52 @@ function DraftContent() {
     })
   }
 
-  function handleQueue() {
-    if (totalCards < DECK_SIZE || manaOver) return
+  function autoDeck() {
+    const pool = shuffle([...cards])
+    let deck: SelectedEntry[] = []
+    for (const card of pool) {
+      const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
+      for (let i = 0; i < max; i++) {
+        if (canAdd(card, deck).ok) {
+          const entry = deck.find(e => e.card.card_id === card.card_id)
+          if (entry) deck = deck.map(e => e.card.card_id === card.card_id ? { ...e, qty: e.qty + 1 } : e)
+          else deck = [...deck, { card, qty: 1 }]
+        }
+      }
+      if (deck.reduce((s, e) => s + e.qty, 0) >= DECK_SIZE) break
+    }
+    setSelected(deck)
+  }
+
+  function buildDeckPayload() {
     const deck: unknown[] = []
     for (const { card, qty } of selected) {
       for (let i = 0; i < qty; i++) {
-        deck.push({
-          id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity,
-          family: card.family, qty: 1,
-          metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } },
-        })
+        deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } } })
       }
     }
-    sessionStorage.setItem('draft_deck', JSON.stringify(deck))
+    return deck
+  }
+
+  function handleQueue() {
+    if (totalCards < DECK_SIZE || manaOver) return
+    sessionStorage.setItem('draft_deck', JSON.stringify(buildDeckPayload()))
     router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')
   }
 
-  const filtered  = filter === 'all' ? cards : cards.filter(c => c.rarity === filter)
+  function handleTraining() {
+    if (totalCards < 1) return
+    sessionStorage.setItem('draft_deck', JSON.stringify(buildDeckPayload()))
+    router.push('/combat/training')
+  }
+
+  const isFamilyFilter = families.some(f => f.key === filter)
+  const filtered = cards.filter(c => {
+    const matchRarity = filter === 'all' || isFamilyFilter ? true : c.rarity === filter
+    const matchFamily = isFamilyFilter ? c.family === filter : true
+    const matchSearch = search.trim() === '' || c.name.toLowerCase().includes(search.toLowerCase())
+    return matchRarity && matchFamily && matchSearch
+  })
   const rarities  = RARITY_ORDER.filter(r => cards.some(c => c.rarity === r))
   const manaRatio = Math.min(1, totalMana / MANA_BUDGET)
   const ready     = totalCards === DECK_SIZE && !manaOver
@@ -171,18 +211,14 @@ function DraftContent() {
             <ArrowLeft size={16} /> Retour
           </button>
           <div className="flex gap-2">
-            <button onClick={() => {
-              if (totalCards < 1) return
-              const deck: unknown[] = []
-              for (const { card, qty } of selected) {
-                for (let i = 0; i < qty; i++) {
-                  deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } } })
-                }
-              }
-              sessionStorage.setItem('draft_deck', JSON.stringify(deck))
-              router.push('/combat/training')
-            }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white/5 border border-white/10 text-[#a78bfa] hover:bg-white/10"
+            <button onClick={autoDeck}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10"
+              title="Remplir automatiquement le deck aléatoirement">
+              <Shuffle size={13} /> Auto
+            </button>
+            <button onClick={handleTraining} disabled={totalCards < 1}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border',
+                totalCards >= 1 ? 'bg-white/5 border-white/10 text-[#a78bfa] hover:bg-white/10' : 'border-transparent bg-white/5 text-white/20 cursor-not-allowed')}
               title="Jouer contre le bot (aucun point classé)">
               <Bot size={13} /> Entraînement
             </button>
@@ -210,7 +246,6 @@ function DraftContent() {
 
         {/* Compteurs */}
         <div className="flex items-center gap-3 mb-3">
-          {/* Cartes */}
           <div className="flex-1">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-white/40 font-bold">CARTES</span>
@@ -223,7 +258,6 @@ function DraftContent() {
                 style={{ width: `${(totalCards / DECK_SIZE) * 100}%` }} />
             </div>
           </div>
-          {/* Mana */}
           <div className="flex-1">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-white/40 font-bold flex items-center gap-1"><Zap size={9} /> BUDGET</span>
@@ -233,10 +267,7 @@ function DraftContent() {
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06]">
               <div className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${manaRatio * 100}%`,
-                  background: manaOver ? '#ef4444' : totalMana > MANA_BUDGET * 0.85 ? '#ff9a3d' : '#4aa3ff',
-                }} />
+                style={{ width: `${manaRatio * 100}%`, background: manaOver ? '#ef4444' : totalMana > MANA_BUDGET * 0.85 ? '#ff9a3d' : '#4aa3ff' }} />
             </div>
           </div>
         </div>
@@ -251,7 +282,55 @@ function DraftContent() {
           ))}
         </div>
 
-        {/* Filtres */}
+        {/* Recherche + filtres */}
+        <div className="flex items-center gap-2 mb-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="w-full pl-7 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs focus:border-[#7b2bff]/50 focus:outline-none text-white placeholder:text-white/25"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <X size={11} />
+              </button>
+            )}
+          </div>
+
+          {/* Famille dropdown */}
+          {families.length > 0 && (
+            <div ref={famRef} className="relative flex-shrink-0">
+              <button onClick={() => setFamOpen(v => !v)}
+                className={cn('flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border',
+                  isFamilyFilter ? 'text-[#a78bfa] bg-[#7b2bff]/15 border-[#7b2bff]/40' : 'text-white/40 hover:text-white/60 border-white/10 bg-white/5')}>
+                {families.find(f => f.key === filter)?.label ?? 'Famille'}
+                <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
+              </button>
+              {famOpen && (
+                <div className="absolute top-full mt-1 right-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
+                  style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+                  {isFamilyFilter && (
+                    <button onClick={() => { setFilter('all'); setFamOpen(false) }}
+                      className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
+                      Toutes
+                    </button>
+                  )}
+                  {families.map(f => (
+                    <button key={f.key} onClick={() => { setFilter(f.key); setFamOpen(false) }}
+                      className={cn('w-full text-left px-4 py-2 text-xs font-bold transition-colors',
+                        filter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Filtres rareté */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button onClick={() => setFilter('all')}
             className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
@@ -272,7 +351,12 @@ function DraftContent() {
       {/* Deck sélectionné */}
       {selected.length > 0 && (
         <div className="mb-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-          <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">Deck sélectionné</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Deck sélectionné</p>
+            <button onClick={() => setSelected([])} className="text-white/20 hover:text-red-400 text-[10px] transition-colors">
+              Vider
+            </button>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {selected.map(({ card, qty }) => (
               <div key={card.card_id} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10"
@@ -293,6 +377,8 @@ function DraftContent() {
         <div className="flex items-center justify-center py-20 text-white/30 text-sm">Chargement…</div>
       ) : cards.length === 0 ? (
         <div className="text-center py-20 text-white/30 text-sm">Aucune carte dans ta collection.</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-white/20 text-sm">Aucune carte trouvée.</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-2 pb-8">
           {filtered.map(card => {
@@ -329,20 +415,17 @@ function DraftContent() {
                     </button>
                   </CardFrame>
 
-                  {/* Badge qty sélectionnées */}
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">
                       {qty}
                     </div>
                   )}
 
-                  {/* Compteur possédées */}
                   <div className="absolute -bottom-5 left-0 right-0 text-center">
                     <span className="text-[9px] text-white/30">{qty}/{max} · {card.ownedCount}×</span>
                   </div>
                 </CardHover>
 
-                {/* Bouton retirer */}
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
                     className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
