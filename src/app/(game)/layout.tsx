@@ -2,7 +2,6 @@ import { StatusBar } from '@/components/layout/StatusBar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 import { AuthProvider } from '@/components/layout/AuthProvider'
-import { AdminFab } from '@/components/layout/AdminFab'
 import { GlobalOverlay } from '@/components/layout/GlobalOverlay'
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +17,6 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
         </main>
 
         <BottomNav />
-        <AdminFab />
         <GlobalOverlay />
       </div>
     </AuthProvider>

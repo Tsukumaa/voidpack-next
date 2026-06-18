@@ -1,6 +1,7 @@
 'use client'
-import { Flame, Gift, Coffee } from 'lucide-react'
+import { Flame, ShoppingBasket, Coins, Shield, LogOut, LogIn } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useGameStore } from '@/store/game'
@@ -83,11 +84,20 @@ export function StatusBar() {
         {/* Actions droite */}
         <div className="flex items-center gap-2">
 
+          {/* Admin (réservé aux admins) */}
+          {profile?.is_admin && (
+            <Link href="/admin" title="Panel Admin"
+              className="flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #7b2bff, #a855f7)', boxShadow: '0 0 12px rgba(123,43,255,0.45)' }}>
+              <Shield size={15} className="text-white" strokeWidth={2.4} />
+            </Link>
+          )}
+
           {/* Ko-Fi */}
           <div className="relative group">
             <a href="https://ko-fi.com/voidpack" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 hover:bg-[#7b2bff]/25 transition-colors">
-              <Coffee size={13} className="text-[#a78bfa]" />
+              <Coins size={13} className="text-[#a78bfa]" />
               <span className="text-[#a78bfa] text-xs font-bold">Soutenir</span>
             </a>
             <div className="absolute right-0 top-10 w-44 px-3 py-2 rounded-xl bg-[#0f0c1f] border border-white/10 text-white/50 text-[11px] leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-30 text-center">
@@ -98,17 +108,18 @@ export function StatusBar() {
           {/* Boutique */}
           <button onClick={() => setShowShop(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08] backdrop-blur-xl hover:bg-white/10 transition-colors">
-            <Gift size={13} className="text-white/70" />
+            <ShoppingBasket size={13} className="text-white/70" />
             <span className="text-white/70 text-xs font-bold">Boutique</span>
           </button>
 
           {/* Auth */}
           <button onClick={handleAuth}
-            className={cn('px-3 py-2 rounded-full text-xs font-bold transition-colors',
+            className={cn('flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-colors',
               user
                 ? 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'
                 : 'bg-[#7b2bff]/20 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/35'
             )}>
+            {user ? <LogOut size={13} /> : <LogIn size={13} />}
             {user ? 'Déconnexion' : 'Discord'}
           </button>
         </div>
