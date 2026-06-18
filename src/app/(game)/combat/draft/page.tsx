@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Image from 'next/image'
-import { ArrowLeft, Swords, Check, X, Zap, Sword } from 'lucide-react'
+import { ArrowLeft, Swords, X, Zap, Sword } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
+import { CardFrame } from '@/components/game/CardFrame'
+import { CardHover } from '@/components/game/CardHover'
+import { CardMedia } from '@/components/game/CardMedia'
 
 const DECK_SIZE   = 24
 const MANA_BUDGET = 72 // coût total max (moyenne 3/carte)
@@ -275,65 +277,59 @@ function DraftContent() {
       ) : cards.length === 0 ? (
         <div className="text-center py-20 text-white/30 text-sm">Aucune carte dans ta collection.</div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-2 pb-8">
           {filtered.map(card => {
             const qty    = getQty(card.card_id)
             const max    = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
             const { ok, reason } = canAdd(card)
-            const atMax  = qty >= max
 
             return (
               <div key={card.card_id} className="relative">
-                <button onClick={() => add(card)} disabled={!ok}
-                  className={cn(
-                    'relative w-full rounded-xl overflow-hidden border-2 transition-all',
-                    qty > 0 ? 'border-[#7b2bff]' : 'border-transparent',
-                    !ok ? 'opacity-40 cursor-not-allowed' : 'hover:border-white/20'
+                <CardHover
+                  rarity={card.rarity}
+                  className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
+                  style={{ aspectRatio: '0.714', overflow: 'visible' }}
+                >
+                  <CardFrame
+                    rarity={card.rarity}
+                    name={card.name}
+                    cost={card.cost}
+                    atk={card.atk}
+                    def={card.hp}
+                    glow={qty > 0}
+                    style={{ position: 'absolute', inset: 0 }}
+                  >
+                    <button onClick={() => add(card)} disabled={!ok} title={!ok ? reason : undefined}
+                      className="absolute inset-0 w-full h-full">
+                      {card.image_url ? (
+                        <CardMedia src={card.image_url} alt={card.name} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full opacity-30"
+                            style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
+                        </div>
+                      )}
+                    </button>
+                  </CardFrame>
+
+                  {/* Badge qty sélectionnées */}
+                  {qty > 0 && (
+                    <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">
+                      {qty}
+                    </div>
                   )}
-                  title={!ok ? reason : undefined}>
 
-                  {/* Artwork */}
-                  <div className="aspect-[0.714] relative" style={{ background: RARITY_BG[card.rarity] }}>
-                    {card.image_url ? (
-                      <Image src={card.image_url} alt={card.name} fill className="object-contain" unoptimized />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full opacity-30"
-                          style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
-                      </div>
-                    )}
-
-                    {/* Badge qty */}
-                    {qty > 0 && (
-                      <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#7b2bff] flex items-center justify-center text-[9px] font-black text-white">
-                        {qty}
-                      </div>
-                    )}
-
-                    {/* Coût mana */}
-                    <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-[#4aa3ff]/80 flex items-center justify-center text-[9px] font-black text-white">
-                      {card.cost}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="absolute bottom-0 left-0 right-0 flex justify-between px-1.5 pb-1">
-                      <span className="text-[8px] font-black text-[#ff6b6b] bg-black/60 rounded px-0.5">{card.atk}⚔</span>
-                      <span className="text-[8px] font-black text-[#00c896] bg-black/60 rounded px-0.5">{card.hp}♥</span>
-                    </div>
+                  {/* Compteur possédées */}
+                  <div className="absolute -bottom-5 left-0 right-0 text-center">
+                    <span className="text-[9px] text-white/30">{qty}/{max} · {card.ownedCount}×</span>
                   </div>
-
-                  {/* Nom + max exemplaires possédés */}
-                  <div className="px-1.5 py-1 bg-black/40">
-                    <p className="text-[9px] font-bold text-white truncate">{card.name}</p>
-                    <p className="text-[8px] text-white/30">{qty}/{max} · {card.ownedCount} possédées</p>
-                  </div>
-                </button>
+                </CardHover>
 
                 {/* Bouton retirer */}
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
-                    className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-10">
-                    <X size={8} className="text-white" />
+                    className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
+                    <X size={9} className="text-white" />
                   </button>
                 )}
               </div>
