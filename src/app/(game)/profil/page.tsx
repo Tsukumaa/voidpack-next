@@ -133,7 +133,7 @@ export default function ProfilPage() {
   )
 
   return (
-    <div className="pb-4 space-y-4">
+    <div className="pb-4 space-y-4 max-w-2xl mx-auto w-full">
 
       {/* Header */}
       <div className="flex items-center gap-4 pt-2">

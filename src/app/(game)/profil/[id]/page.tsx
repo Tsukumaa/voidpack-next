@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronDown, Lock, UserPlus, Check, Clock, ArrowLeft } from 'lucide-react'
+import { ChevronDown, Lock, UserPlus, Check, Clock, ArrowLeft, Gem, Sword, Shield } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
@@ -204,7 +204,7 @@ export default function PlayerProfilePage() {
   )
 
   return (
-    <div className="pb-4">
+    <div className="pb-4 max-w-5xl mx-auto w-full">
       <div className="sticky top-20 z-20 py-4 mb-6 backdrop-blur-md rounded-xl px-4" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
         <button onClick={() => router.back()} className="flex items-center gap-1 text-white/40 hover:text-white/70 text-xs font-bold mb-3 transition-colors">
           <ArrowLeft size={14} /> Retour
@@ -279,20 +279,24 @@ export default function PlayerProfilePage() {
                   </button>
                   <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
                     <div className="overflow-hidden">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-5">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
                         {group.map(card => (
                           !card.owned ? (
-                            <div key={card.card_id} className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40" style={{ aspectRatio: '0.714' }}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src="/assets/dos.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
-                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                                <Lock size={24} className="text-white/50" />
-                                <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Non possédée</span>
+                            <div key={card.card_id} className="flex flex-col">
+                              <div className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40" style={{ aspectRatio: '0.714' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/assets/dos.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                                  <Lock size={24} className="text-white/50" />
+                                  <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Non possédée</span>
+                                </div>
                               </div>
+                              <div className="min-h-[30px]" />
                             </div>
                           ) : (
-                            <CardHover key={card.card_id} rarity={card.rarity} className="relative cursor-pointer active:scale-95" style={{ aspectRatio: '0.714' }}>
-                              <CardFrame rarity={card.rarity} name={card.name} cost={card.cost} atk={card.atk} def={card.def} glow={false} style={{ position: 'absolute', inset: 0 }}>
+                            <div key={card.card_id} className="flex flex-col">
+                            <CardHover rarity={card.rarity} className="relative cursor-pointer active:scale-95" style={{ aspectRatio: '0.714', overflow: 'visible' }}>
+                              <CardFrame rarity={card.rarity} name={card.name} cost={card.cost} atk={card.atk} def={card.def} glow={false} hideStats style={{ position: 'absolute', inset: 0 }}>
                                 <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
                                   {card.image_url ? (
                                     <CardMedia src={card.image_url} alt={card.name} />
@@ -302,14 +306,34 @@ export default function PlayerProfilePage() {
                                     </div>
                                   )}
                                 </button>
-                                {card.count > 1 && (
-                                  <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-black/60 border-2 flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
-                                    style={{ borderColor: RARITY_COLOR[card.rarity] + '66', boxShadow: `0 0 8px ${RARITY_COLOR[card.rarity]}66` }}>
-                                    {card.count}
-                                  </div>
-                                )}
                               </CardFrame>
+                              {card.count > 1 && (
+                                <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-black/80 border-2 flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                                  style={{ borderColor: RARITY_COLOR[card.rarity] + '66', boxShadow: `0 0 8px ${RARITY_COLOR[card.rarity]}66` }}>
+                                  {card.count}
+                                </div>
+                              )}
+                              <div className="absolute left-0 right-0 flex items-center justify-center gap-1" style={{ top: '100%', marginTop: 6 }}>
+                                {card.cost != null && (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border text-white/80"
+                                    style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
+                                    <Gem size={11} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                                  </span>
+                                )}
+                                {card.atk != null && (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Attaque">
+                                    <Sword size={11} className="text-rose-300/90" />{card.atk}
+                                  </span>
+                                )}
+                                {card.def != null && (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Défense">
+                                    <Shield size={11} className="text-sky-300/90" />{card.def}
+                                  </span>
+                                )}
+                              </div>
                             </CardHover>
+                            <div className="min-h-[30px]" />
+                            </div>
                           )
                         ))}
                       </div>

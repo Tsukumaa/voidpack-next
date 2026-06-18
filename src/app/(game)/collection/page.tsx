@@ -168,7 +168,7 @@ export default function CollectionPage() {
   const rarityGroups = RARITY_ORDER.filter(r => filtered.some(c => c.rarity === r))
 
   return (
-    <div className="pb-4">
+    <div className="pb-4 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="sticky top-20 z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
         <div className="flex items-center justify-center gap-3 mb-3">
@@ -301,7 +301,7 @@ export default function CollectionPage() {
                             <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
                           </div>
                         </div>
-                        <div className="min-h-[36px]" />
+                        <div className="min-h-[30px]" />
                       </div>
                     ) : (
                     <div key={card.card_id} className="flex flex-col">
@@ -341,26 +341,26 @@ export default function CollectionPage() {
                         </div>
                       )}
                       {/* Stats sous la carte, DANS l'élément animé → suivent le tilt/float de la carte */}
-                      <div className="absolute left-0 right-0 flex items-center justify-center gap-1.5" style={{ top: '100%', marginTop: 8 }}>
+                      <div className="absolute left-0 right-0 flex items-center justify-center gap-1" style={{ top: '100%', marginTop: 6 }}>
                         {card.cost != null && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border text-white/85"
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border text-white/80"
                             style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
-                            <Gem size={13} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                            <Gem size={11} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
                           </span>
                         )}
                         {card.atk != null && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border border-white/10 text-white/85" title="Attaque">
-                            <Sword size={13} className="text-rose-300/90" />{card.atk}
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Attaque">
+                            <Sword size={11} className="text-rose-300/90" />{card.atk}
                           </span>
                         )}
                         {card.def != null && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border border-white/10 text-white/85" title="Défense">
-                            <Shield size={13} className="text-sky-300/90" />{card.def}
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Défense">
+                            <Shield size={11} className="text-sky-300/90" />{card.def}
                           </span>
                         )}
                       </div>
                     </CardHover>
-                    <div className="min-h-[36px]" />
+                    <div className="min-h-[30px]" />
                     </div>
                     )
                   ))}
