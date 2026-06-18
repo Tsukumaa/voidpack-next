@@ -17,12 +17,14 @@ export interface Toast {
 interface SocialStore {
   pendingFriendCount: number
   unreadMessageCount: number
+  unreadBySender: Record<string, number>
   pendingTradeCount: number
   chatFriend: ChatFriend | null
   toasts: Toast[]
 
   setPendingFriendCount: (n: number) => void
   setUnreadMessageCount: (n: number) => void
+  setUnreadBySender: (m: Record<string, number>) => void
   clearUnreadMessages: () => void
   setPendingTradeCount: (n: number) => void
   setChatFriend: (f: ChatFriend | null) => void
@@ -33,13 +35,15 @@ interface SocialStore {
 export const useSocialStore = create<SocialStore>((set) => ({
   pendingFriendCount: 0,
   unreadMessageCount: 0,
+  unreadBySender: {},
   pendingTradeCount: 0,
   chatFriend: null,
   toasts: [],
 
   setPendingFriendCount: (n) => set({ pendingFriendCount: n }),
   setUnreadMessageCount: (n) => set({ unreadMessageCount: n }),
-  clearUnreadMessages: () => set({ unreadMessageCount: 0 }),
+  setUnreadBySender: (m) => set({ unreadBySender: m }),
+  clearUnreadMessages: () => set({ unreadMessageCount: 0, unreadBySender: {} }),
   setPendingTradeCount: (n) => set({ pendingTradeCount: n }),
   setChatFriend: (f) => set({ chatFriend: f }),
   addToast: (t) => set(s => ({

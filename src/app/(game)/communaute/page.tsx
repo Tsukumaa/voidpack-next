@@ -307,6 +307,7 @@ export default function CommunautePage() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const setChatFriend = useSocialStore(s => s.setChatFriend)
   const unreadMessageCount = useSocialStore(s => s.unreadMessageCount)
+  const unreadBySender = useSocialStore(s => s.unreadBySender)
   const clearUnreadMessages = useSocialStore(s => s.clearUnreadMessages)
   const [ladder, setLadder]           = useState<'xp' | 'combat' | 'trades'>('xp')
   const [entries, setEntries]         = useState<LadderEntry[]>([])
@@ -686,6 +687,7 @@ export default function CommunautePage() {
           user={user}
           friends={friends}
           pendingRequests={pendingRequests}
+          unreadBySender={unreadBySender}
           onClose={() => setShowFriends(false)}
           onChat={(f) => { setChatFriend({ friend_id: f.friend_id, username: f.username, avatar_url: f.avatar_url }); setShowFriends(false) }}
           onChallenge={(f) => {
@@ -721,10 +723,11 @@ export default function CommunautePage() {
 }
 
 // ─── Modal Amis ───────────────────────────────────────────────────────────────
-function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChallenge, onRefresh }: {
+function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose, onChat, onChallenge, onRefresh }: {
   user: { id: string } | null
   friends: Friend[]
   pendingRequests: Friend[]
+  unreadBySender: Record<string, number>
   onClose: () => void
   onChat: (f: Friend) => void
   onChallenge: (f: Friend) => void
@@ -854,13 +857,22 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChall
         <div className="flex-1 overflow-y-auto space-y-2">
           {friends.length === 0 ? (
             <p className="text-white/30 text-sm text-center py-8">Aucun ami pour l&apos;instant.</p>
-          ) : friends.map(f => (
+          ) : friends.map(f => {
+            const unread = unreadBySender[f.friend_id] ?? 0
+            return (
             <div key={f.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/3">
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex-shrink-0 flex items-center justify-center text-xs font-bold"
-                style={f.avatar_url ? { backgroundImage: `url(${f.avatar_url})`, backgroundSize: 'cover' } : {}}>
-                {!f.avatar_url && f.username?.[0]?.toUpperCase()}
+              <div className="relative w-8 h-8 flex-shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold"
+                  style={f.avatar_url ? { backgroundImage: `url(${f.avatar_url})`, backgroundSize: 'cover' } : {}}>
+                  {!f.avatar_url && f.username?.[0]?.toUpperCase()}
+                </div>
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center">
+                    {unread > 9 ? '9+' : unread}
+                  </span>
+                )}
               </div>
-              <span className="flex-1 text-sm text-white">{f.username ?? 'Joueur'}</span>
+              <span className={cn('flex-1 text-sm', unread > 0 ? 'text-white font-bold' : 'text-white')}>{f.username ?? 'Joueur'}</span>
               <div className="flex gap-1.5">
                 <button onClick={() => onChallenge(f)}
                   className="px-2 py-1 rounded-lg bg-[#7b2bff]/15 hover:bg-[#7b2bff]/30 text-[#a78bfa] text-xs"
@@ -877,7 +889,7 @@ function FriendsModal({ user, friends, pendingRequests, onClose, onChat, onChall
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { FloatingChat } from '@/components/layout/FloatingChat'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
-  const { setPendingFriendCount, setUnreadMessageCount, setPendingTradeCount, addToast } = useSocialStore()
+  const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast } = useSocialStore()
   const prevCountRef   = useRef<number>(-1)
   const prevUnreadRef  = useRef<number>(0)
   const prevTradeRef   = useRef<number>(0)
@@ -33,9 +33,10 @@ export function GlobalOverlay() {
     }
 
     async function checkUnread() {
-      const data = await fetch('/api/social/messages/unread').then(r => r.ok ? r.json() : { count: 0 }).catch(() => ({ count: 0 }))
+      const data = await fetch('/api/social/messages/unread').then(r => r.ok ? r.json() : { count: 0, bySender: {} }).catch(() => ({ count: 0, bySender: {} }))
       const count = data.count ?? 0
       setUnreadMessageCount(count)
+      setUnreadBySender(data.bySender ?? {})
 
       if (prevUnreadRef.current < count) {
         // toast géré par FloatingChat si chat ouvert — sinon pastille suffit
@@ -62,7 +63,7 @@ export function GlobalOverlay() {
     const i2 = setInterval(checkUnread, 10_000)
     const i3 = setInterval(checkTrades, 30_000)
     return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3) }
-  }, [user, setPendingFriendCount, setUnreadMessageCount, setPendingTradeCount, addToast])
+  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast])
 
   return (
     <>
