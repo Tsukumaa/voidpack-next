@@ -288,16 +288,6 @@ export function PackScreen() {
               </p>
             </div>
 
-            {/* Carte flottante : uniquement si connecté */}
-            {user && (
-              <div
-                className="w-[46vw] max-w-[170px] opacity-40"
-                style={{ animation: 'boosterFloat 3s ease-in-out infinite' }}
-              >
-                <img src="/assets/dos.png" className="w-full h-auto" />
-              </div>
-            )}
-
             {/* Panneau message */}
             <div
               className="flex flex-col items-center gap-3.5 px-7 py-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl w-[88vw] max-w-[340px]"
