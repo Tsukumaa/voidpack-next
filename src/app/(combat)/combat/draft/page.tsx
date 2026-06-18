@@ -203,9 +203,9 @@ function DraftContent() {
   const ready     = totalCards === DECK_SIZE && !manaOver
 
   return (
-    <div className="pb-4">
+    <div className="pb-4 min-h-screen" style={{ background: '#06010e', color: '#f6f1ff' }}>
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-3 mb-4">
+      <div className="sticky top-0 z-20 bg-[#06010e]/95 backdrop-blur-md pt-3 pb-3 mb-4 px-4">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => router.push('/communaute')} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
             <ArrowLeft size={16} /> Retour
