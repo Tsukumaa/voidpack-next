@@ -72,6 +72,7 @@ export function StatusBar() {
       <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
 
         {/* Profil */}
+        {user ? (
         <div className="relative min-w-0">
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl min-w-0">
@@ -133,6 +134,14 @@ export function StatusBar() {
           />
 
         </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
+              <span className="text-[10px] font-bold">?</span>
+            </div>
+            <span className="text-xs font-bold text-white/50">Pas connecté</span>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
@@ -185,11 +194,11 @@ export function StatusBar() {
           >
             {user ? <LogOut size={13} /> : <LinkIcon size={13} />}
 
-            <span className="hidden sm:inline">
-              {user
-                ? 'Déconnexion'
-                : 'Discord'}
-            </span>
+            {user ? (
+              <span className="hidden sm:inline">Déconnexion</span>
+            ) : (
+              <span>Se connecter</span>
+            )}
           </button>
 
         </div>
