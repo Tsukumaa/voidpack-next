@@ -1,48 +1,21 @@
 'use client'
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bot } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-function uid(prefix: string) { return `${prefix}_${Math.random().toString(36).slice(2)}` }
-
-// ── Card builder ───────────────────────────────────────────────────────────
-function makeArenaCard(c: { id: string; name: string; rarity: string; image_url?: string | null; metadata: { combat?: { atk: number; hp: number; cost: number } } }, prefix: string, i: number): ArenaCard {
-  const combat = c.metadata?.combat ?? { atk: 1, hp: 2, cost: 2 }
-  return {
-    uid: uid(`${prefix}_${c.id}_${i}`),
-    id: c.id, name: c.name, rarity: c.rarity,
-    atk: combat.atk ?? 1, hp: combat.hp ?? 2,
-    currentHp: combat.hp ?? 2, cost: combat.cost ?? 2,
-    exhausted: false, image_url: c.image_url ?? null,
-  }
-}
-
-function buildBotDeck(defs: { id: string; name: string; rarity: string; image_url?: string | null; metadata: Record<string, unknown> }[]): ArenaCard[] {
-  const COPIES: Record<string, number> = { void: 1, legendary: 1, epic: 2, rare: 3, common: 4 }
-  const pool: ArenaCard[] = []
-  for (const c of shuffle(defs).slice(0, 20)) {
-    const meta = c.metadata as { combat?: { atk: number; hp: number; cost: number } }
-    const n = COPIES[c.rarity] ?? 1
-    for (let i = 0; i < n; i++) {
-      pool.push(makeArenaCard({ ...c, metadata: meta }, 'bot', i))
-    }
-  }
-  return shuffle(pool).slice(0, 24)
-}
+// ── Constants (matches old site) ───────────────────────────────────────────
+const DECK_SIZE      = 24
+const MAX_BOARD      = 5
+const MAX_HAND       = 7
+const RARITY_COST: Record<string, number>  = { common: 1, rare: 2, epic: 3, legendary: 4, void: 5 }
+const RARITY_ATK:  Record<string, number>  = { common: 1, rare: 2, epic: 3, legendary: 5, void: 6 }
+const RARITY_HP:   Record<string, number>  = { common: 2, rare: 3, epic: 4, legendary: 4, void: 5 }
 
 // ── Game state ─────────────────────────────────────────────────────────────
+interface CardDef { id: string; name: string; rarity: string; image_url: string | null; metadata: { combat?: { atk?: number; hp?: number; cost?: number; effects?: string[] } } }
+
 interface GS {
   turn: number
   phase: 'player' | 'enemy'
@@ -59,54 +32,97 @@ interface GS {
   log: string
 }
 
-const MAX_BOARD = 5
-const MAX_HAND  = 7
+// ── Helpers ────────────────────────────────────────────────────────────────
+let _uid = 0
+function nextUid() { return ++_uid }
 
+function getCombatStats(card: CardDef) {
+  const c = card.metadata?.combat ?? {}
+  const r = card.rarity ?? 'common'
+  return {
+    atk:     Number.isFinite(c.atk)  ? c.atk!  : (RARITY_ATK[r]  ?? 1),
+    hp:      Number.isFinite(c.hp)   ? c.hp!   : (RARITY_HP[r]   ?? 2),
+    cost:    RARITY_COST[r] ?? 1,
+    effects: c.effects ?? [],
+  }
+}
+
+function expandDeck(entries: (CardDef & { qty?: number })[]): ArenaCard[] {
+  const cards: ArenaCard[] = []
+  for (const entry of entries) {
+    const stats = getCombatStats(entry)
+    const qty = entry.qty ?? 1
+    for (let i = 0; i < qty; i++) {
+      cards.push({
+        uid: nextUid(),
+        id: entry.id, name: entry.name, rarity: entry.rarity,
+        atk: stats.atk, hp: stats.hp, currentHp: stats.hp, cost: stats.cost,
+        exhausted: false, image_url: entry.image_url ?? null,
+      })
+    }
+  }
+  return cards.sort(() => Math.random() - 0.5)
+}
+
+function buildBotDeck(defs: CardDef[]): ArenaCard[] {
+  const shuffled = [...defs].sort(() => Math.random() - 0.5)
+  const deckEntries: (CardDef & { qty: number })[] = []
+  let budget = 0, size = 0
+  for (const card of shuffled) {
+    if (size >= DECK_SIZE || budget >= 60) break
+    const cost = RARITY_COST[card.rarity] ?? 1
+    const maxCopies = ['legendary', 'void'].includes(card.rarity) ? 1 : 3
+    const canAdd = Math.min(maxCopies, Math.floor((60 - budget) / cost), DECK_SIZE - size)
+    if (canAdd <= 0) continue
+    const qty = Math.max(1, Math.min(canAdd, 1 + Math.floor(Math.random() * maxCopies)))
+    deckEntries.push({ ...card, qty })
+    budget += cost * qty
+    size += qty
+  }
+  return expandDeck(deckEntries)
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
 export default function TrainingPage() { return <Suspense><TrainingContent /></Suspense> }
 
 function TrainingContent() {
-  const router = useRouter()
-  const { profile } = useGameStore(s => ({ profile: s.profile }))
+  const router  = useRouter()
+  const profile = useGameStore(s => s.profile)
   const [gs, setGs] = useState<GS | null>(null)
   const [botThinking, setBotThinking] = useState(false)
   const gsRef = useRef<GS | null>(null)
 
-  // Keep ref in sync so bot sequence can read latest state without stale closure
-  useEffect(() => { gsRef.current = gs }, [gs])
-
-  const update = useCallback((fn: (prev: GS) => GS) => {
+  function read() { return gsRef.current! }
+  function set(fn: (g: GS) => GS) {
     setGs(prev => {
       if (!prev) return prev
       const next = fn(prev)
       gsRef.current = next
       return next
     })
-  }, [])
+  }
 
-  // ── Init ────────────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────────
   useEffect(() => {
+    _uid = 0
     async function init() {
       const raw = sessionStorage.getItem('draft_deck')
       if (!raw) { router.push('/combat/draft'); return }
 
-      const deckRaw = JSON.parse(raw) as { id: string; name: string; rarity: string; image_url?: string | null; metadata: { combat?: { atk: number; hp: number; cost: number } } }[]
-      const playerCards: ArenaCard[] = shuffle(
-        deckRaw.map((c, i) => makeArenaCard(c, 'p', i))
-      )
+      const deckRaw = JSON.parse(raw) as (CardDef & { qty?: number })[]
+      const playerCards = expandDeck(deckRaw)
 
-      const cardDefs = await fetch('/api/cards').then(r => r.ok ? r.json() : []).catch(() => []) as { id: string; name: string; rarity: string; imageUrl?: string | null; image_url?: string | null; metadata: unknown }[]
-      const defs = (cardDefs ?? []).map(c => {
-        const meta = typeof c.metadata === 'string'
-          ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })()
-          : (c.metadata ?? {})
-        return { id: c.id, name: c.name, rarity: c.rarity, image_url: c.imageUrl ?? c.image_url ?? null, metadata: meta as Record<string, unknown> }
+      const apiCards = await fetch('/api/cards').then(r => r.ok ? r.json() : []).catch(() => []) as { id: string; name: string; rarity: string; imageUrl?: string | null; image_url?: string | null; metadata: unknown }[]
+      const defs: CardDef[] = (apiCards ?? []).map(c => {
+        const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
+        return { id: c.id, name: c.name, rarity: c.rarity, image_url: c.imageUrl ?? c.image_url ?? null, metadata: meta as CardDef['metadata'] }
       })
       const botCards = buildBotDeck(defs)
 
       const pDeck = [...playerCards]; const pHand = pDeck.splice(0, 4)
       const bDeck = [...botCards];   const bHand = bDeck.splice(0, 4)
 
-      const initial: GS = {
+      const g: GS = {
         turn: 1, phase: 'player',
         playerHp: 30, enemyHp: 30,
         playerMana: 1, playerMaxMana: 1,
@@ -117,22 +133,29 @@ function TrainingContent() {
         selected: null, locked: false, gameOver: false, winner: null,
         log: 'Ton tour !',
       }
-      setGs(initial)
-      gsRef.current = initial
+      gsRef.current = g
+      setGs(g)
     }
     init()
   }, [router])
 
-  // ── Play card (player) ──────────────────────────────────────────────────
+  // ── Check win ──────────────────────────────────────────────────────────
+  function checkWin(g: GS): GS {
+    if (g.enemyHp  <= 0) return { ...g, gameOver: true, winner: 'player', log: '🏆 Victoire ! Tu as vaincu le bot.' }
+    if (g.playerHp <= 0) return { ...g, gameOver: true, winner: 'enemy',  log: '💀 Défaite. Le bot a gagné.' }
+    return g
+  }
+
+  // ── Play card ──────────────────────────────────────────────────────────
   function playCard(card: ArenaCard) {
-    update(g => {
+    set(g => {
       if (g.phase !== 'player' || g.locked || g.gameOver) return g
       if (card.cost > g.playerMana) return { ...g, log: 'Pas assez de mana !' }
-      if (g.playerBoard.length >= MAX_BOARD) return { ...g, log: 'Plateau plein !' }
+      if (g.playerBoard.length >= MAX_BOARD)  return { ...g, log: 'Plateau plein !' }
       return {
         ...g,
-        playerMana: g.playerMana - card.cost,
-        playerHand: g.playerHand.filter(c => c.uid !== card.uid),
+        playerMana:  g.playerMana - card.cost,
+        playerHand:  g.playerHand.filter(c => c.uid !== card.uid),
         playerBoard: [...g.playerBoard, { ...card, exhausted: true }],
         selected: null,
         log: `${card.name} invoqué !`,
@@ -140,98 +163,71 @@ function TrainingContent() {
     })
   }
 
-  // ── Attack (player) ─────────────────────────────────────────────────────
+  // ── Player attack ──────────────────────────────────────────────────────
   function handleAttack(attacker: ArenaCard, target: ArenaCard | 'face') {
-    update(g => {
+    set(g => {
       if (g.phase !== 'player' || g.locked || g.gameOver || attacker.exhausted) return g
-
       if (target === 'face') {
         const newEnemyHp = Math.max(0, g.enemyHp - attacker.atk)
-        const newPlayerBoard = g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, exhausted: true } : c)
-        const gameOver = newEnemyHp <= 0
-        return {
+        const newBoard = g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, exhausted: true } : c)
+        return checkWin({
           ...g,
           enemyHp: newEnemyHp,
-          playerBoard: newPlayerBoard,
+          playerBoard: newBoard,
           selected: null,
-          gameOver,
-          winner: gameOver ? 'player' : null,
-          log: gameOver ? '🏆 Victoire !' : `${attacker.name} attaque le héros ennemi pour ${attacker.atk} !`,
-        }
+          log: `${attacker.name} attaque le héros ennemi pour ${attacker.atk} !`,
+        })
       }
-
-      const tHp = target.currentHp - attacker.atk
-      const aHp = attacker.currentHp - target.atk
-      const newEnemyBoard = tHp <= 0
-        ? g.enemyBoard.filter(c => c.uid !== target.uid)
-        : g.enemyBoard.map(c => c.uid === target.uid ? { ...c, currentHp: tHp } : c)
-      const newPlayerBoard = aHp <= 0
-        ? g.playerBoard.filter(c => c.uid !== attacker.uid)
-        : g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: aHp, exhausted: true } : c)
+      const t = target as ArenaCard
+      const tHp = t.currentHp - attacker.atk
+      const aHp = attacker.currentHp - t.atk
       return {
         ...g,
-        enemyBoard: newEnemyBoard,
-        playerBoard: newPlayerBoard,
+        enemyBoard:  tHp <= 0 ? g.enemyBoard.filter(c => c.uid !== t.uid)  : g.enemyBoard.map(c => c.uid === t.uid  ? { ...c, currentHp: tHp } : c),
+        playerBoard: aHp <= 0 ? g.playerBoard.filter(c => c.uid !== attacker.uid) : g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: aHp, exhausted: true } : c),
         selected: null,
-        log: `${attacker.name} attaque ${target.name} !`,
+        log: `${attacker.name} attaque ${t.name} !`,
       }
     })
   }
 
-  // ── End player turn → trigger bot ───────────────────────────────────────
+  // ── End turn → trigger bot ─────────────────────────────────────────────
   function endTurn() {
-    update(g => {
+    set(g => {
       if (g.phase !== 'player' || g.locked || g.gameOver) return g
       return { ...g, phase: 'enemy', selected: null, locked: true, log: 'Tour du bot…' }
     })
   }
 
-  // ── Bot turn sequence ────────────────────────────────────────────────────
+  // ── Bot sequence (mirrors old site's botTurn + botAttackSeq) ──────────
   useEffect(() => {
     if (!gs || gs.phase !== 'enemy' || gs.gameOver) return
     setBotThinking(true)
-
     let cancelled = false
 
-    function read() { return gsRef.current! }
-
-    function set(fn: (g: GS) => GS) {
-      setGs(prev => {
-        if (!prev || cancelled) return prev
-        const next = fn(prev)
-        gsRef.current = next
-        return next
-      })
-    }
-
-    function checkWin(g: GS): GS {
-      if (g.enemyHp <= 0)  return { ...g, gameOver: true, winner: 'player', log: '🏆 Victoire !' }
-      if (g.playerHp <= 0) return { ...g, gameOver: true, winner: 'enemy',  log: '💀 Défaite.' }
-      return g
-    }
-
-    // Step 1: increment turn + draw + play one card
-    setTimeout(() => {
+    // Step 1: increment turn, draw, play one card
+    const t1 = setTimeout(() => {
       if (cancelled) return
       set(g => {
         let next = { ...g }
         next.turn++
         next.enemyMaxMana = Math.min(10, next.turn)
         next.enemyMana    = next.enemyMaxMana
+
         // Bot draws
         if (next.enemyDeck.length && next.enemyHand.length < MAX_HAND) {
           next = { ...next, enemyHand: [...next.enemyHand, next.enemyDeck[0]], enemyDeck: next.enemyDeck.slice(1) }
         }
-        // Bot plays one card (most expensive affordable)
-        const affordable = next.enemyHand
+        // Play most expensive affordable card
+        const playable = next.enemyHand
           .filter(c => c.cost <= next.enemyMana && next.enemyBoard.length < MAX_BOARD)
           .sort((a, b) => b.cost - a.cost)
-        if (affordable.length) {
-          const card = affordable[0]
-          next.enemyMana -= card.cost
+        if (playable.length) {
+          const card = playable[0]
           next = {
             ...next,
-            enemyHand: next.enemyHand.filter(c => c.uid !== card.uid),
+            enemyMana:  next.enemyMana - card.cost,
+            enemyHand:  next.enemyHand.filter(c => c.uid !== card.uid),
             enemyBoard: [...next.enemyBoard, { ...card, exhausted: true }],
             log: `Bot invoque ${card.name} !`,
           }
@@ -239,27 +235,25 @@ function TrainingContent() {
         return next
       })
 
-      // Step 2: bot attacks sequentially
-      function botAttackSeq(idx: number) {
+      // Step 2: attack sequence
+      function botAttackSeq(i: number) {
         if (cancelled) return
         const g = read()
         if (g.gameOver) { setBotThinking(false); return }
 
         const attackers = g.enemyBoard.filter(c => !c.exhausted)
-        if (idx >= attackers.length) {
-          // Return to player turn
-          setTimeout(() => {
+        if (i >= attackers.length) {
+          // Return to player
+          const t2 = setTimeout(() => {
             if (cancelled) return
             set(g2 => {
               let next = { ...g2 }
               next.phase = 'player'
               next.playerMaxMana = Math.min(10, next.turn)
               next.playerMana    = next.playerMaxMana
-              // Player draws
               if (next.playerDeck.length && next.playerHand.length < MAX_HAND) {
                 next = { ...next, playerHand: [...next.playerHand, next.playerDeck[0]], playerDeck: next.playerDeck.slice(1) }
               }
-              // Un-exhaust player board
               next.playerBoard = next.playerBoard.map(c => ({ ...c, exhausted: false }))
               next.locked = false
               next.log    = `Tour ${next.turn} — Mana : ${next.playerMana}`
@@ -267,69 +261,68 @@ function TrainingContent() {
             })
             setBotThinking(false)
           }, 400)
-          return
+          return () => clearTimeout(t2)
         }
 
-        const card = attackers[idx]
-        setTimeout(() => {
+        const card = attackers[i]
+        const t3 = setTimeout(() => {
           if (cancelled) return
           set(g2 => {
+            // Card might have died from previous combat
+            if (!g2.enemyBoard.find(c => c.uid === card.uid)) return g2
+
             let next = { ...g2 }
-            // Check card still alive
-            if (!next.enemyBoard.find(c => c.uid === card.uid)) {
-              return next // card died in previous attack, skip
-            }
             if (next.playerBoard.length > 0) {
               const tgt = [...next.playerBoard].sort((a, b) => a.currentHp - b.currentHp)[0]
               const tHp = tgt.currentHp - card.atk
               const aHp = card.currentHp - tgt.atk
-              next.enemyBoard = aHp <= 0
-                ? next.enemyBoard.filter(c => c.uid !== card.uid)
-                : next.enemyBoard.map(c => c.uid === card.uid ? { ...c, currentHp: aHp, exhausted: true } : c)
               next.playerBoard = tHp <= 0
                 ? next.playerBoard.filter(c => c.uid !== tgt.uid)
                 : next.playerBoard.map(c => c.uid === tgt.uid ? { ...c, currentHp: tHp } : c)
+              next.enemyBoard = aHp <= 0
+                ? next.enemyBoard.filter(c => c.uid !== card.uid)
+                : next.enemyBoard.map(c => c.uid === card.uid ? { ...c, currentHp: aHp, exhausted: true } : c)
               next.log = `Bot : ${card.name} attaque ${tgt.name} !`
             } else {
-              // attack face
               next.playerHp  = Math.max(0, next.playerHp - card.atk)
               next.enemyBoard = next.enemyBoard.map(c => c.uid === card.uid ? { ...c, exhausted: true } : c)
               next.log = `Bot : ${card.name} attaque ton héros pour ${card.atk} !`
             }
             return checkWin(next)
           })
-          botAttackSeq(idx + 1)
+          botAttackSeq(i + 1)
         }, 450)
+        return () => clearTimeout(t3)
       }
 
-      setTimeout(() => botAttackSeq(0), 700)
+      const t4 = setTimeout(() => { if (!cancelled) botAttackSeq(0) }, 700)
+      return () => clearTimeout(t4)
     }, 700)
 
-    return () => { cancelled = true }
+    return () => { cancelled = true; clearTimeout(t1) }
   }, [gs?.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Surrender ───────────────────────────────────────────────────────────
+  // ── Surrender ──────────────────────────────────────────────────────────
   function surrender() {
-    if (!confirm('Abandonner ?')) return
+    if (!confirm('Abandonner la partie ?')) return
     router.push('/combat/draft')
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────
   if (!gs) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: '#030308' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#050210' }}>
       <div className="w-10 h-10 border-2 border-[#7b2bff]/30 border-t-[#7b2bff] rounded-full animate-spin" />
     </div>
   )
 
   if (gs.gameOver) return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 px-4"
-      style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #030308)' }}>
-      <Bot size={52} className={gs.winner === 'player' ? 'text-[#00c896]' : 'text-[#ff4757]'} />
-      <div className={`text-5xl font-black ${gs.winner === 'player' ? 'text-[#00c896]' : 'text-[#ff4757]'}`}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 24, padding: '0 16px', background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #050210)' }}>
+      <Bot size={52} style={{ color: gs.winner === 'player' ? '#00c896' : '#ff4757' }} />
+      <div style={{ fontSize: 48, fontWeight: 900, color: gs.winner === 'player' ? '#00c896' : '#ff4757' }}>
         {gs.winner === 'player' ? 'Victoire !' : 'Défaite'}
       </div>
-      <p className="text-white/30 text-sm">Entraînement · aucun point classé</p>
-      <div className="flex gap-3">
+      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Entraînement · aucun point classé</p>
+      <div style={{ display: 'flex', gap: 12 }}>
         <button onClick={() => router.push('/combat/draft')}
           className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold hover:bg-white/10 transition-colors">
           Retour au draft
@@ -344,28 +337,26 @@ function TrainingContent() {
 
   return (
     <CombatArena
-      myHp={gs.playerHp} oppHp={gs.enemyHp}
+      myHp={gs.playerHp}    oppHp={gs.enemyHp}
       myMana={gs.playerMana} myMaxMana={gs.playerMaxMana}
       myBoard={gs.playerBoard} oppBoard={gs.enemyBoard}
       myHand={gs.playerHand}
-      myDeckCount={gs.playerDeck.length}
-      oppHandCount={gs.enemyHand.length}
+      myTurn={gs.phase === 'player'}
+      locked={gs.locked || botThinking}
       myName={profile?.username ?? 'Toi'}
       oppName="Bot"
-      myAvatar={profile?.avatar_url ?? null}
-      myTurn={gs.phase === 'player' && !gs.locked}
-      disabled={gs.locked || botThinking}
+      turnLabel={`Tour ${gs.turn}`}
       topLabel={
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#7b2bff]/10 border border-[#7b2bff]/20 text-[#a78bfa] text-xs font-bold">
-          <Bot size={12} /> Entraînement · Tour {gs.turn}
-          {botThinking && <span className="animate-pulse ml-1">· bot réfléchit…</span>}
-        </div>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Bot size={12} /> Entraînement
+          {botThinking && <span style={{ animation: 'ca-hint-pulse 1.5s ease-in-out infinite' }}>· bot réfléchit…</span>}
+        </span>
       }
       onPlayCard={playCard}
       onAttack={handleAttack}
       onEndTurn={endTurn}
       onSurrender={surrender}
-      log={[gs.log]}
+      log={gs.log}
     />
   )
 }
