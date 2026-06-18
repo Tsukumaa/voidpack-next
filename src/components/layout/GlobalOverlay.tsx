@@ -7,8 +7,9 @@ import { FloatingChat } from '@/components/layout/FloatingChat'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
-  const { setPendingFriendCount, addToast } = useSocialStore()
-  const prevCountRef = useRef<number>(-1)
+  const { setPendingFriendCount, setUnreadMessageCount, addToast } = useSocialStore()
+  const prevCountRef   = useRef<number>(-1)
+  const prevUnreadRef  = useRef<number>(0)
 
   useEffect(() => {
     if (!user) return
@@ -18,7 +19,6 @@ export function GlobalOverlay() {
       const count = Array.isArray(data) ? data.length : 0
       setPendingFriendCount(count)
 
-      // Toast si nouvelles demandes depuis la dernière vérification
       if (prevCountRef.current >= 0 && count > prevCountRef.current) {
         const newest = data[0]
         addToast({
@@ -31,10 +31,23 @@ export function GlobalOverlay() {
       prevCountRef.current = count
     }
 
+    async function checkUnread() {
+      const data = await fetch('/api/social/messages/unread').then(r => r.ok ? r.json() : { count: 0 }).catch(() => ({ count: 0 }))
+      const count = data.count ?? 0
+      setUnreadMessageCount(count)
+
+      if (prevUnreadRef.current < count) {
+        // toast géré par FloatingChat si chat ouvert — sinon pastille suffit
+      }
+      prevUnreadRef.current = count
+    }
+
     checkPending()
-    const interval = setInterval(checkPending, 30_000)
-    return () => clearInterval(interval)
-  }, [user, setPendingFriendCount, addToast])
+    checkUnread()
+    const i1 = setInterval(checkPending, 30_000)
+    const i2 = setInterval(checkUnread, 10_000)
+    return () => { clearInterval(i1); clearInterval(i2) }
+  }, [user, setPendingFriendCount, setUnreadMessageCount, addToast])
 
   return (
     <>

@@ -35,6 +35,8 @@ const RARITY_COLOR: Record<string, string> = {
 export default function CommunautePage() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const setChatFriend = useSocialStore(s => s.setChatFriend)
+  const unreadMessageCount = useSocialStore(s => s.unreadMessageCount)
+  const clearUnreadMessages = useSocialStore(s => s.clearUnreadMessages)
   const [ladder, setLadder]           = useState<'xp' | 'combat'>('xp')
   const [entries, setEntries]         = useState<LadderEntry[]>([])
   const [loading, setLoading]         = useState(true)
@@ -295,10 +297,15 @@ export default function CommunautePage() {
 
       {/* Bouton chat flottant si amis */}
       {friends.length > 0 && user && (
-        <div className="fixed bottom-24 right-4 z-40">
-          <button onClick={() => setShowFriends(true)}
-            className="w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
+        <div className="fixed bottom-24 right-16 z-40">
+          <button onClick={() => { setShowFriends(true); clearUnreadMessages(); fetch('/api/social/messages/unread', { method: 'POST' }) }}
+            className="relative w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
             <MessageCircle size={20} className="text-white" />
+            {unreadMessageCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center shadow-md">
+                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+              </span>
+            )}
           </button>
         </div>
       )}
