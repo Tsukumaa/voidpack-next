@@ -68,6 +68,8 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
   const [levelUp, setLevelUp]   = useState<number | null>(null)
   const [showXP, setShowXP]     = useState(false)
   const [lvlParticles, setLvlParticles] = useState<{id:number;x:number;y:number;c:string;s:number;d:number}[]>([])
+  const [newCardIds, setNewCardIds] = useState<Set<string>>(new Set())
+  const [showNewCards, setShowNewCards] = useState(false)
 
   const XP_PER_RARITY: Record<string, number> = {
     void: 500, legendary: 300, epic: 150, rare: 80, common: 10,
@@ -77,6 +79,11 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
     if (!user || saving || saved) return
     setSaving(true)
     try {
+      // Snapshot existing collection before saving
+      const existingRes = await fetch('/api/collection')
+      const existing: { card_id?: string; cardId?: string }[] = existingRes.ok ? await existingRes.json() : []
+      const existingIds = new Set(existing.map(c => c.card_id ?? c.cardId ?? ''))
+
       // Save cards
       await fetch('/api/collection', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -85,6 +92,14 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
           metadata: JSON.stringify({ name: c.name, image_url: c.artUrl ?? null, source: 'pack' }),
         }))),
       })
+
+      // Detect which cards are truly new
+      const newIds = new Set(cards.filter(c => !existingIds.has(c.id)).map(c => c.id))
+      if (newIds.size > 0) {
+        setNewCardIds(newIds)
+        setShowNewCards(true)
+        setTimeout(() => setShowNewCards(false), 4000)
+      }
 
       const totalXP = cards.reduce((sum, c) => sum + (XP_PER_RARITY[c.rarity] ?? 10), 0)
       setXpGain(totalXP)
@@ -170,6 +185,21 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
         </div>
       )}
 
+      {/* Nouvelles cartes banner */}
+      {showNewCards && newCardIds.size > 0 && (
+        <div className="fixed top-28 left-1/2 z-[210] pointer-events-none"
+          style={{ animation:'newBanner 4s ease-out forwards', transform:'translateX(-50%)' }}>
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-black text-sm whitespace-nowrap"
+            style={{
+              background:'linear-gradient(135deg,#b45309,#f59e0b,#fbbf24)',
+              boxShadow:'0 0 28px rgba(251,191,36,.7), 0 0 60px rgba(245,158,11,.4)',
+              textShadow:'0 1px 3px rgba(0,0,0,.5)',
+            }}>
+            ✨ {newCardIds.size} nouvelle{newCardIds.size > 1 ? 's' : ''} carte{newCardIds.size > 1 ? 's' : ''} découverte{newCardIds.size > 1 ? 's' : ''} !
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0">
         <div>
@@ -192,25 +222,59 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
       {/* Grille petites cartes */}
       <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">
         <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
-          {cards.map((card, i) => (
-            <div key={i} onClick={() => setSelected(card)}
-              className="relative active:scale-95 transition-transform flex-shrink-0 cursor-pointer"
-              style={{
-                width: 'clamp(120px, 18vw, 200px)',
-                height: 'clamp(168px, 25vw, 280px)',
-                borderRadius: 12,
-                boxShadow:`0 0 14px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.4)}`,
-                animation:`cardFadeIn .4s ease-out ${i*.07}s both`,
-              }}>
-              <CardFrame rarity={card.rarity} name={card.name} style={{ position:'absolute', inset:0 }}>
-                {card.artUrl
-                  ? <CardMedia src={card.artUrl} alt={card.name} />
-                  // eslint-disable-next-line @next/next/no-img-element
-                  : <img src="/assets/dos.png" alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
-                }
-              </CardFrame>
-            </div>
-          ))}
+          {cards.map((card, i) => {
+            const isNew = newCardIds.has(card.id)
+            return (
+              <div key={i} onClick={() => setSelected(card)}
+                className="relative active:scale-95 transition-transform flex-shrink-0 cursor-pointer"
+                style={{
+                  width: 'clamp(120px, 18vw, 200px)',
+                  height: 'clamp(168px, 25vw, 280px)',
+                  borderRadius: 12,
+                  boxShadow: isNew
+                    ? '0 0 18px 5px rgba(251,191,36,.6), 0 0 40px 10px rgba(245,158,11,.3)'
+                    : `0 0 14px ${hexToRgba(RARITY_COLOR[card.rarity]??'#7b2bff',.4)}`,
+                  animation: isNew
+                    ? `cardFadeIn .4s ease-out ${i*.07}s both, newCardGlow 1.6s ease-in-out ${0.4 + i*.07}s 3`
+                    : `cardFadeIn .4s ease-out ${i*.07}s both`,
+                }}>
+                <CardFrame rarity={card.rarity} name={card.name} style={{ position:'absolute', inset:0 }}>
+                  {card.artUrl
+                    ? <CardMedia src={card.artUrl} alt={card.name} />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src="/assets/dos.png" alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
+                  }
+                </CardFrame>
+
+                {/* Badge NOUVEAU */}
+                {isNew && (
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
+                    {/* Shine sweep */}
+                    <div className="absolute inset-y-0 w-1/3"
+                      style={{
+                        background:'linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent)',
+                        animation:'newCardShine 1.2s ease-in-out 0.3s 2 both',
+                        zIndex: 10,
+                      }} />
+                  </div>
+                )}
+                {isNew && (
+                  <div className="absolute -top-2 left-1/2 z-20 whitespace-nowrap font-black text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full"
+                    style={{
+                      transform:'translateX(-50%)',
+                      background:'linear-gradient(90deg,#b45309,#f59e0b)',
+                      color:'#fff',
+                      boxShadow:'0 0 10px rgba(251,191,36,.8)',
+                      textShadow:'0 1px 2px rgba(0,0,0,.4)',
+                      animation:'newCardPop .5s ease-out both',
+                      animationDelay:`${0.2 + i * 0.06}s`,
+                    }}>
+                    ✦ Nouveau
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
