@@ -198,13 +198,6 @@ export function PackScreen() {
                   loading && 'opacity-60 pointer-events-none'
                 )}
               >
-                {/* badge */}
-                <div className="absolute -top-2 -right-2 z-30 min-w-7 h-7 px-2 rounded-full bg-[#7b2bff] text-xs font-bold flex items-center justify-center shadow-lg ring-2 ring-black/30"
-                  style={{ boxShadow: '0 2px 10px rgba(123,43,255,0.6)' }}>
-                  ×{activeCount}
-                </div>
-
-                {/* PACK IMAGE RESPONSIVE */}
                 <div
                   className="
                     w-[65vw]
@@ -225,6 +218,11 @@ export function PackScreen() {
                     className="w-full h-auto"
                     draggable={false}
                   />
+                </div>
+
+                <div className="absolute -top-2 -right-2 z-40 min-w-7 h-7 px-2 rounded-full bg-[#7b2bff] text-xs font-bold flex items-center justify-center ring-2 ring-black/30"
+                  style={{ boxShadow: '0 2px 12px rgba(123,43,255,0.7)' }}>
+                  ×{activeCount}
                 </div>
 
                 <div className="mt-3 flex items-center h-5">
