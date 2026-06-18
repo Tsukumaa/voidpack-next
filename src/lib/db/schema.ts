@@ -289,3 +289,16 @@ export const settings = sqliteTable('settings', {
   key:   text('key').primaryKey(),
   value: text('value').notNull(),
 })
+
+// ── kanban_cards ──────────────────────────────────────────────────────────────
+export const kanbanCards = sqliteTable('kanban_cards', {
+  id:          text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title:       text('title').notNull(),
+  description: text('description'),
+  column:      text('column').notNull().default('todo'),
+  tag:         text('tag'),
+  position:    integer('position').notNull().default(0),
+  createdBy:   text('created_by'),
+  createdAt:   text('created_at').notNull().default(now),
+  updatedAt:   text('updated_at').notNull().default(now),
+})
