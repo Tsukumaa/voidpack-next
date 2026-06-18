@@ -58,7 +58,7 @@ type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
 type CardPhase = 'back'|'suspense'|'revealed'|'hiding'
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
-function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]; boosterType?: string; onClose: () => void }) {
+function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void }) {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
   const { checkAfterPackOpen } = useAchievements()
   const [selected, setSelected] = useState<Card | null>(null)
@@ -68,8 +68,6 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
   const [levelUp, setLevelUp]   = useState<number | null>(null)
   const [showXP, setShowXP]     = useState(false)
   const [lvlParticles, setLvlParticles] = useState<{id:number;x:number;y:number;c:string;s:number;d:number}[]>([])
-  const [newCardIds, setNewCardIds] = useState<Set<string>>(new Set())
-  const [showNewCards, setShowNewCards] = useState(false)
 
   const XP_PER_RARITY: Record<string, number> = {
     void: 500, legendary: 300, epic: 150, rare: 80, common: 10,
@@ -79,11 +77,6 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
     if (!user || saving || saved) return
     setSaving(true)
     try {
-      // Snapshot existing collection before saving
-      const existingRes = await fetch('/api/collection')
-      const existing: { card_id?: string; cardId?: string }[] = existingRes.ok ? await existingRes.json() : []
-      const existingIds = new Set(existing.map(c => c.card_id ?? c.cardId ?? ''))
-
       // Save cards
       await fetch('/api/collection', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -92,14 +85,6 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
           metadata: JSON.stringify({ name: c.name, image_url: c.artUrl ?? null, source: 'pack' }),
         }))),
       })
-
-      // Detect which cards are truly new
-      const newIds = new Set(cards.filter(c => !existingIds.has(c.id)).map(c => c.id))
-      if (newIds.size > 0) {
-        setNewCardIds(newIds)
-        setShowNewCards(true)
-        setTimeout(() => setShowNewCards(false), 4000)
-      }
 
       const totalXP = cards.reduce((sum, c) => sum + (XP_PER_RARITY[c.rarity] ?? 10), 0)
       setXpGain(totalXP)
@@ -181,21 +166,6 @@ function ResultsScreen({ cards, boosterType = 'void', onClose }: { cards: Card[]
           <div className="px-4 py-2 rounded-full text-white font-bold text-sm animate-[xpFloat_2.5s_ease-out_forwards]"
             style={{ background:'linear-gradient(135deg,#7b2bff,#a855f7)', boxShadow:'0 0 20px rgba(123,43,255,.6)' }}>
             +{xpGain} XP
-          </div>
-        </div>
-      )}
-
-      {/* Nouvelles cartes banner */}
-      {showNewCards && newCardIds.size > 0 && (
-        <div className="fixed top-28 left-1/2 z-[210] pointer-events-none"
-          style={{ animation:'newBanner 4s ease-out forwards', transform:'translateX(-50%)' }}>
-          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-black text-sm whitespace-nowrap"
-            style={{
-              background:'linear-gradient(135deg,#b45309,#f59e0b,#fbbf24)',
-              boxShadow:'0 0 28px rgba(251,191,36,.7), 0 0 60px rgba(245,158,11,.4)',
-              textShadow:'0 1px 3px rgba(0,0,0,.5)',
-            }}>
-            ✨ {newCardIds.size} nouvelle{newCardIds.size > 1 ? 's' : ''} carte{newCardIds.size > 1 ? 's' : ''} découverte{newCardIds.size > 1 ? 's' : ''} !
           </div>
         </div>
       )}
@@ -305,6 +275,7 @@ const DEFAULT_CARD_BACK = {
 export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
   const profile = useGameStore(s => s.profile)
   const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
+  const [newCardIds, setNewCardIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const id = profile?.selected_card_back ?? 'default'
@@ -312,6 +283,16 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setCardBack({ gradient: data.gradient ?? null, pattern: data.pattern ?? null, imageUrl: data.imageUrl ?? data.image_url ?? null }) })
   }, [profile?.selected_card_back])
+
+  // Snapshot collection before opening to detect new cards during reveal
+  useEffect(() => {
+    fetch('/api/collection')
+      .then(r => r.ok ? r.json() : [])
+      .then((existing: { card_id?: string; cardId?: string }[]) => {
+        const existingIds = new Set(existing.map(c => c.card_id ?? c.cardId ?? ''))
+        setNewCardIds(new Set(cards.filter(c => !existingIds.has(c.id)).map(c => c.id)))
+      })
+  }, []) // eslint-disable-line
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
@@ -456,7 +437,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
 
-  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} onClose={onClose} />
+  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} />
 
   return (
     <div
@@ -601,6 +582,18 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
           {/* Nom + rareté */}
           <div className={cn('flex flex-col items-center gap-0.5 transition-all duration-300 z-10',
             cardPhase==='revealed'?'opacity-100 translate-y-0':'opacity-0 translate-y-2')}>
+            {cardPhase === 'revealed' && newCardIds.has(currentCard.id) && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-xs tracking-widest uppercase mb-1"
+                style={{
+                  background:'linear-gradient(135deg,#92400e,#f59e0b,#fde68a)',
+                  color:'#fff',
+                  boxShadow:'0 0 20px rgba(251,191,36,.8), 0 0 50px rgba(245,158,11,.4)',
+                  textShadow:'0 1px 3px rgba(0,0,0,.5)',
+                  animation:'newCardPop .55s cubic-bezier(.34,1.56,.64,1) both',
+                }}>
+                ✦ Nouvelle carte !
+              </div>
+            )}
             <p className="text-white font-bold text-base">{currentCard.name}</p>
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color:revealedColor||'#9ca3af' }}>
               {currentCard.rarity}
