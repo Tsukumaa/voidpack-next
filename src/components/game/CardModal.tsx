@@ -2,6 +2,7 @@
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { CardMedia } from '@/components/game/CardMedia'
+import { Palette } from 'lucide-react'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899',
@@ -90,7 +91,7 @@ export function CardModal({ name, rarity, family, artUrl, description, artist, a
           {/* Crédits artiste */}
           {artistName && (
             <div className="flex items-center justify-center gap-1.5 text-xs text-white/35 mt-1">
-              <span>🎨 Artiste:</span>
+              <span className="inline-flex items-center gap-1"><Palette size={12} /> Artiste:</span>
               {artistLink ? (
                 <a href={artistLink} target="_blank" rel="noopener noreferrer"
                   className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">

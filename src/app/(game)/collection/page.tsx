@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronDown, Lock } from 'lucide-react'
+import { ChevronDown, Lock, Gem, Sword, Shield } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
@@ -63,6 +63,7 @@ export default function CollectionPage() {
   const [families, setFamilies]   = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [ovVisible, setOvVisible] = useState<Record<string, boolean>>({})
   const [famOpen, setFamOpen]     = useState(false)
   const [showRates, setShowRates] = useState(false)
   const famRef                    = useRef<HTMLDivElement>(null)
@@ -75,7 +76,11 @@ export default function CollectionPage() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const toggleSection = (r: string) => setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
+  const toggleSection = (r: string) => {
+    setOvVisible(s => ({ ...s, [r]: false }))   // overflow caché pendant l'animation
+    setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
+  }
+  const ovOpen = (r: string) => ovVisible[r] !== false  // visible par défaut (sections ouvertes au départ)
 
   const load = useCallback(async () => {
     if (!user) return
@@ -276,29 +281,31 @@ export default function CollectionPage() {
                   <span className="text-white/30 text-xs">{group.length}</span>
                 </button>
                 <div className="grid transition-[grid-template-rows] duration-300 ease-out"
-                  style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}>
-                  {/* deploy fix */}
-                  <div className="overflow-visible">
+                  style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+                  onTransitionEnd={e => { if (e.propertyName === 'grid-template-rows' && !collapsed[r]) setOvVisible(s => ({ ...s, [r]: true })) }}>
+                  <div style={{ overflow: ovOpen(r) ? 'visible' : 'hidden', minWidth: 0 }}>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
                       {group.map(card => (
                     !card.owned ? (
-                      <div
-                        key={card.card_id}
-                        className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
-                        style={{ aspectRatio: '0.714' }}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/assets/dos.png" alt="" draggable={false}
-                          className="w-full h-full object-cover select-none"
-                          style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                          <Lock size={24} className="text-white/50" />
-                          <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
+                      <div key={card.card_id} className="flex flex-col gap-1.5">
+                        <div
+                          className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
+                          style={{ aspectRatio: '0.714' }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/assets/dos.png" alt="" draggable={false}
+                            className="w-full h-full object-cover select-none"
+                            style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                            <Lock size={24} className="text-white/50" />
+                            <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
+                          </div>
                         </div>
+                        <div className="min-h-[36px]" />
                       </div>
                     ) : (
+                    <div key={card.card_id} className="flex flex-col">
                     <CardHover
-                      key={card.card_id}
                       rarity={card.rarity}
                       className="relative cursor-pointer active:scale-95"
                       style={{
@@ -313,6 +320,7 @@ export default function CollectionPage() {
                         atk={card.atk}
                         def={card.def}
                         glow={false}
+                        hideStats
                         style={{ position: 'absolute', inset: 0 }}
                       >
                         <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
@@ -332,7 +340,28 @@ export default function CollectionPage() {
                           {card.count}
                         </div>
                       )}
+                      {/* Stats sous la carte, DANS l'élément animé → suivent le tilt/float de la carte */}
+                      <div className="absolute left-0 right-0 flex items-center justify-center gap-1.5" style={{ top: '100%', marginTop: 8 }}>
+                        {card.cost != null && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border text-white/85"
+                            style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
+                            <Gem size={13} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                          </span>
+                        )}
+                        {card.atk != null && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border border-white/10 text-white/85" title="Attaque">
+                            <Sword size={13} className="text-rose-300/90" />{card.atk}
+                          </span>
+                        )}
+                        {card.def != null && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-white/[0.05] border border-white/10 text-white/85" title="Défense">
+                            <Shield size={13} className="text-sky-300/90" />{card.def}
+                          </span>
+                        )}
+                      </div>
                     </CardHover>
+                    <div className="min-h-[36px]" />
+                    </div>
                     )
                   ))}
                     </div>
