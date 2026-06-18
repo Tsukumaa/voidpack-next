@@ -1,7 +1,8 @@
 'use client'
-import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
+import { StatePanel } from '@/components/game/StatePanel'
 import { useSocialStore } from '@/store/social'
 import { cn } from '@/lib/utils'
 
@@ -419,6 +420,12 @@ export default function CommunautePage() {
   const incoming = trades.filter(t => t.receiverId === user?.id)
   const outgoing  = trades.filter(t => t.senderId   === user?.id)
   const displayed = tradeTab === 'incoming' ? incoming : outgoing
+
+  if (!user) return (
+    <StatePanel icon={LinkIcon} title="Pas connecté">
+      Connecte-toi pour voir le classement, tes amis et tes échanges.
+    </StatePanel>
+  )
 
   return (
     <div className="pb-4 relative max-w-4xl mx-auto w-full">

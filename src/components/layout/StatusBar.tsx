@@ -172,6 +172,7 @@ export function StatusBar() {
             </span>
           </a>
 
+          {user && (
           <button
             onClick={() => setShowShop(true)}
             className="flex items-center gap-1 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08]"
@@ -182,6 +183,7 @@ export function StatusBar() {
               Boutique
             </span>
           </button>
+          )}
 
           <button
             onClick={handleAuth}

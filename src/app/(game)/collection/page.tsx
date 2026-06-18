@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronDown, Lock, Gem, Sword, Shield } from 'lucide-react'
+import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
+import { StatePanel } from '@/components/game/StatePanel'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
@@ -166,6 +167,12 @@ export default function CollectionPage() {
   const filtered = filter === 'all' ? cards : cards.filter(c => c.rarity === filter || c.family === filter)
 
   const rarityGroups = RARITY_ORDER.filter(r => filtered.some(c => c.rarity === r))
+
+  if (!user) return (
+    <StatePanel icon={LinkIcon} title="Pas connecté">
+      Connecte-toi pour voir et compléter ta collection.
+    </StatePanel>
+  )
 
   return (
     <div className="pb-4 max-w-5xl mx-auto w-full">

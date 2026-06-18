@@ -1,7 +1,8 @@
 'use client'
-import { BarChart2, Target, Trophy, Flame, Tv2, Lock } from 'lucide-react'
+import { BarChart2, Target, Trophy, Flame, Tv2, Lock, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
+import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
 const RARITY_COLOR: Record<string, string> = {
@@ -127,9 +128,9 @@ export default function ProfilPage() {
   const completedMissions = missions.filter(m => m.completed).length
 
   if (!user) return (
-    <div className="flex items-center justify-center min-h-[50vh] text-white/30 text-sm">
-      Connecte-toi pour voir ton profil.
-    </div>
+    <StatePanel icon={LinkIcon} title="Pas connecté">
+      Connecte-toi pour voir et personnaliser ton profil.
+    </StatePanel>
   )
 
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { Link as LinkIcon, Coins } from 'lucide-react'
 import Image from 'next/image'
 import { useGameStore } from '@/store/game'
 import { useBoosterCredits } from '@/hooks/useBoosterCredits'
@@ -287,18 +288,51 @@ export function PackScreen() {
               </p>
             </div>
 
-            <div
-              className="w-[60vw] max-w-[220px] opacity-50"
-              style={{ animation: 'boosterFloat 3s ease-in-out infinite' }}
-            >
-              <img src="/assets/dos.png" className="w-full h-auto" />
-            </div>
+            {/* Carte flottante : uniquement si connecté */}
+            {user && (
+              <div
+                className="w-[46vw] max-w-[170px] opacity-40"
+                style={{ animation: 'boosterFloat 3s ease-in-out infinite' }}
+              >
+                <img src="/assets/dos.png" className="w-full h-auto" />
+              </div>
+            )}
 
-            <p className="text-white/25 text-xs text-center">
-              {!user
-                ? 'Connecte-toi avec Discord'
-                : 'Aucun booster disponible'}
-            </p>
+            {/* Panneau message */}
+            <div
+              className="flex flex-col items-center gap-3.5 px-7 py-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl w-[88vw] max-w-[340px]"
+              style={{ boxShadow: '0 0 45px rgba(123,43,255,0.18)' }}
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg,#7b2bff,#a855f7)',
+                  boxShadow: '0 0 22px rgba(123,43,255,0.55)',
+                }}
+              >
+                {!user
+                  ? <LinkIcon size={24} className="text-white" />
+                  : <Coins size={24} className="text-white" />}
+              </div>
+
+              <div className="text-center">
+                <p className="text-white font-bold text-base">
+                  {!user ? 'Pas connecté' : 'Aucun booster'}
+                </p>
+
+                {!user ? (
+                  <p className="text-white/45 text-sm mt-1.5 leading-relaxed">
+                    Connecte-toi pour ouvrir tes boosters et commencer ta collection.
+                  </p>
+                ) : (
+                  <p className="text-white/45 text-sm mt-1.5 leading-relaxed">
+                    Va en acheter en{' '}
+                    <span className="text-[#a78bfa] font-bold">points de chaîne</span>{' '}
+                    chez ton streamer préféré&nbsp;!
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
