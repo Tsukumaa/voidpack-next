@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Swords, X, Zap, Sword } from 'lucide-react'
+import { ArrowLeft, Swords, X, Zap, Sword, Bot } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
@@ -170,13 +170,30 @@ function DraftContent() {
           <button onClick={() => router.push('/communaute')} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
             <ArrowLeft size={16} /> Retour
           </button>
-          <button onClick={handleQueue} disabled={!ready}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-              ready ? 'bg-[#7b2bff] text-white hover:bg-[#6920e0]' : 'bg-white/5 text-white/20 cursor-not-allowed'
-            )}>
-            <Swords size={13} /> Chercher un match
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => {
+              if (totalCards < 1) return
+              const deck: unknown[] = []
+              for (const { card, qty } of selected) {
+                for (let i = 0; i < qty; i++) {
+                  deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } } })
+                }
+              }
+              sessionStorage.setItem('draft_deck', JSON.stringify(deck))
+              router.push('/combat/training')
+            }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white/5 border border-white/10 text-[#a78bfa] hover:bg-white/10"
+              title="Jouer contre le bot (aucun point classé)">
+              <Bot size={13} /> Entraînement
+            </button>
+            <button onClick={handleQueue} disabled={!ready}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                ready ? 'bg-[#7b2bff] text-white hover:bg-[#6920e0]' : 'bg-white/5 text-white/20 cursor-not-allowed'
+              )}>
+              <Swords size={13} /> Chercher un match
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mb-3">
