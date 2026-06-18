@@ -22,6 +22,7 @@ function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
     is_admin:            isAdmin,
     selected_card_back:  p.selectedCardBack ?? null,
     unlocked_card_backs: null,
+    auto_reveal:         p.autoReveal ?? false,
     created_at:          p.createdAt,
     updated_at:          p.updatedAt,
   }
@@ -46,7 +47,7 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const patch = await req.json()
-  const allowed = ['username', 'avatarUrl', 'selectedCardBack'] as const
+  const allowed = ['username', 'avatarUrl', 'selectedCardBack', 'autoReveal'] as const
   const safe: Record<string, unknown> = { updatedAt: new Date().toISOString() }
   for (const key of allowed) {
     if (key in patch) safe[key] = patch[key]

@@ -13,6 +13,7 @@ export interface PlayerProfile {
   twitch_login: string | null
   selected_card_back: string | null
   unlocked_card_backs: string[] | null
+  auto_reveal?: boolean
 }
 
 export interface BoosterCredit {

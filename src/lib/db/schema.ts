@@ -17,6 +17,7 @@ export const playerProfiles = sqliteTable('player_profiles', {
   bestStreak:    integer('best_streak').notNull().default(0),
   twitchId:      text('twitch_id').unique(),
   twitchLogin:   text('twitch_login'),
+  autoReveal:    integer('auto_reveal', { mode: 'boolean' }).notNull().default(false),
   createdAt:     text('created_at').notNull().default(now),
   updatedAt:     text('updated_at').notNull().default(now),
 })

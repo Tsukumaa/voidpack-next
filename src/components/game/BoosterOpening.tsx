@@ -275,6 +275,7 @@ const DEFAULT_CARD_BACK = {
 
 export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose }: Props) {
   const profile = useGameStore(s => s.profile)
+  const setProfileStore = useGameStore(s => s.setProfile)
   const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
   const [newCardIds, setNewCardIds] = useState<Set<string>>(new Set())
 
@@ -304,8 +305,18 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [particles, setParticles]   = useState<Particle[]>([])
   const [shake, setShake]           = useState(false)
   const [autoReveal, setAutoReveal] = useState(false)
-  useEffect(() => { setAutoReveal(typeof window !== 'undefined' && localStorage.getItem('vp_auto_reveal') === '1') }, [])
-  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('vp_auto_reveal', autoReveal ? '1' : '0') }, [autoReveal])
+  // Persisté en BDD (player_profiles.auto_reveal), synchronisé via le profil du store
+  useEffect(() => { setAutoReveal(!!profile?.auto_reveal) }, [profile?.auto_reveal])
+  async function toggleAuto() {
+    const next = !autoReveal
+    setAutoReveal(next)
+    if (profile) setProfileStore({ ...profile, auto_reveal: next })
+    fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ autoReveal: next }),
+    }).catch(() => {})
+  }
 
   const timerRefs    = useRef<ReturnType<typeof setTimeout>[]>([])
   const locked       = useRef(false)
@@ -486,7 +497,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
           </div>
           <p className="text-white/50 text-sm animate-pulse">Clique pour ouvrir</p>
 
-          <button onClick={e => { e.stopPropagation(); setAutoReveal(v => !v) }}
+          <button onClick={e => { e.stopPropagation(); toggleAuto() }}
             className={cn('flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-colors cursor-pointer',
               autoReveal
                 ? 'bg-[#7b2bff]/25 border-[#7b2bff]/50 text-[#c4b5fd]'
