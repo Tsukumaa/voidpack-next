@@ -1,5 +1,6 @@
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { Zap } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { CardMedia } from '@/components/game/CardMedia'
 import { CardBackDisplay } from '@/components/game/CardBackDisplay'
@@ -302,6 +303,9 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [raysColor, setRaysColor]   = useState('')
   const [particles, setParticles]   = useState<Particle[]>([])
   const [shake, setShake]           = useState(false)
+  const [autoReveal, setAutoReveal] = useState(false)
+  useEffect(() => { setAutoReveal(typeof window !== 'undefined' && localStorage.getItem('vp_auto_reveal') === '1') }, [])
+  useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('vp_auto_reveal', autoReveal ? '1' : '0') }, [autoReveal])
 
   const timerRefs    = useRef<ReturnType<typeof setTimeout>[]>([])
   const locked       = useRef(false)
@@ -437,6 +441,20 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
 
+  // Révélation automatique : enchaîne les taps tout en gardant les animations
+  useEffect(() => {
+    if (!autoReveal || phase !== 'cards' || locked.current) return
+    if (cardPhase === 'back') {
+      const t = setTimeout(() => handleCardTap(), 480)
+      return () => clearTimeout(t)
+    }
+    if (cardPhase === 'revealed') {
+      const hold = (rarity === 'void' || rarity === 'legendary') ? 1800 : rarity === 'epic' ? 1300 : 1000
+      const t = setTimeout(() => handleCardTap(), hold)
+      return () => clearTimeout(t)
+    }
+  }, [autoReveal, phase, cardPhase, cardIndex, rarity, handleCardTap])
+
   if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} />
 
   return (
@@ -467,6 +485,15 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
               style={{ top:`${TEAR_Y}%`, background:'white', boxShadow:'0 0 12px 4px rgba(255,255,255,.8)' }} />
           </div>
           <p className="text-white/50 text-sm animate-pulse">Clique pour ouvrir</p>
+
+          <button onClick={e => { e.stopPropagation(); setAutoReveal(v => !v) }}
+            className={cn('flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border transition-colors cursor-pointer',
+              autoReveal
+                ? 'bg-[#7b2bff]/25 border-[#7b2bff]/50 text-[#c4b5fd]'
+                : 'bg-white/5 border-white/15 text-white/50 hover:text-white/80')}>
+            <Zap size={14} className={autoReveal ? 'text-[#a855f7]' : ''} />
+            Révélation auto · {autoReveal ? 'ON' : 'OFF'}
+          </button>
         </div>
       )}
 

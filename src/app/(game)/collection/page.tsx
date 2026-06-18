@@ -296,9 +296,10 @@ export default function CollectionPage() {
                           <img src="/assets/dos.png" alt="" draggable={false}
                             className="w-full h-full object-cover select-none"
                             style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                            <Lock size={24} className="text-white/50" />
-                            <span className="text-white/50 text-[9px] font-bold uppercase tracking-widest">Pas encore découverte</span>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center">
+                            <Lock size={22} className="text-white/45" />
+                            <span className="text-white/75 text-[11px] font-bold leading-tight line-clamp-2">{card.name}</span>
+                            <span className="text-white/35 text-[8px] font-bold uppercase tracking-widest">Pas encore découverte</span>
                           </div>
                         </div>
                         <div className="min-h-[30px]" />

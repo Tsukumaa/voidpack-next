@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   const { mode, card_back_id, card_back_name } = await req.json()
 
-  const origin = req.headers.get('origin') ?? 'https://voidpack.vercel.app'
+  const origin = req.headers.get('origin') ?? 'https://void-pack.fr'
 
   let checkoutSession: Stripe.Checkout.Session
 

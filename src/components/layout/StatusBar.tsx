@@ -69,14 +69,14 @@ export function StatusBar() {
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 pb-2">
 
-      <div className="max-w-[520px] mx-auto flex items-center justify-between gap-3">
+      <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
 
         {/* Profil */}
-        <div className="relative self-start sm:self-auto shrink-0">
+        <div className="relative min-w-0">
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl min-w-0">
 
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
 
               {profile?.avatar_url ? (
                 <Image
@@ -135,7 +135,7 @@ export function StatusBar() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
 
           {profile?.is_admin && (
             <Link

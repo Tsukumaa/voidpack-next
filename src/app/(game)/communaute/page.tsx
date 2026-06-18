@@ -421,7 +421,7 @@ export default function CommunautePage() {
   const displayed = tradeTab === 'incoming' ? incoming : outgoing
 
   return (
-    <div className="pb-4 relative max-w-2xl mx-auto w-full">
+    <div className="pb-4 relative max-w-4xl mx-auto w-full">
       <div className="lg:flex lg:gap-6 lg:items-start">
       <div className="lg:flex-1 lg:min-w-0">
 
