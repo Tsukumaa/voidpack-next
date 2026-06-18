@@ -229,7 +229,7 @@ export const tradeOffers = sqliteTable('trade_offers', {
   id:              text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   senderId:        text('sender_id').notNull(),
   receiverId:      text('receiver_id').notNull(),
-  offeredCardId:   text('offered_card_id').notNull(),
+  offeredCardId:   text('offered_card_id'),
   offeredCardKey:  text('offered_card_key').notNull(),
   offeredRarity:   text('offered_rarity').notNull(),
   wantedCardKey:   text('wanted_card_key').notNull(),

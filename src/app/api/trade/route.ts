@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { tradeOffers } from '@/lib/db/schema'
+import { tradeOffers, playerCards } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
@@ -26,27 +26,23 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { receiverId, offeredCardId, offeredCardKey, offeredRarity, wantedCardKey, wantedCardName, wantedRarity, message } = await req.json()
+  const { receiverId, offeredCardKey, offeredRarity, wantedCardKey, wantedCardName, wantedRarity, message } = await req.json()
 
-  if (!receiverId || !offeredCardId || !offeredCardKey || !offeredRarity || !wantedCardKey) {
+  if (!receiverId || !offeredCardKey || !offeredRarity || !wantedCardKey) {
     return NextResponse.json({ error: 'Champs requis manquants.' }, { status: 400 })
+  }
+
+  const owned = await db.query.playerCards.findFirst({
+    where: and(eq(playerCards.userId, session.user.id), eq(playerCards.cardId, offeredCardKey)),
+  })
+  if (!owned || owned.count < 1) {
+    return NextResponse.json({ error: 'Tu ne possèdes pas cette carte.' }, { status: 400 })
   }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
 
   const [row] = await db.insert(tradeOffers)
-    .values({
-      senderId:      session.user.id,
-      receiverId,
-      offeredCardId,
-      offeredCardKey,
-      offeredRarity,
-      wantedCardKey,
-      wantedCardName: wantedCardName ?? null,
-      wantedRarity:   wantedRarity   ?? null,
-      message:        message        ?? null,
-      expiresAt,
-    })
+    .values({ senderId: session.user.id, receiverId, offeredCardKey, offeredRarity, wantedCardKey, wantedCardName: wantedCardName ?? null, wantedRarity: wantedRarity ?? null, message: message ?? null, expiresAt })
     .returning()
 
   return NextResponse.json(row)

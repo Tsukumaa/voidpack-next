@@ -7,9 +7,10 @@ import { FloatingChat } from '@/components/layout/FloatingChat'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
-  const { setPendingFriendCount, setUnreadMessageCount, addToast } = useSocialStore()
+  const { setPendingFriendCount, setUnreadMessageCount, setPendingTradeCount, addToast } = useSocialStore()
   const prevCountRef   = useRef<number>(-1)
   const prevUnreadRef  = useRef<number>(0)
+  const prevTradeRef   = useRef<number>(0)
 
   useEffect(() => {
     if (!user) return
@@ -44,10 +45,24 @@ export function GlobalOverlay() {
 
     checkPending()
     checkUnread()
+    async function checkTrades() {
+      const data = await fetch('/api/trade?status=pending').then(r => r.ok ? r.json() : []).catch(() => [])
+      const incoming = (data as { receiverId: string }[]).filter(t => t.receiverId === user!.id).length
+      setPendingTradeCount(incoming)
+      if (prevTradeRef.current >= 0 && incoming > prevTradeRef.current) {
+        addToast({ type: 'info', title: '🔄 Nouveau trade reçu', body: 'Quelqu\'un te propose un échange.', action: { label: 'Voir', href: '/trade' } })
+      }
+      prevTradeRef.current = incoming
+    }
+
+    checkPending()
+    checkUnread()
+    checkTrades()
     const i1 = setInterval(checkPending, 30_000)
     const i2 = setInterval(checkUnread, 10_000)
-    return () => { clearInterval(i1); clearInterval(i2) }
-  }, [user, setPendingFriendCount, setUnreadMessageCount, addToast])
+    const i3 = setInterval(checkTrades, 30_000)
+    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3) }
+  }, [user, setPendingFriendCount, setUnreadMessageCount, setPendingTradeCount, addToast])
 
   return (
     <>

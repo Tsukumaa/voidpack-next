@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { PackageOpen, Library, Users, User } from 'lucide-react'
+import { PackageOpen, Library, Users, User, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -10,18 +10,20 @@ import { useGameStore } from '@/store/game'
 export function BottomNav() {
   const pathname           = usePathname()
   const user               = useGameStore(s => s.user)
-  const pendingFriendCount = useSocialStore(s => s.pendingFriendCount)
+  const pendingFriendCount  = useSocialStore(s => s.pendingFriendCount)
+  const pendingTradeCount   = useSocialStore(s => s.pendingTradeCount)
 
   const TABS = [
-    { href: '/pack',        label: 'Pack',       icon: <PackageOpen size={20} />, badge: 0 },
-    { href: '/collection',  label: 'Cartes',      icon: <Library size={20} />,    badge: 0 },
-    { href: '/communaute',  label: 'Communauté',  icon: <Users size={20} />,      badge: user ? pendingFriendCount : 0 },
-    { href: '/profil',      label: 'Profil',      icon: <User size={20} />,       badge: 0 },
+    { href: '/pack',        label: 'Pack',       icon: <PackageOpen size={20} />,    badge: 0 },
+    { href: '/collection',  label: 'Cartes',      icon: <Library size={20} />,        badge: 0 },
+    { href: '/communaute',  label: 'Communauté',  icon: <Users size={20} />,          badge: user ? pendingFriendCount : 0 },
+    { href: '/trade',       label: 'Trades',      icon: <ArrowLeftRight size={20} />, badge: user ? pendingTradeCount : 0 },
+    { href: '/profil',      label: 'Profil',      icon: <User size={20} />,           badge: 0 },
   ]
 
   return (
     <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[520px]">
-      <div className="grid grid-cols-4 gap-2 p-2.5 rounded-[26px] bg-[rgba(8,10,18,0.82)] backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.6)]">
+      <div className="grid grid-cols-5 gap-2 p-2.5 rounded-[26px] bg-[rgba(8,10,18,0.82)] backdrop-blur-2xl shadow-[0_16px_50px_rgba(0,0,0,0.6)]">
         {TABS.map(tab => {
           const isActive = pathname.startsWith(tab.href)
           return (
