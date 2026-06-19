@@ -7,7 +7,7 @@ const ROLES: Record<
   { label: string; color: string; Icon: React.ElementType }
 > = {
   founder:   { label: 'Fondateur',   color: '#9b59b6', Icon: Crown   },
-  developer: { label: 'Développeur', color: '#ff0000', Icon: Code2   },
+  developer: { label: 'Développeur', color: '#e23030', Icon: Code2   },
   artist:    { label: 'Artiste',     color: '#55a84d', Icon: Palette  },
 }
 
