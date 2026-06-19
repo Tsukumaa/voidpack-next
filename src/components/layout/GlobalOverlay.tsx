@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGameStore } from '@/store/game'
 import { useSocialStore } from '@/store/social'
 import { ToastOverlay } from '@/components/layout/ToastOverlay'
 import { ChatPanel } from '@/components/layout/ChatPanel'
+import { ChallengePopup, type PendingChallenge } from '@/components/layout/ChallengePopup'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
@@ -12,6 +13,7 @@ export function GlobalOverlay() {
   const prevUnreadRef  = useRef<number>(0)
   const prevTradeRef   = useRef<number>(0)
   const seenChallenges = useRef<Set<string>>(new Set())
+  const [activeChallenge, setActiveChallenge] = useState<PendingChallenge | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -52,14 +54,14 @@ export function GlobalOverlay() {
 
     async function checkChallenges() {
       const data = await fetch('/api/combat/challenges?status=pending').then(r => r.ok ? r.json() : []).catch(() => [])
-      for (const c of (data as { id: string; challengerUsername?: string | null }[])) {
+      for (const c of (data as { id: string; challengerId: string; challengerUsername?: string | null }[])) {
         if (seenChallenges.current.has(c.id)) continue
         seenChallenges.current.add(c.id)
-        addToast({
-          type: 'info',
-          title: '⚔️ Défi de combat reçu !',
-          body: c.challengerUsername ? `${c.challengerUsername} te défie en duel.` : 'Quelqu\'un te défie en duel.',
-          action: { label: 'Voir le défi', href: '/communaute' },
+        // Popup modale immédiate
+        setActiveChallenge({
+          id: c.id,
+          challengerId: c.challengerId,
+          challengerUsername: c.challengerUsername ?? null,
         })
       }
     }
@@ -77,7 +79,7 @@ export function GlobalOverlay() {
     const i2 = setInterval(checkUnread, 10_000)
     const i3 = setInterval(checkTrades, 30_000)
     const i4 = setInterval(pingPresence, 60_000)
-    const i5 = setInterval(checkChallenges, 15_000)
+    const i5 = setInterval(checkChallenges, 5_000)
     return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4); clearInterval(i5) }
   }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast])
 
@@ -85,6 +87,12 @@ export function GlobalOverlay() {
     <>
       <ToastOverlay />
       <ChatPanel />
+      {activeChallenge && (
+        <ChallengePopup
+          challenge={activeChallenge}
+          onDone={() => setActiveChallenge(null)}
+        />
+      )}
     </>
   )
 }

@@ -55,6 +55,7 @@ function DraftContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const isFriendly   = searchParams.get('mode') === 'friendly'
+  const challengeId  = searchParams.get('challenge')
   const challengedFriend = isFriendly
     ? JSON.parse(sessionStorage.getItem('challenge_friend') ?? 'null') as { id: string; username: string } | null
     : null
@@ -179,9 +180,27 @@ function DraftContent() {
     return deck
   }
 
-  function handleQueue() {
+  async function handleQueue() {
     if (totalCards < DECK_SIZE || manaOver) return
-    sessionStorage.setItem('draft_deck', JSON.stringify(buildDeckPayload()))
+    const deck = buildDeckPayload()
+    sessionStorage.setItem('draft_deck', JSON.stringify(deck))
+
+    // Réponse à un défi direct → accepter le challenge et rejoindre
+    if (challengeId) {
+      const res = await fetch(`/api/combat/challenges/${challengeId}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deck }),
+      })
+      if (res.ok) {
+        const { sessionId } = await res.json()
+        sessionStorage.removeItem('draft_deck')
+        sessionStorage.removeItem('pending_challenge_id')
+        router.push(`/combat/${sessionId}`)
+      }
+      return
+    }
+
     router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')
   }
 
