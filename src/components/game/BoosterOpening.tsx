@@ -28,6 +28,8 @@ interface Props {
   onClose: () => void
   onOpenAnother?: () => void
   canOpenAnother?: boolean
+  onCancel?: () => void
+  creditId?: number | string | null
 }
 
 const RARITY_COLOR: Record<string, string> = {
@@ -61,7 +63,7 @@ type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
 type CardPhase = 'back'|'suspense'|'revealed'|'hiding'
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
-function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpenAnother, canOpenAnother }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void; onOpenAnother?: () => void; canOpenAnother?: boolean }) {
+function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpenAnother, canOpenAnother, creditId }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void; onOpenAnother?: () => void; canOpenAnother?: boolean; creditId?: number | string | null }) {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
   const { checkAfterPackOpen } = useAchievements()
   const [selected, setSelected] = useState<Card | null>(null)
@@ -80,6 +82,16 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
     if (!user || saving || saved) return
     setSaving(true)
     try {
+      // Claim le booster maintenant (annuler avant cette étape ne retire rien)
+      if (creditId) {
+        const claimRes = await fetch('/api/booster/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: Number(creditId) }),
+        })
+        if (!claimRes.ok) throw new Error('claim error')
+      }
+
       // Save cards
       await fetch('/api/collection', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -284,7 +296,7 @@ const DEFAULT_CARD_BACK = {
   imageUrl: null as string | null,
 }
 
-export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose, onOpenAnother, canOpenAnother }: Props) {
+export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', onClose, onOpenAnother, canOpenAnother, onCancel, creditId }: Props) {
   const profile = useGameStore(s => s.profile)
   const setProfileStore = useGameStore(s => s.setProfile)
   const [cardBack, setCardBack] = useState(DEFAULT_CARD_BACK)
@@ -477,7 +489,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     }
   }, [autoReveal, phase, cardPhase, cardIndex, rarity, handleCardTap])
 
-  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} onOpenAnother={onOpenAnother} canOpenAnother={canOpenAnother} />
+  if (phase === 'results') return <ResultsScreen cards={cards} boosterType={boosterType ?? 'void'} newCardIds={newCardIds} onClose={onClose} onOpenAnother={onOpenAnother} canOpenAnother={canOpenAnother} creditId={creditId} />
 
   return (
     <div
@@ -516,6 +528,15 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
             <Zap size={14} className={autoReveal ? 'text-[#a855f7]' : ''} />
             Révélation auto · {autoReveal ? 'ON' : 'OFF'}
           </button>
+
+          {phase === 'idle' && onCancel && (
+            <button
+              onClick={e => { e.stopPropagation(); onCancel() }}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+            >
+              Annuler l'ouverture
+            </button>
+          )}
         </div>
       )}
 

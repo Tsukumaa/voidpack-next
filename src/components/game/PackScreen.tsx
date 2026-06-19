@@ -40,6 +40,7 @@ export function PackScreen() {
 
   const [loading, setLoading] = useState(false)
   const [openedCards, setOpenedCards] = useState<CardResult[] | null>(null)
+  const [openedCreditId, setOpenedCreditId] = useState<string | null>(null)
   const [openSeq, setOpenSeq] = useState(0)
   const [openedType, setOpenedType] = useState<string>('void')
   const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/dos.png')
@@ -112,14 +113,6 @@ export function PackScreen() {
     setLoading(true)
 
     try {
-      const claimRes = await fetch('/api/booster/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: credit.id }),
-      })
-
-      if (!claimRes.ok) throw new Error('claim error')
-
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,16 +126,15 @@ export function PackScreen() {
       setOpenedType(type)
       setOpenedImageUrl(boosterImages[type] || '/assets/dos.png')
       setOpenedCards(cards as CardResult[])
+      setOpenedCreditId(String(credit.id))
       setOpenSeq(n => n + 1)
-
-      removePendingCredit(credit.id)
     } catch (e) {
       console.error(e)
       loadCredits()
     } finally {
       setLoading(false)
     }
-  }, [loading, user, removePendingCredit, loadCredits, boosterImages])
+  }, [loading, user, loadCredits, boosterImages])
 
   const imgFor = (type: string) => boosterImages[type] || '/assets/dos.png'
 
@@ -154,12 +146,11 @@ export function PackScreen() {
           cards={openedCards}
           boosterImageUrl={openedImageUrl}
           boosterType={openedType}
+          creditId={openedCreditId}
           onOpenAnother={handleOpen}
           canOpenAnother={hasCredits}
-          onClose={() => {
-            setOpenedCards(null)
-            loadCredits()
-          }}
+          onCancel={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
+          onClose={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
         />
       )}
 
