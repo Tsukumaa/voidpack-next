@@ -21,6 +21,15 @@ interface FriendPreview {
   lastAt: string | null
   lastFromMe: boolean
   unread: number
+  lastSeenAt: string | null
+}
+
+function onlineStatus(lastSeenAt: string | null): { label: string; color: string } | null {
+  if (!lastSeenAt) return null
+  const diff = Date.now() - new Date(lastSeenAt.includes('T') ? lastSeenAt : lastSeenAt.replace(' ', 'T') + 'Z').getTime()
+  if (diff < 5 * 60_000)  return { label: 'En ligne',    color: '#22c55e' }
+  if (diff < 30 * 60_000) return { label: 'Récemment',   color: '#f59e0b' }
+  return null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -167,7 +176,14 @@ function Conversation({ friend, myId, myProfile, onBack }: {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-bold text-white leading-none">{friend.username}</p>
-          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(168,85,247,.6)' }}>Ami · En ligne</p>
+          {(() => {
+            const status = onlineStatus(friend.lastSeenAt)
+            return (
+              <p className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: 'rgba(168,85,247,.6)' }}>
+                Ami{status && <><span>·</span><span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: status.color }} /><span style={{ color: status.color }}>{status.label}</span></>}
+              </p>
+            )
+          })()}
         </div>
       </div>
 

@@ -56,13 +56,19 @@ export function GlobalOverlay() {
       prevTradeRef.current = incoming
     }
 
+    function pingPresence() {
+      fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
+    }
+
     checkPending()
     checkUnread()
     checkTrades()
+    pingPresence()
     const i1 = setInterval(checkPending, 30_000)
     const i2 = setInterval(checkUnread, 10_000)
     const i3 = setInterval(checkTrades, 30_000)
-    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3) }
+    const i4 = setInterval(pingPresence, 60_000)
+    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4) }
   }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast])
 
   return (

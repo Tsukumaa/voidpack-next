@@ -49,6 +49,8 @@ export async function GET() {
       ))
 
     const profile = profiles.find(p => p.userId === fid)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lastSeenAt = (profile as any)?.lastSeenAt ?? (profile as any)?.last_seen_at ?? null
     return {
       friendId:    fid,
       username:    profile?.username ?? null,
@@ -57,6 +59,7 @@ export async function GET() {
       lastAt:      lastMsg?.createdAt ?? null,
       lastFromMe:  lastMsg?.senderId === uid,
       unread:      unreadRows.length,
+      lastSeenAt,
     }
   }))
 
