@@ -14,22 +14,32 @@ export function getMyRole()  { return _myRole; }
 export function getSession() { return _session; }
 export function isMyTurn() {
   if (!_session || !_myRole) return false;
-  const myId = _myRole === 'player1' ? _session.player1_id : _session.player2_id;
-  return _session.current_turn === myId;
+  const myId = _myRole === 'player1' ? _session.player1Id : _session.player2Id;
+  return _session.currentTurn === myId;
 }
 
 export function getOpponentId() {
   if (!_session || !_myRole) return null;
-  return _myRole === 'player1' ? _session.player2_id : _session.player1_id;
+  return _myRole === 'player1' ? _session.player2Id : _session.player1Id;
 }
 
 export function getMyId() {
   if (!_session || !_myRole) return null;
-  return _myRole === 'player1' ? _session.player1_id : _session.player2_id;
+  return _myRole === 'player1' ? _session.player1Id : _session.player2Id;
 }
 
 export function onSessionUpdate(cb) { _onUpdate = cb; }
 export function onOpponentAction(cb) { _onAction = cb; }
+
+// Initialise une session déjà existante (page combat ouverte directement / refresh / join)
+// et démarre le polling. Détermine le rôle à partir de l'id du joueur courant.
+export function initSession(session, userId) {
+  _session = session;
+  _myRole  = session.player1Id === userId ? 'player1' : 'player2';
+  _lastActionSeq = 0;
+  _startPolling(session.id);
+  return _myRole;
+}
 
 // ── Matchmaking ───────────────────────────────────────────────────────
 
@@ -105,7 +115,7 @@ function _startPolling(sessionId) {
         const myId = getMyId();
         for (const action of actions) {
           if (action.seq > _lastActionSeq) _lastActionSeq = action.seq;
-          if (action.player_id !== myId) _onAction?.(action);
+          if (action.playerId !== myId) _onAction?.(action);
         }
       }
     } catch {}
@@ -135,10 +145,11 @@ export async function surrender() {
 }
 
 export async function finishGame(winnerId) {
-  const res = await fetch(`/api/combat/session/${_session.id}/finish`, {
+  if (!_session) return;
+  const res = await fetch('/api/combat/result', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ winnerId }),
+    body:    JSON.stringify({ sessionId: _session.id, winnerId }),
   });
   if (!res.ok) throw new Error(await res.text());
 }

@@ -444,7 +444,7 @@ export function ChatPanel() {
                   friendId: chatFriend.friend_id,
                   username: chatFriend.username,
                   avatarUrl: chatFriend.avatar_url,
-                  lastMessage: null, lastAt: null, lastFromMe: false, unread: 0,
+                  lastMessage: null, lastAt: null, lastFromMe: false, unread: 0, lastSeenAt: null,
                 }}
                 myId={user.id}
                 myProfile={{ username: profile?.username, avatar_url: profile?.avatar_url }}

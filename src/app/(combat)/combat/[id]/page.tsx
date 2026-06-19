@@ -6,7 +6,7 @@ import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 import {
   onSessionUpdate, onOpponentAction, submitAction,
   endTurn, surrender, finishGame, cleanupSession,
-  getMyRole, isMyTurn, initSession,
+  initSession,
 } from '@/lib/game/combat-multiplayer'
 
 interface GameState {
@@ -27,7 +27,6 @@ export default function CombatPage() {
   const { user, profile } = useGameStore(s => ({ user: s.user, profile: s.profile }))
 
   const [gameState, setGameState] = useState<GameState | null>(null)
-  const [session, setSession]     = useState<Record<string, unknown> | null>(null)
   const [myTurn, setMyTurn]       = useState(false)
   const [role, setRole]           = useState<'player1' | 'player2' | null>(null)
   const [loading, setLoading]     = useState(true)
@@ -37,31 +36,33 @@ export default function CombatPage() {
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
 
   const syncState = useCallback((sess: Record<string, unknown>) => {
-    const state = sess.state as GameState
-    setSession(sess)
+    if (!user) return
+    let state = sess.state as GameState
+    if (typeof state === 'string') { try { state = JSON.parse(state) } catch { /* noop */ } }
     setGameState(state)
-    setMyTurn(isMyTurn())
-    setRole(getMyRole())
+    setRole(sess.player1Id === user.id ? 'player1' : 'player2')
+    setMyTurn(sess.currentTurn === user.id)
+    // Fin de partie : soit via l'état local, soit via la session persistée (adversaire)
     if (state?.winner) setGameOver({ winner: state.winner })
-  }, [])
+    else if (sess.status === 'finished' && sess.winnerId) setGameOver({ winner: sess.winnerId as string })
+  }, [user])
 
   useEffect(() => {
     if (!user) return
+    onSessionUpdate((sess: Record<string, unknown>) => syncState(sess))
+    onOpponentAction((action: { actionType: string }) => addLog(`Adversaire : ${action.actionType}`))
 
     fetch(`/api/combat/session/${id}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data) return
+        if (!data) { setLoading(false); return }
         // Init le module multiplayer avec la session (rôle + polling)
         initSession(data, user.id)
 
         // Distribuer les mains si elles sont vides (début de partie)
         const state = typeof data.state === 'string' ? JSON.parse(data.state) : data.state
-        const myRole = data.player1_id === user.id ? 'p1' : 'p2'
-        const oppRole = myRole === 'p1' ? 'p2' : 'p1'
-
         // Seul player1 distribue les mains (évite la race condition)
-        const isPlayer1 = data.player1_id === user.id
+        const isPlayer1 = data.player1Id === user.id
         if (isPlayer1 && (state.p1_hand?.length ?? 0) === 0 && (state.p1_deck?.length ?? 0) > 0) {
           const p1Deck = [...(state.p1_deck ?? [])]
           const p2Deck = [...(state.p2_deck ?? [])]
@@ -88,8 +89,6 @@ export default function CombatPage() {
         setLoading(false)
       })
 
-    onSessionUpdate((sess: Record<string, unknown>) => syncState(sess))
-    onOpponentAction((action: { action_type: string }) => addLog(`Adversaire : ${action.action_type}`))
     return () => { cleanupSession() }
   }, [user, id, syncState, addLog])
 
@@ -104,8 +103,6 @@ export default function CombatPage() {
   const myBoard   = (s?.[`${me}_board`]  as ArenaCard[]) ?? []
   const oppBoard  = (s?.[`${opp}_board`] as ArenaCard[]) ?? []
   const myHand    = (s?.[`${me}_hand`]   as ArenaCard[]) ?? []
-  const myDeck    = (s?.[`${me}_deck`]   as ArenaCard[]) ?? []
-  const oppHand   = (s?.[`${opp}_hand`]  as ArenaCard[]) ?? []
 
   async function playCard(card: ArenaCard) {
     if (!myTurn || !gameState) return
@@ -191,29 +188,20 @@ export default function CombatPage() {
     </div>
   )
 
-  const oppName = session
-    ? (role === 'player1'
-      ? (session as Record<string, unknown>).player2_username as string | undefined
-      : (session as Record<string, unknown>).player1_username as string | undefined)
-    : undefined
-
   return (
     <CombatArena
       myHp={myHp} oppHp={oppHp}
       myMana={myMana} myMaxMana={myMaxMana}
       myBoard={myBoard} oppBoard={oppBoard}
       myHand={myHand}
-      myDeckCount={myDeck.length}
-      oppHandCount={oppHand.length}
       myName={profile?.username ?? 'Moi'}
-      oppName={oppName ?? 'Adversaire'}
-      myAvatar={profile?.avatar_url ?? null}
+      oppName={'Adversaire'}
       myTurn={myTurn}
       onPlayCard={playCard}
       onAttack={handleAttack}
       onEndTurn={handleEndTurn}
       onSurrender={handleSurrender}
-      log={log}
+      log={log[0] ?? ''}
     />
   )
 }

@@ -47,11 +47,13 @@ function MatchmakingContent() {
           setStatus('waiting')
           timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
         },
-        onMatched: (data: { session_id: string }) => {
+        onMatched: (data: { session_id?: string; session?: { id: string } }) => {
+          const sid = data.session_id ?? data.session?.id
+          if (!sid) return
           setStatus('matched')
           clearInterval(timerRef.current!)
           sessionStorage.removeItem('draft_deck')
-          setTimeout(() => router.push(`/combat/${data.session_id}`), 800)
+          setTimeout(() => router.push(`/combat/${sid}`), 800)
         },
       })
     } catch (e: unknown) {

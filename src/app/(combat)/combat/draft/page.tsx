@@ -56,6 +56,7 @@ function DraftContent() {
   const searchParams = useSearchParams()
   const isFriendly   = searchParams.get('mode') === 'friendly'
   const challengeId  = searchParams.get('challenge')
+  const joinId       = searchParams.get('join')
   const challengedFriend = isFriendly
     ? JSON.parse(sessionStorage.getItem('challenge_friend') ?? 'null') as { id: string; username: string } | null
     : null
@@ -199,6 +200,17 @@ function DraftContent() {
         router.push(`/combat/${sessionId}`)
       }
       return
+    }
+
+    // Rejoindre une partie amicale existante (lien d'invitation)
+    if (joinId) {
+      const res = await fetch(`/api/combat/session/${joinId}/join`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deck }),
+      })
+      sessionStorage.removeItem('draft_deck')
+      if (res.ok) { router.push(`/combat/${joinId}`); return }
+      // sinon on retombe sur le flux normal
     }
 
     router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')

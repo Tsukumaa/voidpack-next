@@ -17,7 +17,8 @@ export default function JoinPage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) { setError('Session introuvable'); setStatus('error'); return }
-        if (data.player1_id === user.id) { router.replace(`/combat/${id}`); return }
+        if (data.player1Id === user.id) { router.replace(`/combat/${id}`); return }
+        if (data.player2Id === user.id) { router.replace(`/combat/${id}`); return }
         if (data.status !== 'waiting') { setError('Cette partie a déjà commencé'); setStatus('error'); return }
         setStatus('ready')
       })
