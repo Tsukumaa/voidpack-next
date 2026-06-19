@@ -496,11 +496,10 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       className={cn('fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700', shake && 'animate-[screenShake_.4s_ease-in-out]')}
       style={{ background: bgStyle }}
     >
-      {/* ── Croix fermer / annuler ── */}
       {phase === 'idle' && onCancel && (
         <button
           onClick={e => { e.stopPropagation(); onCancel() }}
-          className="absolute top-4 right-4 z-[120] w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 z-[120] w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-[#7b2bff]/30 hover:border-[#7b2bff]/50 transition-colors"
           aria-label="Annuler l'ouverture"
         >
           ✕
