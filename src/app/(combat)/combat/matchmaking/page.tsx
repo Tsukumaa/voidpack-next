@@ -78,10 +78,10 @@ function MatchmakingContent() {
       setSessionId(sess.id)
 
       if (friend) {
-        const joinUrl = `${window.location.origin}/combat/join/${sess.id}`
+        // Message structuré rendu comme une carte avec boutons Accepter/Refuser dans le chat
         await fetch('/api/social/messages', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ receiverId: friend.id, content: `⚔️ Je te défie en partie amicale ! Rejoins ici : ${joinUrl}` }),
+          body: JSON.stringify({ receiverId: friend.id, content: `[[duel:${sess.id}]]` }),
         })
       }
 

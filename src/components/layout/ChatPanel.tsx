@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
-import { Send, X, Search, ArrowLeft, MessageSquare } from 'lucide-react'
+import { Send, X, Search, ArrowLeft, MessageSquare, Swords } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -105,11 +106,54 @@ function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; 
         {f.lastMessage && (
           <p className="text-[11px] truncate" style={{ color: f.unread > 0 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)' }}>
             {f.lastFromMe && <span style={{ color: 'rgba(255,255,255,.25)' }}>Toi · </span>}
-            {f.lastMessage}
+            {parseDuel(f.lastMessage) ? '⚔️ Défi en duel' : f.lastMessage}
           </p>
         )}
       </div>
     </button>
+  )
+}
+
+// Détecte un message de défi : [[duel:SESSION_ID]]
+function parseDuel(content: string): string | null {
+  const m = content.match(/^\[\[duel:([0-9a-fA-F-]+)\]\]$/)
+  return m ? m[1] : null
+}
+
+// Carte de défi avec boutons Accepter / Refuser
+function DuelCard({ sessionId, isMe, onAccept, onDecline }: {
+  sessionId: string; isMe: boolean; onAccept: () => void; onDecline: () => void
+}) {
+  return (
+    <div className="rounded-2xl px-4 py-3 flex flex-col gap-2.5"
+      style={{ background: 'linear-gradient(135deg, rgba(123,43,255,.18), rgba(91,31,200,.12))', border: '1px solid rgba(123,43,255,.35)', minWidth: 200 }}>
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)', boxShadow: '0 0 12px rgba(123,43,255,.5)' }}>
+          <Swords size={16} className="text-white" />
+        </div>
+        <div className="leading-tight">
+          <p className="text-[13px] font-bold text-white">Défi en duel</p>
+          <p className="text-[11px] text-white/45">Partie amicale</p>
+        </div>
+      </div>
+      {isMe ? (
+        <p className="text-[11px] text-white/40 italic">En attente de sa réponse…</p>
+      ) : (
+        <div className="flex gap-2">
+          <button onClick={onAccept}
+            className="flex-1 py-1.5 rounded-xl text-[12px] font-bold text-white transition-all hover:brightness-110"
+            style={{ background: 'linear-gradient(135deg,#22c55e,#15803d)', boxShadow: '0 2px 10px rgba(34,197,94,.4)' }}>
+            Accepter
+          </button>
+          <button onClick={onDecline}
+            className="flex-1 py-1.5 rounded-xl text-[12px] font-bold text-white/70 transition-all hover:text-white"
+            style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)' }}>
+            Refuser
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -120,11 +164,25 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   myProfile: { username?: string | null; avatar_url?: string | null }
   onBack: () => void
 }) {
+  const router = useRouter()
+  const setChatPanelOpen = useSocialStore(s => s.setChatPanelOpen)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [sending, setSending]   = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
+
+  function acceptDuel(sessionId: string) {
+    setChatPanelOpen(false)
+    router.push(`/combat/join/${sessionId}`)
+  }
+  async function declineDuel() {
+    await fetch('/api/social/messages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiverId: friend.friendId, content: '❌ Défi refusé.' }),
+    })
+    load(true)
+  }
 
   const load = useCallback(async (scroll = false) => {
     const data: Message[] = await fetch(`/api/social/messages?with=${friend.friendId}&limit=60`)
@@ -219,7 +277,13 @@ function Conversation({ friend, myId, myProfile, onBack }: {
               </div>
 
               <div className={`flex flex-col gap-0.5 max-w-[72%] ${isMe ? 'items-end' : 'items-start'}`}>
-                {g.msgs.map((m, mi) => (
+                {g.msgs.map((m, mi) => {
+                  const duelId = parseDuel(m.content)
+                  if (duelId) return (
+                    <DuelCard key={m.id} sessionId={duelId} isMe={isMe}
+                      onAccept={() => acceptDuel(duelId)} onDecline={declineDuel} />
+                  )
+                  return (
                   <div key={m.id}
                     className={`px-3.5 py-2 text-[13px] leading-relaxed break-words ${
                       isMe
@@ -232,7 +296,8 @@ function Conversation({ friend, myId, myProfile, onBack }: {
                     }>
                     {m.content}
                   </div>
-                ))}
+                  )
+                })}
                 {/* Timestamp on last message of group */}
                 <span className="text-[10px] px-1 mt-0.5"
                   style={{ color: 'rgba(255,255,255,.18)' }}>
