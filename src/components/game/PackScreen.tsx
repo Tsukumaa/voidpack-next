@@ -8,6 +8,7 @@ import { useGameStore } from '@/store/game'
 import { useBoosterCredits } from '@/hooks/useBoosterCredits'
 import { cn } from '@/lib/utils'
 import { BoosterOpening } from './BoosterOpening'
+import { trackMissionProgress } from '@/lib/game/mission-tracker'
 import type { BoosterCredit } from '@/types/player'
 
 interface CardResult {
@@ -130,6 +131,12 @@ export function PackScreen() {
       setOpenedCards(cards as CardResult[])
       setOpenedCreditId(String(credit.id))
       setOpenSeq(n => n + 1)
+
+      if (user) {
+        trackMissionProgress(user.id, 'open_1_pack', 1)
+        trackMissionProgress(user.id, 'open_3_packs', 1)
+        if (type === 'void') trackMissionProgress(user.id, 'open_void_pack', 1)
+      }
     } catch (e) {
       console.error(e)
       loadCredits()

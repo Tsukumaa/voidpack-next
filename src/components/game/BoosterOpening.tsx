@@ -9,6 +9,7 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
+import { trackMissionProgress } from '@/lib/game/mission-tracker'
 
 interface Card {
   id: string
@@ -90,6 +91,15 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
           body: JSON.stringify({ id: Number(creditId) }),
         })
         if (!claimRes.ok) throw new Error('claim error')
+      }
+
+      // Track missions
+      if (user) {
+        const RARITY_RANK: Record<string, number> = { void: 4, legendary: 3, epic: 2, rare: 1, common: 0 }
+        const bestRank = cards.reduce((max, c) => Math.max(max, RARITY_RANK[c.rarity] ?? 0), 0)
+        trackMissionProgress(user.id, 'collect_5', cards.length)
+        if (bestRank >= 1) trackMissionProgress(user.id, 'get_rare', 1)
+        if (bestRank >= 2) trackMissionProgress(user.id, 'get_epic', 1)
       }
 
       // Save cards

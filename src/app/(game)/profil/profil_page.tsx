@@ -46,6 +46,12 @@ export default function ProfilPage() {
   const [claimMsg, setClaimMsg]         = useState('')
   const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   const todayMissions = getTodayMissions()
 
@@ -141,9 +147,12 @@ export default function ProfilPage() {
     finally { setClaimingMission(null) }
   }
 
-  const canClaim = daily?.last_claim_at
-    ? new Date().getTime() - new Date(daily.last_claim_at).getTime() > 20 * 3600 * 1000
-    : true
+  const lastClaimMs = daily?.last_claim_at ? new Date(daily.last_claim_at).getTime() : 0
+  const canClaim = now - lastClaimMs > 20 * 3600 * 1000
+  const msUntilClaim = Math.max(0, lastClaimMs + 20 * 3600 * 1000 - now)
+  const hUntil = Math.floor(msUntilClaim / 3600000)
+  const mUntil = Math.floor((msUntilClaim % 3600000) / 60000)
+  const nextClaimLabel = hUntil > 0 ? `${hUntil}h${mUntil.toString().padStart(2,'0')}` : `${mUntil}min`
 
   const level = profile?.level ?? 1
   const xp    = profile?.xp ?? 0
@@ -201,7 +210,7 @@ export default function ProfilPage() {
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {([
           { id: 'overview',     label: '📊 Vue d\'ensemble' },
-          { id: 'missions',     label: `🎯 Missions ${completedMissions > 0 ? `(${completedMissions}/${todayMissions.length})` : ''}` },
+          { id: 'missions',     label: `🎯 Missions ${completedMissions > 0 ? `· ${completedMissions}/${todayMissions.length}` : ''}` },
           { id: 'achievements', label: `🏆 Succès (${unlockedCount})` },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === 'missions') load() }}
@@ -215,27 +224,103 @@ export default function ProfilPage() {
       {activeTab === 'overview' && (
         <div className="space-y-3">
           {/* Daily reward */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-white font-bold text-sm">Récompense quotidienne</p>
-                <p className="text-white/40 text-xs mt-0.5">
-                  🔥 Streak : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
-                  {daily?.best_streak ? <span className="ml-2 text-white/30">· Record : {daily.best_streak}j</span> : null}
+          <div className="rounded-2xl border border-white/[0.07] overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(255,154,61,0.07) 0%, rgba(123,43,255,0.05) 100%)' }}>
+
+            {/* Streak header */}
+            <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+                style={{ background: 'rgba(255,154,61,0.15)', border: '1px solid rgba(255,154,61,0.25)' }}>
+                🔥
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-white font-black text-2xl leading-none">{daily?.current_streak ?? 0}</span>
+                  <span className="text-[#ff9a3d] font-bold text-sm">jour{(daily?.current_streak ?? 0) > 1 ? 's' : ''} d&apos;affilée</span>
+                </div>
+                <p className="text-white/30 text-xs mt-0.5">
+                  {daily?.best_streak ? `Record : ${daily.best_streak}j` : 'Reviens chaque jour !'}
                 </p>
               </div>
+              {!canClaim && (
+                <div className="text-right flex-shrink-0">
+                  <p className="text-white/30 text-[10px] uppercase tracking-wide">Prochain dans</p>
+                  <p className="text-[#ff9a3d] text-sm font-black">{nextClaimLabel}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Barre 7 jours */}
+            <div className="px-4 pb-3 flex gap-1.5">
+              {Array.from({ length: 7 }, (_, i) => {
+                const streak = daily?.current_streak ?? 0
+                const filled = i < (streak % 7 === 0 && streak > 0 ? 7 : streak % 7)
+                const isToday = i === (streak % 7 === 0 && streak > 0 ? 6 : (streak % 7) - 1) && streak > 0
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full h-1.5 rounded-full transition-all duration-300"
+                      style={{
+                        background: filled ? '#ff9a3d' : 'rgba(255,255,255,0.07)',
+                        boxShadow: isToday ? '0 0 6px rgba(255,154,61,0.6)' : 'none',
+                      }} />
+                    <span className="text-[9px] font-bold"
+                      style={{ color: filled ? 'rgba(255,154,61,0.7)' : 'rgba(255,255,255,0.15)' }}>
+                      {['L','M','M','J','V','S','D'][i]}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Claim button */}
+            <div className="px-4 pb-4">
               <button onClick={claimDaily} disabled={!canClaim || claiming}
-                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                style={canClaim ? { background:'linear-gradient(135deg,#7b2bff,#4a1fa8)', color:'white' } : { background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.3)' }}>
-                {claiming ? '…' : canClaim ? 'Réclamer' : '✓ Fait'}
+                className="w-full py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2"
+                style={canClaim
+                  ? { background: 'linear-gradient(135deg,#ff9a3d,#e07820)', color: 'white', boxShadow: '0 0 24px rgba(255,154,61,0.35)' }
+                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'default' }}>
+                {claiming ? '…' : canClaim ? '🎴 Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
+              </button>
+              {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
+            </div>
+          </div>
+
+          {/* Missions aperçu */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Missions du jour</p>
+              <button onClick={() => setActiveTab('missions')}
+                className="text-[#a78bfa] text-xs font-bold hover:text-white transition-colors">
+                Voir tout →
               </button>
             </div>
-            {claimMsg && <p className="text-xs text-[#00c896]">{claimMsg}</p>}
-            <div className="flex gap-1.5 mt-2">
-              {Array.from({ length: 7 }, (_, i) => (
-                <div key={i} className="flex-1 h-1.5 rounded-full"
-                  style={{ background: i < (daily?.current_streak ?? 0) ? '#ff9a3d' : 'rgba(255,255,255,0.08)' }} />
-              ))}
+            <div className="space-y-2">
+              {todayMissions.map(mission => {
+                const prog = missions.find(m => m.mission_id === mission.id)
+                const current = Math.min(prog?.progress ?? 0, mission.goal)
+                const completed = prog?.completed ?? false
+                const claimed = prog?.xp_claimed ?? false
+                const pct = Math.min(100, (current / mission.goal) * 100)
+                return (
+                  <div key={mission.id} className="flex items-center gap-3">
+                    <span className="text-base flex-shrink-0">{mission.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-white text-xs font-bold truncate">{mission.label}</span>
+                        <span className="text-[10px] flex-shrink-0 font-bold"
+                          style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
+                          {claimed ? '✓' : `+${mission.xp} XP`}
+                        </span>
+                      </div>
+                      <div className="h-1 rounded-full bg-white/[0.07] overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: claimed ? '#00c896' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-white/30 flex-shrink-0 w-8 text-right">{current}/{mission.goal}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
