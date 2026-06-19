@@ -66,13 +66,13 @@
 /* ── Hero bars ─────────────────────────────────────────────────────── */
 .ca-hero-bar {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
   padding: 6px 16px;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  height: 52px;
+  height: 68px;
 }
 .ca-hero-bar--opp {
   background: linear-gradient(0deg, transparent, rgba(200,40,40,.05));
@@ -85,48 +85,58 @@
 .ca-hero-bar--attackable { cursor: crosshair; }
 .ca-hero-bar--attackable .ca-hero-portrait {
   border-color: #ff3c3c !important;
-  box-shadow: 0 0 22px rgba(255,60,60,.65) !important;
+  box-shadow: 0 0 24px rgba(255,60,60,.7) !important;
   animation: ca-pulse-red-portrait .8s ease-in-out infinite;
 }
 
+/* Centred inner block – max 340px */
+.ca-hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+}
+
 .ca-hero-portrait {
-  width: 40px; height: 40px;
+  width: 52px; height: 52px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
+  font-size: 24px;
   flex-shrink: 0;
   transition: all .15s;
-  box-shadow: 0 0 14px rgba(123,43,255,.2), inset 0 1px 0 rgba(255,255,255,.08);
+  box-shadow: 0 0 18px rgba(123,43,255,.22), inset 0 1px 0 rgba(255,255,255,.08);
+  position: relative;
 }
 .ca-hero-portrait--opp {
-  background: radial-gradient(circle at 35% 35%, rgba(255,80,80,.18), rgba(8,3,26,.88));
-  border: 2px solid rgba(255,80,80,.2);
+  background: radial-gradient(circle at 35% 35%, rgba(255,80,80,.2), rgba(8,3,26,.9));
+  border: 2px solid rgba(255,80,80,.22);
 }
 .ca-hero-portrait--player {
-  background: radial-gradient(circle at 35% 35%, rgba(123,43,255,.22), rgba(8,3,26,.88));
-  border: 2px solid rgba(185,124,255,.28);
+  background: radial-gradient(circle at 35% 35%, rgba(123,43,255,.25), rgba(8,3,26,.9));
+  border: 2px solid rgba(185,124,255,.3);
 }
 
 .ca-hero-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 .ca-hero-name {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: rgba(255,255,255,.85);
+  color: rgba(255,255,255,.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: .06em;
 }
 .ca-hero-hpbar {
-  height: 8px;
-  background: rgba(0,0,0,.4);
+  height: 7px;
+  background: rgba(0,0,0,.45);
   border-radius: 99px;
   overflow: hidden;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
@@ -145,19 +155,24 @@
   background: rgba(255,255,255,.2);
 }
 
+/* Big HP badge next to portrait */
 .ca-hero-hp-num {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   font-family: monospace;
   flex-shrink: 0;
-  text-align: right;
-  min-width: 44px;
-  text-shadow: 0 0 14px currentColor;
+  text-align: center;
+  min-width: 52px;
+  text-shadow: 0 0 16px currentColor;
   line-height: 1;
+  background: rgba(0,0,0,.35);
+  border-radius: 12px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,.06);
 }
 .ca-hero-hp-max {
-  font-size: 11px;
-  opacity: .4;
+  font-size: 12px;
+  opacity: .35;
   font-weight: 600;
 }
 
@@ -202,34 +217,30 @@
 }
 .ca-quit-btn:hover { background: rgba(255,60,60,.1); color: #ff6060; border-color: rgba(255,60,60,.38); }
 
-/* ── Boards ─────────────────────────────────────────────────────────── */
+/* ── Spacers (push boards toward center) ────────────────────────────── */
+.ca-spacer { flex: 1; min-height: 0; }
+
+/* ── Boards (fixed height = cards only) ─────────────────────────────── */
 .ca-board {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 8px 14px;
-  min-height: 0;
+  gap: clamp(10px, 1.2vw, 20px);
+  padding: 8px 16px;
+  height: clamp(210px, 27vh, 285px);
+  flex-shrink: 0;
   position: relative;
   overflow: visible;
 }
-@media (min-width: 768px) {
-  .ca-board { gap: 14px; }
-}
 .ca-board--enemy {
-  background: radial-gradient(ellipse 70% 90% at 50% 40%, rgba(255,40,40,.04) 0%, transparent 70%);
-  align-items: flex-end;
-  padding-bottom: 14px;
+  background: radial-gradient(ellipse 70% 80% at 50% 60%, rgba(255,40,40,.05) 0%, transparent 70%);
 }
 .ca-board--player {
-  background: radial-gradient(ellipse 70% 90% at 50% 60%, rgba(123,43,255,.05) 0%, transparent 70%);
-  align-items: flex-start;
-  padding-top: 14px;
+  background: radial-gradient(ellipse 70% 80% at 50% 40%, rgba(123,43,255,.06) 0%, transparent 70%);
 }
 .ca-board-empty {
   font-size: 12px;
-  color: rgba(100,60,255,.2);
+  color: rgba(100,60,255,.18);
   pointer-events: none;
   user-select: none;
   letter-spacing: .03em;
@@ -306,14 +317,11 @@
 /* ── Card wrapper ───────────────────────────────────────────────────── */
 .ca-cw {
   position: relative;
-  width: clamp(110px, 13vw, 165px);
+  width: clamp(140px, 16vw, 200px);
   aspect-ratio: 64 / 89;
   flex-shrink: 0;
   cursor: pointer;
   transition: transform .15s ease, filter .15s;
-}
-@media (min-width: 768px) {
-  .ca-board { gap: 18px; }
 }
 
 .ca-cw--enemy { cursor: default; }
@@ -330,13 +338,13 @@
 
 /* Hand-specific card sizing and fan layout */
 .ca-hand .ca-cw {
-  width: clamp(100px, 11.5vw, 148px);
-  margin-left: clamp(-28px, -2.5vw, -18px);
+  width: clamp(110px, 12vw, 160px);
+  margin-left: clamp(-32px, -3vw, -20px);
   transform-origin: bottom center;
 }
 .ca-hand .ca-cw:first-child { margin-left: 0; }
 .ca-hand .ca-cw--playable:hover {
-  transform: translateY(-36px) scale(1.14) !important;
+  transform: translateY(-38px) scale(1.14) !important;
   z-index: 20;
 }
 
@@ -359,7 +367,7 @@
   justify-content: center;
   align-items: flex-end;
   background: linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(8,3,26,.25) 100%);
-  height: clamp(158px, 20vh, 200px);
+  height: clamp(170px, 22vh, 215px);
   border-top: 1px solid rgba(123,43,255,.07);
   overflow-x: visible;
   overflow-y: visible;

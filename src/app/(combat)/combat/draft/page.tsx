@@ -411,7 +411,7 @@ function DraftContent() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-white/20 text-sm">Aucune carte trouvée.</div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2 px-2 pb-8">
+        <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11 gap-2 px-2 pb-8">
           {filtered.map(card => {
             const qty    = getQty(card.card_id)
             const max    = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
