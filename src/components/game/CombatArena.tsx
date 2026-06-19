@@ -109,6 +109,13 @@ function CombatCard({
         : <div className="ca-card-art-placeholder">✦</div>
       }
 
+      {/* Nom en haut */}
+      <div className="ca-card-name">{card.name}</div>
+
+      {/* Stats visibles : ATK bas-gauche, PV bas-droite */}
+      <div className="ca-card-stat ca-card-atk">{card.atk}</div>
+      <div className={`ca-card-stat ca-card-hp${card.currentHp < card.hp ? ' dmg' : ''}`}>{card.currentHp}</div>
+
       {/* HP bar at bottom */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, zIndex: 3,

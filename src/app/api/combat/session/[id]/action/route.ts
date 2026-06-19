@@ -31,6 +31,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     payload:    JSON.stringify(payload ?? {}),
   } as typeof gameActions.$inferInsert)
 
+  // Persiste l'état immédiatement pour les actions intra-tour (temps réel pour l'adversaire)
+  if ((actionType === 'play_card' || actionType === 'attack') && newState) {
+    await db.update(gameSessions)
+      .set({ state: JSON.stringify(newState), updatedAt: new Date().toISOString() })
+      .where(eq(gameSessions.id, id))
+  }
+
   // Update session state if end_turn
   if (actionType === 'end_turn' && newState) {
     const nextTurn = gameSession.currentTurn === gameSession.player1Id
