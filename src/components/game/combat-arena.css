@@ -68,19 +68,19 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px 16px;
+  padding: 8px 20px;
   flex-shrink: 0;
   position: relative;
-  z-index: 2;
-  height: 68px;
+  z-index: 4;
+  height: 76px;
 }
 .ca-hero-bar--opp {
-  background: linear-gradient(0deg, transparent, rgba(200,40,40,.05));
-  border-bottom: 1px solid rgba(255,50,50,.07);
+  background: linear-gradient(0deg, transparent, rgba(200,40,40,.06));
+  border-bottom: 1px solid rgba(255,50,50,.08);
 }
 .ca-hero-bar--player {
-  background: linear-gradient(180deg, transparent, rgba(100,40,200,.07));
-  border-top: 1px solid rgba(123,43,255,.1);
+  background: linear-gradient(180deg, transparent, rgba(100,40,200,.08));
+  border-top: 1px solid rgba(123,43,255,.12);
 }
 .ca-hero-bar--attackable { cursor: crosshair; }
 .ca-hero-bar--attackable .ca-hero-portrait {
@@ -89,13 +89,18 @@
   animation: ca-pulse-red-portrait .8s ease-in-out infinite;
 }
 
-/* Centred inner block – max 340px */
+/* Centred inner block */
 .ca-hero-inner {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
+}
+/* Player hero sits left-of-center to leave room for mana on the right */
+.ca-hero-bar--player .ca-hero-inner {
+  margin-right: auto;
+  margin-left: clamp(0px, 8vw, 140px);
 }
 
 .ca-hero-portrait {
@@ -176,67 +181,85 @@
   font-weight: 600;
 }
 
-/* Mana */
+/* Mana — dedicated block, far right of player hero bar */
+.ca-mana-block {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  z-index: 5;
+}
 .ca-mana-row {
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-top: 1px;
+  gap: 5px;
 }
 .ca-mana-crystal {
-  width: 11px; height: 11px;
-  border-radius: 2px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.06);
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
   transition: all .2s;
   flex-shrink: 0;
+  transform: rotate(45deg);
 }
 .ca-mana-crystal.active {
-  background: linear-gradient(135deg, #3366ff, #6644ff);
-  border-color: rgba(100,150,255,.4);
-  box-shadow: 0 0 5px rgba(68,102,255,.55);
+  background: linear-gradient(135deg, #3a7bff, #6644ff);
+  border-color: rgba(120,160,255,.6);
+  box-shadow: 0 0 8px rgba(68,102,255,.7);
 }
 .ca-mana-lbl {
-  font-size: 10px;
-  color: rgba(150,100,255,.5);
-  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7da8ff;
+  font-family: monospace;
+  text-shadow: 0 0 10px rgba(68,102,255,.6);
 }
 
 /* Quit button in hero bar */
 .ca-quit-btn {
-  padding: 6px 11px;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
   background: transparent;
   border: 1px solid rgba(255,100,100,.18);
   border-radius: 8px;
   color: rgba(255,100,100,.5);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   transition: all .12s;
+  z-index: 5;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .ca-quit-btn:hover { background: rgba(255,60,60,.1); color: #ff6060; border-color: rgba(255,60,60,.38); }
 
-/* ── Spacers (push boards toward center) ────────────────────────────── */
-.ca-spacer { flex: 1; min-height: 0; }
-
-/* ── Boards (fixed height = cards only) ─────────────────────────────── */
+/* ── Boards (flex:1, cards centered → fill space, breathe) ──────────── */
 .ca-board {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(10px, 1.2vw, 20px);
-  padding: 8px 16px;
-  height: clamp(210px, 27vh, 285px);
-  flex-shrink: 0;
+  gap: clamp(12px, 1.4vw, 24px);
+  padding: 10px 20px;
+  min-height: 0;
   position: relative;
   overflow: visible;
 }
 .ca-board--enemy {
-  background: radial-gradient(ellipse 70% 80% at 50% 60%, rgba(255,40,40,.05) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 75% at 50% 55%, rgba(255,40,40,.05) 0%, transparent 72%);
+  align-items: flex-end;
 }
 .ca-board--player {
-  background: radial-gradient(ellipse 70% 80% at 50% 40%, rgba(123,43,255,.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 75% at 50% 45%, rgba(123,43,255,.06) 0%, transparent 72%);
+  align-items: flex-start;
 }
 .ca-board-empty {
   font-size: 12px;
@@ -338,13 +361,13 @@
 
 /* Hand-specific card sizing and fan layout */
 .ca-hand .ca-cw {
-  width: clamp(110px, 12vw, 160px);
-  margin-left: clamp(-32px, -3vw, -20px);
+  width: clamp(100px, 11vw, 148px);
+  margin-left: clamp(-30px, -2.8vw, -18px);
   transform-origin: bottom center;
 }
 .ca-hand .ca-cw:first-child { margin-left: 0; }
 .ca-hand .ca-cw--playable:hover {
-  transform: translateY(-38px) scale(1.14) !important;
+  transform: translateY(-40px) scale(1.16) !important;
   z-index: 20;
 }
 
@@ -363,16 +386,16 @@
 /* ── Hand ───────────────────────────────────────────────────────────── */
 .ca-hand {
   display: flex;
-  padding: 8px 14px 10px;
+  padding: 10px 14px 12px;
   justify-content: center;
   align-items: flex-end;
-  background: linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(8,3,26,.25) 100%);
-  height: clamp(170px, 22vh, 215px);
+  background: linear-gradient(0deg, rgba(0,0,0,.65) 0%, rgba(8,3,26,.2) 100%);
+  height: clamp(165px, 22vh, 222px);
   border-top: 1px solid rgba(123,43,255,.07);
-  overflow-x: visible;
-  overflow-y: visible;
+  overflow: visible;
   position: relative;
   flex-shrink: 0;
+  z-index: 3;
 }
 .ca-hand-empty {
   font-size: 12px;

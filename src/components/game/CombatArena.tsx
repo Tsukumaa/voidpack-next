@@ -255,8 +255,6 @@ export function CombatArena({
           </div>
         </div>
 
-        <div className="ca-spacer" />
-
         {/* ── OPP BOARD ── */}
         <div className="ca-board ca-board--enemy">
           {oppBoard.length === 0 ? (
@@ -306,10 +304,10 @@ export function CombatArena({
           ))}
         </div>
 
-        <div className="ca-spacer" />
-
         {/* ── PLAYER HERO BAR ── */}
         <div className="ca-hero-bar ca-hero-bar--player">
+          <button className="ca-quit-btn" onClick={onSurrender} title="Quitter">✕</button>
+
           <div className="ca-hero-inner">
             <div className="ca-hero-portrait ca-hero-portrait--player" data-face-player>🔮</div>
             <div className="ca-hero-info">
@@ -317,17 +315,19 @@ export function CombatArena({
               <div className="ca-hero-hpbar">
                 <div className="ca-hero-hpfill" style={{ width: `${myHpPct * 100}%`, background: myHpColor(myHpPct) }} />
               </div>
-              <div className="ca-mana-row">
-                {Array.from({ length: Math.min(myMaxMana, 10) }).map((_, i) => (
-                  <span key={i} className={`ca-mana-crystal${i < myMana ? ' active' : ''}`} />
-                ))}
-                <span className="ca-mana-lbl">{myMana}/{myMaxMana}</span>
-              </div>
             </div>
             <div className="ca-hero-hp-num" style={{ color: myHpColor(myHpPct) }}>
               {Math.max(0, myHp)}<span className="ca-hero-hp-max">/30</span>
             </div>
-            <button className="ca-quit-btn" onClick={onSurrender}>✕</button>
+          </div>
+
+          <div className="ca-mana-block">
+            <div className="ca-mana-row">
+              {Array.from({ length: Math.min(myMaxMana, 10) }).map((_, i) => (
+                <span key={i} className={`ca-mana-crystal${i < myMana ? ' active' : ''}`} />
+              ))}
+            </div>
+            <span className="ca-mana-lbl">✦ {myMana}/{myMaxMana}</span>
           </div>
         </div>
 
