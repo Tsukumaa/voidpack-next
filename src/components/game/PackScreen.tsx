@@ -103,9 +103,11 @@ export function PackScreen() {
     touchStartX.current = null
   }
 
-  const handleOpen = useCallback(async () => {
+  const handleOpen = useCallback(async (excludeCreditId?: string) => {
     const type = activeTypeRef.current
-    const credits = activeCreditsRef.current
+    const credits = activeCreditsRef.current.filter(
+      c => !excludeCreditId || String(c.id) !== excludeCreditId
+    )
 
     if (loading || !user || !type || !credits.length) return
 
@@ -147,7 +149,7 @@ export function PackScreen() {
           boosterImageUrl={openedImageUrl}
           boosterType={openedType}
           creditId={openedCreditId}
-          onOpenAnother={handleOpen}
+          onOpenAnother={() => { removePendingCredit(Number(openedCreditId)); handleOpen(openedCreditId ?? undefined) }}
           canOpenAnother={hasCredits}
           onCancel={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
           onClose={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
@@ -189,7 +191,7 @@ export function PackScreen() {
 
               {/* PACK */}
               <button
-                onClick={handleOpen}
+                onClick={() => handleOpen()}
                 disabled={loading}
                 className={cn(
                   'relative flex flex-col items-center',
