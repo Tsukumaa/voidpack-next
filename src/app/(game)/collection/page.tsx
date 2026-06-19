@@ -305,7 +305,7 @@ export default function CollectionPage() {
                             style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center">
                             <Lock size={22} className="text-white/45" />
-                            <span className="text-white/75 text-[11px] font-bold leading-tight line-clamp-2">{card.name}</span>
+                            <span className="text-white/75 text-[11px] font-bold leading-tight line-clamp-2 uppercase">{card.name}</span>
                             <span className="text-white/35 text-[8px] font-bold uppercase tracking-widest">Pas encore découverte</span>
                           </div>
                         </div>

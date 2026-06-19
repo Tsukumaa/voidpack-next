@@ -99,7 +99,7 @@ function CardThumb({ name, imageUrl, rarity }: { name: string; imageUrl?: string
         }
       </div>
       <div>
-        <p className="text-white text-xs font-bold truncate max-w-[120px]">{name}</p>
+        <p className="text-white text-xs font-bold truncate max-w-[120px] uppercase">{name}</p>
         <RarityBadge rarity={rarity} />
       </div>
     </div>

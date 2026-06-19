@@ -124,7 +124,7 @@ function CombatCard({
 
       {/* Tooltip */}
       <div className="ca-tooltip">
-        <div className="ca-tooltip-name">{card.name}</div>
+        <div className="ca-tooltip-name uppercase">{card.name}</div>
         <div className="ca-tooltip-stats">
           <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {card.atk}</span>
           <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>

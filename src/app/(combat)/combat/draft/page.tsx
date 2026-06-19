@@ -361,7 +361,7 @@ function DraftContent() {
             {selected.map(({ card, qty }) => (
               <div key={card.card_id} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10"
                 style={{ background: RARITY_COLOR[card.rarity] + '15' }}>
-                <span className="text-[10px] font-bold" style={{ color: RARITY_COLOR[card.rarity] }}>{card.name}</span>
+                <span className="text-[10px] font-bold uppercase" style={{ color: RARITY_COLOR[card.rarity] }}>{card.name}</span>
                 {qty > 1 && <span className="text-[9px] text-white/40">×{qty}</span>}
                 <button onClick={() => remove(card.card_id)} className="text-white/30 hover:text-red-400 transition-colors ml-0.5">
                   <X size={9} />

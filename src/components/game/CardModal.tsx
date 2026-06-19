@@ -74,7 +74,7 @@ export function CardModal({ name, rarity, family, artUrl, description, artist, a
 
         {/* Infos */}
         <div className="text-center w-full space-y-1.5">
-          <p className="text-white font-black text-xl">{name}</p>
+          <p className="text-white font-black text-xl uppercase">{name}</p>
           <div className="flex items-center justify-center gap-3">
             <p className="text-sm font-bold uppercase tracking-widest" style={{ color }}>
               {rarity}
