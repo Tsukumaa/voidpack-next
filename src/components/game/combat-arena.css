@@ -1,5 +1,7 @@
 /* ── Root ──────────────────────────────────────────────────────────── */
 .ca-root {
+  /* Curseur épée (pointe en haut-gauche = hotspot 2 2) */
+  --ca-sword: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><line x1='5' y1='5' x2='22' y2='22' stroke='%23eef3fb' stroke-width='5' stroke-linecap='round'/><line x1='6' y1='6' x2='21' y2='21' stroke='%238793a3' stroke-width='1.6'/><polygon points='1,1 9,4 4,9' fill='%23ffffff' stroke='%23b9c4d6' stroke-width='.6'/><line x1='18' y1='27' x2='27' y2='18' stroke='%23f0c860' stroke-width='5' stroke-linecap='round'/><line x1='22' y1='22' x2='29' y2='29' stroke='%239a6a33' stroke-width='5' stroke-linecap='round'/><circle cx='30' cy='30' r='2.6' fill='%23d8b454'/></svg>") 2 2, crosshair;
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -82,7 +84,7 @@
   background: linear-gradient(180deg, transparent, rgba(100,40,200,.08));
   border-top: 1px solid rgba(123,43,255,.12);
 }
-.ca-hero-bar--attackable { cursor: crosshair; }
+.ca-hero-bar--attackable { cursor: var(--ca-sword); }
 .ca-hero-bar--attackable .ca-hero-portrait {
   border-color: #ff3c3c !important;
   box-shadow: 0 0 24px rgba(255,60,60,.7) !important;
@@ -353,7 +355,7 @@
 .ca-cw--can-attack:hover { transform: translateY(-12px) scale(1.07) !important; }
 .ca-cw--selected { transform: translateY(-14px) !important; }
 .ca-cw--attackable {
-  cursor: crosshair;
+  cursor: var(--ca-sword);
   animation: ca-pulse-red-card .8s ease-in-out infinite;
 }
 .ca-cw--locked { opacity: .32; cursor: not-allowed; }

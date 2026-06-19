@@ -180,23 +180,43 @@ export function CombatArena({
     ) as HTMLElement | null
   }
 
+  // Charge style Hearthstone : la carte fonce vers sa cible, frappe, puis revient
+  function lunge(atkEl: HTMLElement | null, tgtEl: HTMLElement | null, onContact: () => void) {
+    if (!atkEl || !tgtEl) { onContact(); return }
+    const a = atkEl.getBoundingClientRect()
+    const t = tgtEl.getBoundingClientRect()
+    const dx = (t.left + t.width / 2) - (a.left + a.width / 2)
+    const dy = (t.top  + t.height / 2) - (a.top  + a.height / 2)
+    const f = 0.78 // s'arrête juste avant la cible (effet d'impact)
+
+    atkEl.style.zIndex = '60'
+    atkEl.style.transition = 'transform .16s cubic-bezier(.55,0,.9,.45)'
+    atkEl.style.transform  = `translate(${dx * f}px, ${dy * f}px) scale(1.06)`
+
+    setTimeout(() => {
+      onContact()
+      atkEl.style.transition = 'transform .24s cubic-bezier(.2,.7,.4,1)'
+      atkEl.style.transform  = ''
+      setTimeout(() => { atkEl.style.zIndex = ''; atkEl.style.transition = '' }, 250)
+    }, 160)
+  }
+
   function handlePlayerAttack(attacker: ArenaCard, target: ArenaCard | 'face') {
     const atkEl = getCardEl(attacker.uid, false)
     const tgtEl = target === 'face'
       ? getFaceEl(true)
       : getCardEl((target as ArenaCard).uid, true)
 
-    shake(attacker.uid)
-    if (target !== 'face') shake((target as ArenaCard).uid)
-    spawnImpact(tgtEl)
-    const dmg = attacker.atk
-    setTimeout(() => {
-      spawnDmg(tgtEl, dmg)
-      if (target !== 'face') spawnDmg(atkEl, (target as ArenaCard).atk)
-    }, 150)
-
-    onAttack(attacker, target)
     setSelected(null)
+
+    lunge(atkEl, tgtEl, () => {
+      shake(attacker.uid)
+      if (target !== 'face') shake((target as ArenaCard).uid)
+      spawnImpact(tgtEl)
+      spawnDmg(tgtEl, attacker.atk)
+      if (target !== 'face') spawnDmg(atkEl, (target as ArenaCard).atk)
+      onAttack(attacker, target)
+    })
   }
 
   function handleBoardClick(card: ArenaCard, isEnemy: boolean) {
