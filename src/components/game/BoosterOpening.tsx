@@ -643,7 +643,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                 ✦ Nouvelle carte !
               </div>
             )}
-            <p className="text-white font-bold text-base">{currentCard.name}</p>
+            <p className="text-white font-bold text-base uppercase">{currentCard.name}</p>
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color:revealedColor||'#9ca3af' }}>
               {currentCard.rarity}
             </p>
