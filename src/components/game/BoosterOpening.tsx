@@ -241,7 +241,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
                   </div>
                 )}
                 {isNew && (
-                  <div className="absolute -top-2 left-1/2 z-20 whitespace-nowrap font-black text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full"
+                  <div className="absolute top-2 left-1/2 z-20 whitespace-nowrap font-black text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full"
                     style={{
                       transform:'translateX(-50%)',
                       background:'linear-gradient(90deg,#b45309,#f59e0b)',
