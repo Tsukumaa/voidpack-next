@@ -711,20 +711,6 @@ export default function CommunautePage() {
         <CreateTradeModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadTrades() }} />
       )}
 
-      {/* Bouton chat flottant */}
-      {friends.length > 0 && user && (
-        <div className="fixed bottom-24 right-16 z-40">
-          <button onClick={() => { setShowFriends(true); clearUnreadMessages(); fetch('/api/social/messages/unread', { method: 'POST' }) }}
-            className="relative w-12 h-12 rounded-full bg-[#7b2bff] shadow-lg shadow-[#7b2bff]/40 flex items-center justify-center hover:scale-105 transition-transform">
-            <MessageCircle size={20} className="text-white" />
-            {unreadMessageCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center shadow-md">
-                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   )
 }
