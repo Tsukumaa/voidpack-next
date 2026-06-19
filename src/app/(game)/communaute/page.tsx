@@ -437,7 +437,7 @@ export default function CommunautePage() {
 
       {/* Header */}
       <div
-        className="sticky top-0 z-20 mb-4 px-4 py-3 rounded-2xl border border-white/[0.07] backdrop-blur-md"
+        className="sticky top-14 z-20 mb-4 px-4 py-3 rounded-2xl border border-white/[0.07] backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}
       >
         {/* Titre + actions */}

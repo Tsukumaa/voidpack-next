@@ -499,7 +499,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       {phase === 'idle' && onCancel && (
         <button
           onClick={e => { e.stopPropagation(); onCancel() }}
-          className="absolute top-4 right-4 z-[120] w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-[#7b2bff]/30 hover:border-[#7b2bff]/50 transition-colors"
+          className="absolute top-4 right-4 z-[120] w-9 h-9 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-400/70 hover:text-red-300 hover:bg-red-900/40 hover:border-red-800/50 transition-colors"
           aria-label="Annuler l'ouverture"
         >
           ✕
