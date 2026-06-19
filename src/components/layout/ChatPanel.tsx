@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
 import { Send, X, Search, ArrowLeft, MessageSquare } from 'lucide-react'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -22,6 +23,7 @@ interface FriendPreview {
   lastFromMe: boolean
   unread: number
   lastSeenAt: string | null
+  role?: UserRole
 }
 
 function onlineStatus(lastSeenAt: string | null): { label: string; color: string } {
@@ -86,11 +88,14 @@ function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; 
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1 mb-0.5">
-          <span className={`text-[13px] font-bold truncate transition-colors ${
-            active ? 'text-white' : f.unread > 0 ? 'text-white' : 'text-white/55'
-          }`}>
-            {f.username ?? '???'}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`text-[13px] font-bold truncate transition-colors ${
+              active ? 'text-white' : f.unread > 0 ? 'text-white' : 'text-white/55'
+            }`}>
+              {f.username ?? '???'}
+            </span>
+            <RoleBadge role={f.role} />
+          </div>
           {f.lastAt && (
             <span className="text-[10px] flex-shrink-0" style={{ color: 'rgba(255,255,255,.2)' }}>
               {formatTime(f.lastAt)}
@@ -176,7 +181,10 @@ function Conversation({ friend, myId, myProfile, onBack }: {
           <Avatar src={friend.avatarUrl} name={friend.username} size={32} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-bold text-white leading-none">{friend.username}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[13px] font-bold text-white leading-none">{friend.username}</p>
+            <RoleBadge role={friend.role} />
+          </div>
           {(() => {
             const status = onlineStatus(friend.lastSeenAt)
             return (

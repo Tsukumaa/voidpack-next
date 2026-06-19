@@ -25,10 +25,10 @@ export async function GET() {
   // Get profiles (raw to include last_seen_at added via ALTER TABLE, outside Drizzle schema)
   const placeholders = friendIds.map(() => '?').join(', ')
   const profileResult = await dbClient.execute({
-    sql: `SELECT user_id, username, avatar_url, last_seen_at FROM player_profiles WHERE user_id IN (${placeholders})`,
+    sql: `SELECT user_id, username, avatar_url, last_seen_at, role FROM player_profiles WHERE user_id IN (${placeholders})`,
     args: friendIds,
   })
-  const profiles = profileResult.rows as unknown as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null }[]
+  const profiles = profileResult.rows as unknown as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null; role: string | null }[]
 
   // Get last message per friend + unread count
   const previews = await Promise.all(friendIds.map(async (fid) => {
@@ -61,6 +61,7 @@ export async function GET() {
       lastFromMe:  lastMsg?.senderId === uid,
       unread:      unreadRows.length,
       lastSeenAt:  profile?.last_seen_at ?? null,
+      role:        profile?.role ?? null,
     }
   }))
 
