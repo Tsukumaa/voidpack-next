@@ -47,7 +47,8 @@ export async function joinMatchmaking(deck, { onMatched, onWaiting } = {}) {
   const deckPayload = deck.map(e => ({
     id: e.id, name: e.name, rarity: e.rarity,
     family: e.family, qty: e.qty,
-    combat: e.metadata?.combat ?? { atk: 1, hp: 2, cost: 1, effects: [] },
+    image_url: e.image_url ?? e.artUrl ?? null,
+    metadata: e.metadata ?? { combat: e.combat ?? { atk: 1, hp: 2, cost: 1, effects: [] } },
   }));
 
   const res = await fetch('/api/combat/matchmaking', {

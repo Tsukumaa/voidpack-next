@@ -21,6 +21,26 @@ interface GameState {
   [key: string]: unknown
 }
 
+// Normalise une carte brute du deck en ArenaCard jouable (art + stats top-level + uid).
+// Gère les deux formes de deck : { combat:{...} } (matchmaking) et { metadata:{combat:{...}} } (draft).
+function toArenaCard(raw: Record<string, unknown>, idx: number): ArenaCard {
+  const combat = (raw.combat ?? (raw.metadata as Record<string, unknown>)?.combat ?? {}) as Record<string, number>
+  const hp = (raw.hp as number) ?? combat.hp ?? 1
+  return {
+    ...raw,
+    uid: `${raw.id}_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+    id: String(raw.id),
+    name: String(raw.name ?? '???'),
+    rarity: String(raw.rarity ?? 'common'),
+    atk: (raw.atk as number) ?? combat.atk ?? 1,
+    hp,
+    currentHp: (raw.currentHp as number) ?? hp,
+    cost: (raw.cost as number) ?? combat.cost ?? 1,
+    exhausted: false,
+    image_url: (raw.image_url as string) ?? (raw.artUrl as string) ?? null,
+  }
+}
+
 export default function CombatPage() {
   const { id } = useParams<{ id: string }>()
   const router  = useRouter()
@@ -32,6 +52,7 @@ export default function CombatPage() {
   const [loading, setLoading]     = useState(true)
   const [gameOver, setGameOver]   = useState<{ winner: string } | null>(null)
   const [log, setLog]             = useState<string[]>([])
+  const [oppName, setOppName]     = useState('Adversaire')
 
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
 
@@ -59,6 +80,10 @@ export default function CombatPage() {
         // Init le module multiplayer avec la session (rôle + polling)
         initSession(data, user.id)
 
+        // Nom de l'adversaire
+        const iAmP1 = data.player1Id === user.id
+        setOppName((iAmP1 ? data.player2Username : data.player1Username) || 'Adversaire')
+
         // Distribuer les mains si elles sont vides (début de partie)
         const state = typeof data.state === 'string' ? JSON.parse(data.state) : data.state
         // Seul player1 distribue les mains (évite la race condition)
@@ -66,8 +91,8 @@ export default function CombatPage() {
         if (isPlayer1 && (state.p1_hand?.length ?? 0) === 0 && (state.p1_deck?.length ?? 0) > 0) {
           const p1Deck = [...(state.p1_deck ?? [])]
           const p2Deck = [...(state.p2_deck ?? [])]
-          const draw = (deck: ArenaCard[], n: number) => {
-            const hand = deck.splice(0, n).map((c: ArenaCard, i: number) => ({ ...c, uid: `${c.id}_${Date.now()}_${i}` }))
+          const draw = (deck: Record<string, unknown>[], n: number) => {
+            const hand = deck.splice(0, n).map((c, i) => toArenaCard(c, i))
             return { hand, deck }
           }
           const p1 = draw(p1Deck, 4)
@@ -145,12 +170,18 @@ export default function CombatPage() {
 
   async function handleEndTurn() {
     if (!myTurn || !gameState) return
-    const newMaxMana = Math.min(10, myMaxMana + 1)
+    // L'adversaire pioche une carte au début de son tour
+    const oppDeck  = [...((gameState as Record<string, ArenaCard[]>)[`${opp}_deck`] ?? [])]
+    const oppHand  = [...((gameState as Record<string, ArenaCard[]>)[`${opp}_hand`] ?? [])]
+    const drawn    = oppDeck.length ? [toArenaCard(oppDeck.shift() as unknown as Record<string, unknown>, oppHand.length)] : []
+    const newMax   = Math.min(10, ((gameState as Record<string, number>)[`${opp}_max_mana`] ?? 0) + 1)
     const newState = {
       ...gameState,
-      [`${opp}_mana`]: Math.min(10, (gameState as Record<string, number>)[`${opp}_max_mana`] + 1),
-      [`${opp}_max_mana`]: Math.min(10, (gameState as Record<string, number>)[`${opp}_max_mana`] + 1),
-      [`${me}_board`]: myBoard.map(c => ({ ...c, exhausted: false })),
+      [`${opp}_mana`]: newMax,
+      [`${opp}_max_mana`]: newMax,
+      [`${opp}_hand`]: [...oppHand, ...drawn],
+      [`${opp}_deck`]: oppDeck,
+      [`${opp}_board`]: oppBoard.map(c => ({ ...c, exhausted: false })),
     }
     setGameState(newState)
     addLog('Fin de ton tour')
@@ -195,7 +226,7 @@ export default function CombatPage() {
       myBoard={myBoard} oppBoard={oppBoard}
       myHand={myHand}
       myName={profile?.username ?? 'Moi'}
-      oppName={'Adversaire'}
+      oppName={oppName}
       myTurn={myTurn}
       onPlayCard={playCard}
       onAttack={handleAttack}
