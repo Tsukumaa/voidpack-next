@@ -21,13 +21,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const now = new Date().toISOString()
 
+  const challengerDeck = typeof challenge.deck === 'string' ? JSON.parse(challenge.deck) : challenge.deck
+
+  const initialState = {
+    p1_hp: 30, p2_hp: 30,
+    p1_mana: 1, p1_max_mana: 1,
+    p2_mana: 0, p2_max_mana: 0,
+    p1_board: [], p2_board: [],
+    p1_deck: challengerDeck, p2_deck: deck ?? [],
+    p1_hand: [], p2_hand: [],
+    turn: 1, ranked: false,
+  }
+
   const [gameSession] = await db.insert(gameSessions)
     .values({
       player1Id:   challenge.challengerId,
       player2Id:   uid,
       status:      'active',
       currentTurn: challenge.challengerId,
-      state:       JSON.stringify({ p1Deck: JSON.parse(challenge.deck), p2Deck: deck ?? [] }),
+      state:       JSON.stringify(initialState),
       updatedAt:   now,
     })
     .returning()

@@ -13,6 +13,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const gameSession = await db.query.gameSessions.findFirst({ where: eq(gameSessions.id, id) })
   if (!gameSession) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  // deal_hands : action spéciale de début de partie, pas de vérification de tour
+  if (actionType === 'deal_hands' && newState) {
+    await db.update(gameSessions)
+      .set({ state: JSON.stringify(newState), updatedAt: new Date().toISOString() })
+      .where(eq(gameSessions.id, id))
+    return NextResponse.json({ ok: true })
+  }
+
   if (gameSession.currentTurn !== session.user.id) return NextResponse.json({ error: 'Not your turn' }, { status: 403 })
 
   // Insert action

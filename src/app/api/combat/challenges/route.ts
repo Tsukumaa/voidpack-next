@@ -19,7 +19,16 @@ export async function GET(req: NextRequest) {
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   })
 
-  return NextResponse.json(rows)
+  // Récupère les usernames des challengers
+  const challengers = rows.length
+    ? await db.query.playerProfiles.findMany({
+        where: (p, { inArray }) => inArray(p.userId, rows.map(r => r.challengerId)),
+        columns: { userId: true, username: true },
+      })
+    : []
+  const usernameMap = Object.fromEntries(challengers.map(c => [c.userId, c.username]))
+
+  return NextResponse.json(rows.map(r => ({ ...r, challengerUsername: usernameMap[r.challengerId] ?? null })))
 }
 
 export async function POST(req: NextRequest) {

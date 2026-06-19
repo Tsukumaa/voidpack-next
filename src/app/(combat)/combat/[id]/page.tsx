@@ -6,7 +6,7 @@ import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 import {
   onSessionUpdate, onOpponentAction, submitAction,
   endTurn, surrender, finishGame, cleanupSession,
-  getMyRole, isMyTurn,
+  getMyRole, isMyTurn, initSession,
 } from '@/lib/game/combat-multiplayer'
 
 interface GameState {
@@ -47,9 +47,46 @@ export default function CombatPage() {
 
   useEffect(() => {
     if (!user) return
+
     fetch(`/api/combat/session/${id}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) { syncState(data); setLoading(false) } })
+      .then(data => {
+        if (!data) return
+        // Init le module multiplayer avec la session (rôle + polling)
+        initSession(data, user.id)
+
+        // Distribuer les mains si elles sont vides (début de partie)
+        const state = typeof data.state === 'string' ? JSON.parse(data.state) : data.state
+        const myRole = data.player1_id === user.id ? 'p1' : 'p2'
+        const oppRole = myRole === 'p1' ? 'p2' : 'p1'
+
+        // Seul player1 distribue les mains (évite la race condition)
+        const isPlayer1 = data.player1_id === user.id
+        if (isPlayer1 && (state.p1_hand?.length ?? 0) === 0 && (state.p1_deck?.length ?? 0) > 0) {
+          const p1Deck = [...(state.p1_deck ?? [])]
+          const p2Deck = [...(state.p2_deck ?? [])]
+          const draw = (deck: ArenaCard[], n: number) => {
+            const hand = deck.splice(0, n).map((c: ArenaCard, i: number) => ({ ...c, uid: `${c.id}_${Date.now()}_${i}` }))
+            return { hand, deck }
+          }
+          const p1 = draw(p1Deck, 4)
+          const p2 = draw(p2Deck, 4)
+          const newState = {
+            ...state,
+            p1_hand: p1.hand, p1_deck: p1.deck,
+            p2_hand: p2.hand, p2_deck: p2.deck,
+          }
+          fetch(`/api/combat/session/${id}/action`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actionType: 'deal_hands', payload: {}, newState }),
+          }).catch(() => {})
+          syncState({ ...data, state: newState })
+        } else {
+          syncState(data)
+        }
+        setLoading(false)
+      })
 
     onSessionUpdate((sess: Record<string, unknown>) => syncState(sess))
     onOpponentAction((action: { action_type: string }) => addLog(`Adversaire : ${action.action_type}`))

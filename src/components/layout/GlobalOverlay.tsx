@@ -11,6 +11,7 @@ export function GlobalOverlay() {
   const prevCountRef   = useRef<number>(-1)
   const prevUnreadRef  = useRef<number>(0)
   const prevTradeRef   = useRef<number>(0)
+  const seenChallenges = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -19,12 +20,11 @@ export function GlobalOverlay() {
       const data = await fetch('/api/social/friends/pending').then(r => r.ok ? r.json() : []).catch(() => [])
       const count = Array.isArray(data) ? data.length : 0
       setPendingFriendCount(count)
-
       if (prevCountRef.current >= 0 && count > prevCountRef.current) {
         const newest = data[0]
         addToast({
           type: 'friend_request',
-          title: 'Demande d\'ami reçue',
+          title: "Demande d'ami reçue",
           body: newest?.username ? `${newest.username} veut t'ajouter en ami.` : undefined,
           action: { label: 'Voir', href: '/communaute' },
         })
@@ -37,29 +37,38 @@ export function GlobalOverlay() {
       const count = data.count ?? 0
       setUnreadMessageCount(count)
       setUnreadBySender(data.bySender ?? {})
-
-      if (prevUnreadRef.current < count) {
-        // toast géré par FloatingChat si chat ouvert — sinon pastille suffit
-      }
       prevUnreadRef.current = count
     }
 
-    checkPending()
-    checkUnread()
     async function checkTrades() {
       const data = await fetch('/api/trade?status=pending').then(r => r.ok ? r.json() : []).catch(() => [])
       const incoming = (data as { receiverId: string }[]).filter(t => t.receiverId === user!.id).length
       setPendingTradeCount(incoming)
       if (prevTradeRef.current >= 0 && incoming > prevTradeRef.current) {
-        addToast({ type: 'info', title: '🔄 Nouveau trade reçu', body: 'Quelqu\'un te propose un échange.', action: { label: 'Voir', href: '/communaute' } })
+        addToast({ type: 'info', title: '🔄 Nouveau trade reçu', body: "Quelqu'un te propose un échange.", action: { label: 'Voir', href: '/communaute' } })
       }
       prevTradeRef.current = incoming
+    }
+
+    async function checkChallenges() {
+      const data = await fetch('/api/combat/challenges?status=pending').then(r => r.ok ? r.json() : []).catch(() => [])
+      for (const c of (data as { id: string; challengerUsername?: string | null }[])) {
+        if (seenChallenges.current.has(c.id)) continue
+        seenChallenges.current.add(c.id)
+        addToast({
+          type: 'info',
+          title: '⚔️ Défi de combat reçu !',
+          body: c.challengerUsername ? `${c.challengerUsername} te défie en duel.` : 'Quelqu\'un te défie en duel.',
+          action: { label: 'Voir le défi', href: '/communaute' },
+        })
+      }
     }
 
     function pingPresence() {
       fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
     }
 
+    checkChallenges()
     checkPending()
     checkUnread()
     checkTrades()
@@ -68,7 +77,8 @@ export function GlobalOverlay() {
     const i2 = setInterval(checkUnread, 10_000)
     const i3 = setInterval(checkTrades, 30_000)
     const i4 = setInterval(pingPresence, 60_000)
-    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4) }
+    const i5 = setInterval(checkChallenges, 15_000)
+    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4); clearInterval(i5) }
   }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast])
 
   return (
