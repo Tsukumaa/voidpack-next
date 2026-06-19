@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { signIn } from 'next-auth/react'
 import { Link as LinkIcon, Coins } from 'lucide-react'
 import Image from 'next/image'
 import { useGameStore } from '@/store/game'
@@ -296,7 +297,9 @@ export function PackScreen() {
             {/* Panneau message */}
             <div
               className="flex flex-col items-center gap-3.5 px-7 py-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl w-[88vw] max-w-[340px]"
-              style={{ boxShadow: '0 0 45px rgba(123,43,255,0.18)' }}
+              style={{ boxShadow: '0 0 45px rgba(123,43,255,0.18)', cursor: !user ? 'pointer' : 'default' }}
+              onClick={!user ? () => signIn('discord') : undefined}
+              role={!user ? 'button' : undefined}
             >
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
