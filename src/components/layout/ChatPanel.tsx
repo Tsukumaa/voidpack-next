@@ -27,8 +27,8 @@ interface FriendPreview {
 function onlineStatus(lastSeenAt: string | null): { label: string; color: string } {
   if (lastSeenAt) {
     const diff = Date.now() - new Date(lastSeenAt.includes('T') ? lastSeenAt : lastSeenAt.replace(' ', 'T') + 'Z').getTime()
-    if (diff < 5 * 60_000)  return { label: 'En ligne',  color: '#22c55e' }
-    if (diff < 30 * 60_000) return { label: 'Récemment', color: '#f59e0b' }
+    if (diff < 1 * 60_000)  return { label: 'En ligne',  color: '#22c55e' }
+    if (diff < 5 * 60_000)  return { label: 'Récemment', color: '#f59e0b' }
   }
   return { label: 'Hors ligne', color: 'rgba(255,255,255,.3)' }
 }
