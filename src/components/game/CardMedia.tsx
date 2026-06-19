@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import Image from 'next/image'
 
 function isVideo(url: string) {
   return /\.(webm|mp4|ogg|mov)(\?.*)?$/i.test(url)
@@ -10,26 +9,9 @@ interface CardMediaProps {
   src: string
   alt: string
   className?: string
-  /** Tailles d'affichage pour que Next serve la bonne résolution. */
-  sizes?: string
-  /** Chargement prioritaire (carte focale : modale, reveal). */
-  priority?: boolean
 }
 
-const GPU: React.CSSProperties = {
-  transform: 'translateZ(0)',
-  willChange: 'transform',
-  backfaceVisibility: 'hidden',
-  WebkitBackfaceVisibility: 'hidden',
-}
-
-export function CardMedia({
-  src,
-  alt,
-  className = 'absolute inset-0 w-full h-full object-cover',
-  sizes = '(max-width: 768px) 50vw, 240px',
-  priority = false,
-}: CardMediaProps) {
+export function CardMedia({ src, alt, className = 'absolute inset-0 w-full h-full object-cover' }: CardMediaProps) {
   if (isVideo(src)) {
     return (
       <video
@@ -40,21 +22,10 @@ export function CardMedia({
         playsInline
         preload="metadata"
         className={className}
-        style={{ objectFit: 'cover', ...GPU }}
+        style={{ objectFit: 'cover' }}
       />
     )
   }
-
-  // next/image : redimensionnement automatique + AVIF/WebP + lazy par défaut.
-  // `fill` remplit le parent positionné (les cadres de carte le sont déjà).
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      sizes={sizes}
-      priority={priority}
-      className="object-cover"
-    />
-  )
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} />
 }

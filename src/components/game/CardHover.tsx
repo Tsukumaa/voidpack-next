@@ -24,6 +24,47 @@ const RARITY_SHIMMER: Record<string, string> = {
   common:    'none',
 }
 
+// ── Sprites de particules pré-rendus une seule fois (le glow est "cuit" dans une
+//    image, puis on ne fait que drawImage → plus aucun shadowBlur par frame). ──
+const STAR_BASE = 8
+const STAR_SIZE = 160
+const _starCache = new Map<string, HTMLCanvasElement>()
+function starSprite(color: string): HTMLCanvasElement {
+  let c = _starCache.get(color)
+  if (c) return c
+  c = document.createElement('canvas')
+  c.width = c.height = STAR_SIZE
+  const g = c.getContext('2d')!
+  g.translate(STAR_SIZE / 2, STAR_SIZE / 2)
+  g.fillStyle = color; g.shadowColor = color; g.shadowBlur = STAR_BASE * 8
+  g.beginPath()
+  for (let i = 0; i < 8; i++) {
+    const ang = (i/8)*Math.PI*2; const len = i%2===0 ? STAR_BASE : STAR_BASE*.28
+    i===0 ? g.moveTo(Math.cos(ang)*len, Math.sin(ang)*len) : g.lineTo(Math.cos(ang)*len, Math.sin(ang)*len)
+  }
+  g.closePath(); g.fill()
+  g.fillStyle = '#fff'; g.shadowBlur = STAR_BASE * 4
+  g.beginPath(); g.arc(0, 0, STAR_BASE*.3, 0, Math.PI*2); g.fill()
+  _starCache.set(color, c)
+  return c
+}
+
+const EMBER_BASE = 6
+const EMBER_SIZE = 120
+const _emberCache = new Map<string, HTMLCanvasElement>()
+function emberSprite(color: string): HTMLCanvasElement {
+  let c = _emberCache.get(color)
+  if (c) return c
+  c = document.createElement('canvas')
+  c.width = c.height = EMBER_SIZE
+  const g = c.getContext('2d')!
+  g.translate(EMBER_SIZE / 2, EMBER_SIZE / 2)
+  g.fillStyle = color; g.shadowColor = '#ffd700'; g.shadowBlur = EMBER_BASE * 5
+  g.beginPath(); g.arc(0, 0, EMBER_BASE, 0, Math.PI*2); g.fill()
+  _emberCache.set(color, c)
+  return c
+}
+
 export function CardHover({ rarity, children, className = '', style = {} }: CardHoverProps) {
   const cardRef  = useRef<HTMLDivElement>(null)
   const glowRef  = useRef<HTMLDivElement>(null)
@@ -37,6 +78,22 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
   const tiltRef = useRef({ rx: 0, ry: 0, scale: 1 })
   const glowBehindRef = useRef<HTMLDivElement>(null)
   const floatRafRef = useRef<number>(0)
+
+  // Optimisation transparente (rendu identique partout) : les animations sont
+  // mises en pause quand la carte est hors de l'écran. Sur une grille, seules
+  // les cartes visibles tournent — gros gain CPU sur PC comme sur mobile.
+  const [inView, setInView] = useState(true)
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: '120px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  const heavyFx = inView
 
   const currentTiltRef = useRef({ rx: 0, ry: 0, scale: 1 })
   function applyTransform(card: HTMLDivElement, t: number) {
@@ -57,7 +114,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
 
   // ── Void : boucle continue — float + glow respirant + application du tilt ──
   useEffect(() => {
-    if (!isVoid) return
+    if (!isVoid || !heavyFx) return
     const card = cardRef.current
     if (!card) return
     const cardEl: HTMLDivElement = card
@@ -74,11 +131,11 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [isVoid])
+  }, [isVoid, heavyFx])
 
   // Void étoiles canvas
   useEffect(() => {
-    if (!isVoid) return
+    if (!isVoid || !heavyFx) return
     const canvasEl = starCanvasRef.current
     const card = cardRef.current
     if (!canvasEl || !card) return
@@ -93,19 +150,16 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       speed: .007 + Math.random() * .013, vy: -.1 - Math.random() * .18,
       color: iridColors[Math.floor(Math.random()*iridColors.length)],
     }))
-    let t = 0, raf = 0
+    let t = 0, raf = 0, skip = 0
     function drawStar(x: number, y: number, r: number, a: number, color: string) {
-      ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y)
-      ctx.beginPath()
-      for (let i = 0; i < 8; i++) {
-        const ang = (i/8)*Math.PI*2; const len = i%2===0 ? r : r*.28
-        i===0 ? ctx.moveTo(Math.cos(ang)*len,Math.sin(ang)*len) : ctx.lineTo(Math.cos(ang)*len,Math.sin(ang)*len)
-      }
-      ctx.closePath(); ctx.fillStyle=color; ctx.shadowBlur=r*8; ctx.shadowColor=color; ctx.fill()
-      ctx.beginPath(); ctx.arc(0,0,r*.3,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.shadowBlur=r*4; ctx.fill()
-      ctx.restore()
+      const sp = starSprite(color)
+      const d = STAR_SIZE * (r / STAR_BASE)
+      ctx.globalAlpha = a
+      ctx.drawImage(sp, x - d/2, y - d/2, d, d)
     }
     function frame() {
+      raf = requestAnimationFrame(frame)
+      if (skip++ & 1) return
       t++; ctx.clearRect(0,0,canvas.width,canvas.height)
       const irid = hoveredRef.current
       for (const s of stars) {
@@ -114,11 +168,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         const alpha = .35+.55*Math.sin(t*s.speed+s.phase)
         drawStar(s.x, s.y, s.r, alpha, irid ? s.color : '#e9d5ff')
       }
-      raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [isVoid])
+  }, [isVoid, heavyFx])
 
   // Legendary braises canvas
   useEffect(() => {
@@ -133,8 +186,10 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     const colors = ['#ffd700','#ff8c00','#ffb347','#ffa500','#fffacd']
     type E = {x:number;y:number;vx:number;vy:number;r:number;life:number;decay:number;color:string;wobble:number}
     const embers: E[] = []
-    let st=0, raf=0
+    let st=0, raf=0, skip=0
     function frame() {
+      raf = requestAnimationFrame(frame)
+      if (skip++ & 1) return
       ctx.clearRect(0,0,canvas.width,canvas.height); st++
       if (st%7===0 && embers.length<20) embers.push({
         x:canvas.width*(.15+Math.random()*.7), y:canvas.height*(.55+Math.random()*.4),
@@ -146,10 +201,9 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         const e=embers[i]; e.wobble+=.03; e.x+=e.vx+Math.sin(e.wobble)*.2; e.y+=e.vy; e.life-=e.decay
         if(e.life<=0){embers.splice(i,1);continue}
         const r=Math.max(0,e.r*Math.sqrt(e.life))
-        ctx.save(); ctx.globalAlpha=e.life*.8; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2)
-        ctx.fillStyle=e.color; ctx.shadowBlur=r*5; ctx.shadowColor='#ffd700'; ctx.fill(); ctx.restore()
+        const sp=emberSprite(e.color); const d=EMBER_SIZE*(r/EMBER_BASE)
+        ctx.globalAlpha=e.life*.8; ctx.drawImage(sp, e.x-d/2, e.y-d/2, d, d)
       }
-      raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
     return () => { cancelAnimationFrame(raf); ctx.clearRect(0,0,canvas.width,canvas.height) }
@@ -220,14 +274,14 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
     if (glowRef.current) glowRef.current.style.opacity = '0'
     if (shimRef.current) shimRef.current.style.opacity = '0'
     if (holoRef.current) holoRef.current.style.opacity = '0'
-  }, [isVoid])
+  }, [isVoid, heavyFx])
 
   const onEnter = useCallback(() => {
     setHovered(true)
     hoveredRef.current = true
     const card = cardRef.current
     if (card && !isVoid) card.style.transition = 'transform 0.1s ease'
-  }, [isVoid])
+  }, [isVoid, heavyFx])
 
   if (rarity === 'common') {
     return (
