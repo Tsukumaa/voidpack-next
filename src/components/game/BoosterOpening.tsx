@@ -496,6 +496,17 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       className={cn('fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700', shake && 'animate-[screenShake_.4s_ease-in-out]')}
       style={{ background: bgStyle }}
     >
+      {/* ── Croix fermer / annuler ── */}
+      {phase === 'idle' && onCancel && (
+        <button
+          onClick={e => { e.stopPropagation(); onCancel() }}
+          className="absolute top-4 right-4 z-[120] w-9 h-9 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Annuler l'ouverture"
+        >
+          ✕
+        </button>
+      )}
+
       {/* ── IDLE / TEARING ── */}
       {(phase === 'idle' || phase === 'tearing') && (
         <div onClick={handleTear} className="relative flex flex-col items-center gap-8 cursor-pointer select-none">
@@ -529,14 +540,6 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
             Révélation auto · {autoReveal ? 'ON' : 'OFF'}
           </button>
 
-          {phase === 'idle' && onCancel && (
-            <button
-              onClick={e => { e.stopPropagation(); onCancel() }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-            >
-              Annuler l'ouverture
-            </button>
-          )}
         </div>
       )}
 
