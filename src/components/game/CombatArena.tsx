@@ -83,7 +83,7 @@ function CombatCard({
         cost={card.cost}
         atk={card.atk}
         def={card.currentHp}
-        size="sm"
+        size="md"
         glow={isSelected || !!canAttack || !!isAttackable}
         style={{ width: '100%', height: '100%' }}
       >
