@@ -436,25 +436,31 @@ export default function CommunautePage() {
       <div className="lg:flex-1 lg:min-w-0">
 
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#030308]/90 backdrop-blur-md pt-3 pb-2 mb-4">
+      <div
+        className="sticky top-0 z-20 mb-4 px-4 py-3 rounded-2xl border border-white/[0.07] backdrop-blur-md"
+        style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}
+      >
+        {/* Titre + actions */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-white text-base">Communauté</h2>
           <div className="flex items-center gap-2">
+            <h2 className="font-black text-white text-base tracking-tight">Communauté</h2>
             {myRank > 0 && ladder !== 'trades' && (
-              <span className="text-white/40 text-xs">Tu es #{myRank}</span>
-            )}
-            {user && (
-              <button onClick={() => setShowFriends(true)}
-                className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
-                <Users size={12} /> Amis {friends.length > 0 && `(${friends.length})`}
-                {pendingRequests.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center">
-                    {pendingRequests.length}
-                  </span>
-                )}
-              </button>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-white/40 border border-white/[0.08]">
+                #{myRank}
+              </span>
             )}
           </div>
+          {user && (
+            <button onClick={() => setShowFriends(true)}
+              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] text-xs font-bold hover:bg-[#7b2bff]/25 transition-colors">
+              <Users size={12} /> Amis {friends.length > 0 && `(${friends.length})`}
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[10px] font-bold flex items-center justify-center">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Tabs */}
