@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
-import { Send, X, Search, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Send, X, Search, ArrowLeft, MessageSquare } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -11,7 +11,6 @@ interface Message {
   receiverId: string
   content: string
   createdAt: string
-  readAt: string | null
 }
 
 interface FriendPreview {
@@ -30,8 +29,8 @@ function formatTime(raw: string | null) {
   const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z')
   if (isNaN(d.getTime())) return ''
   const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  if (diff < 86_400_000) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  if (now.getTime() - d.getTime() < 86_400_000)
+    return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
 
@@ -42,8 +41,13 @@ function Avatar({ src, name, size = 36 }: { src?: string | null; name?: string |
       style={{ width: size, height: size }} />
   )
   return (
-    <div className="rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] text-white font-bold flex-shrink-0"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>
+    <div className="rounded-full flex-shrink-0 flex items-center justify-center font-black flex-shrink-0"
+      style={{
+        width: size, height: size, fontSize: Math.round(size * 0.38),
+        background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)',
+        boxShadow: '0 0 10px rgba(123,43,255,.4)',
+        color: '#fff',
+      }}>
       {name?.[0]?.toUpperCase() ?? '?'}
     </div>
   )
@@ -53,35 +57,39 @@ function Avatar({ src, name, size = 36 }: { src?: string | null; name?: string |
 function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left group"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left"
       style={{
-        background: active ? 'rgba(123,43,255,.18)' : 'transparent',
-        border: `1px solid ${active ? 'rgba(123,43,255,.35)' : 'transparent'}`,
+        background: active
+          ? 'linear-gradient(135deg,rgba(123,43,255,.22),rgba(74,31,168,.12))'
+          : 'transparent',
+        borderLeft: active ? '2px solid #7b2bff' : '2px solid transparent',
       }}>
-      {/* Avatar + online dot */}
       <div className="relative flex-shrink-0">
         <Avatar src={f.avatarUrl} name={f.username} size={38} />
         {f.unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#7b2bff] text-white text-[9px] font-black flex items-center justify-center"
-            style={{ boxShadow: '0 0 8px rgba(123,43,255,.8)' }}>
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full px-0.5 text-white text-[9px] font-black flex items-center justify-center"
+            style={{ background: '#7b2bff', boxShadow: '0 0 10px rgba(123,43,255,.9)' }}>
             {f.unread > 9 ? '9+' : f.unread}
           </span>
         )}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-1">
-          <span className={`text-sm font-semibold truncate ${f.unread > 0 ? 'text-white' : 'text-white/70'} group-hover:text-white transition-colors`}>
+        <div className="flex items-center justify-between gap-1 mb-0.5">
+          <span className={`text-[13px] font-bold truncate transition-colors ${
+            active ? 'text-white' : f.unread > 0 ? 'text-white' : 'text-white/55'
+          }`}>
             {f.username ?? '???'}
           </span>
           {f.lastAt && (
-            <span className="text-[10px] text-white/25 flex-shrink-0">{formatTime(f.lastAt)}</span>
+            <span className="text-[10px] flex-shrink-0" style={{ color: 'rgba(255,255,255,.2)' }}>
+              {formatTime(f.lastAt)}
+            </span>
           )}
         </div>
         {f.lastMessage && (
-          <p className={`text-xs truncate mt-0.5 ${f.unread > 0 ? 'text-white/60' : 'text-white/30'}`}>
-            {f.lastFromMe ? <span className="text-white/30">Toi: </span> : null}
+          <p className="text-[11px] truncate" style={{ color: f.unread > 0 ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.22)' }}>
+            {f.lastFromMe && <span style={{ color: 'rgba(255,255,255,.25)' }}>Toi · </span>}
             {f.lastMessage}
           </p>
         )}
@@ -102,18 +110,14 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   const [sending, setSending]   = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
-  const lastIdRef = useRef(0)
 
   const load = useCallback(async (scroll = false) => {
     const data: Message[] = await fetch(`/api/social/messages?with=${friend.friendId}&limit=60`)
       .then(r => r.ok ? r.json() : [])
     setMessages(data)
-    const maxId = Math.max(0, ...data.map(m => m.id))
-    lastIdRef.current = maxId
     if (scroll) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }, [friend.friendId])
 
-  // Mark as read when opening conversation
   useEffect(() => {
     fetch('/api/social/messages/read', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -141,46 +145,74 @@ function Conversation({ friend, myId, myProfile, onBack }: {
     load(true)
   }
 
+  // Group consecutive messages by sender
+  type Group = { sender: string; msgs: Message[] }
+  const groups: Group[] = []
+  for (const m of messages) {
+    const last = groups[groups.length - 1]
+    if (last && last.sender === m.senderId) last.msgs.push(m)
+    else groups.push({ sender: m.senderId, msgs: [m] })
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/6 flex-shrink-0">
-        <button onClick={onBack}
-          className="md:hidden text-white/40 hover:text-white transition-colors mr-1">
-          <ArrowLeft size={18} />
+      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid rgba(123,43,255,.12)', background: 'rgba(123,43,255,.04)' }}>
+        <button onClick={onBack} className="md:hidden text-white/30 hover:text-white transition-colors">
+          <ArrowLeft size={17} />
         </button>
-        <Avatar src={friend.avatarUrl} name={friend.username} size={34} />
+        <div className="relative">
+          <Avatar src={friend.avatarUrl} name={friend.username} size={32} />
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white truncate">{friend.username}</p>
-          <p className="text-[11px] text-white/30">Ami</p>
+          <p className="text-[13px] font-bold text-white leading-none">{friend.username}</p>
+          <p className="text-[11px] mt-0.5" style={{ color: 'rgba(168,85,247,.6)' }}>Ami · En ligne</p>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(123,43,255,.2) transparent' }}>
         {messages.length === 0 && (
-          <p className="text-white/20 text-xs text-center pt-12">Aucun message — dites bonjour !</p>
+          <div className="flex flex-col items-center justify-center h-full gap-3 opacity-40">
+            <MessageSquare size={32} className="text-[#7b2bff]" />
+            <p className="text-white text-xs">Commencez la conversation !</p>
+          </div>
         )}
-        {messages.map((m, i) => {
-          const isMe = m.senderId === myId
-          const prev = messages[i - 1]
-          const showAvatar = !isMe && (i === 0 || prev?.senderId !== m.senderId)
+
+        {groups.map((g, gi) => {
+          const isMe = g.sender === myId
           return (
-            <div key={m.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className="w-7 flex-shrink-0 flex items-end">
-                {showAvatar && !isMe && <Avatar src={friend.avatarUrl} name={friend.username} size={26} />}
+            <div key={gi} className={`flex gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+              {/* Avatar shown once per group */}
+              <div className="flex-shrink-0 mt-auto">
+                {!isMe
+                  ? <Avatar src={friend.avatarUrl} name={friend.username} size={28} />
+                  : <div style={{ width: 28 }} />
+                }
               </div>
-              <div className={`flex flex-col max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
-                <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
-                  isMe
-                    ? 'bg-[#7b2bff] text-white rounded-tr-sm'
-                    : 'bg-white/8 text-white/85 rounded-tl-sm'
-                }`}>
-                  {m.content}
-                </div>
-                {(i === messages.length - 1 || messages[i + 1]?.senderId !== m.senderId) && (
-                  <span className="text-[10px] text-white/20 mt-1 px-1">{formatTime(m.createdAt)}</span>
-                )}
+
+              <div className={`flex flex-col gap-0.5 max-w-[72%] ${isMe ? 'items-end' : 'items-start'}`}>
+                {g.msgs.map((m, mi) => (
+                  <div key={m.id}
+                    className={`px-3.5 py-2 text-[13px] leading-relaxed break-words ${
+                      isMe
+                        ? 'text-white rounded-2xl rounded-tr-sm'
+                        : 'text-white/85 rounded-2xl rounded-tl-sm'
+                    } ${mi > 0 ? (isMe ? 'rounded-tr-2xl' : 'rounded-tl-2xl') : ''}`}
+                    style={isMe
+                      ? { background: 'linear-gradient(135deg,#7b2bff,#5b1fc8)', boxShadow: '0 2px 12px rgba(123,43,255,.35)' }
+                      : { background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.06)' }
+                    }>
+                    {m.content}
+                  </div>
+                ))}
+                {/* Timestamp on last message of group */}
+                <span className="text-[10px] px-1 mt-0.5"
+                  style={{ color: 'rgba(255,255,255,.18)' }}>
+                  {formatTime(g.msgs[g.msgs.length - 1].createdAt)}
+                </span>
               </div>
             </div>
           )
@@ -189,20 +221,24 @@ function Conversation({ friend, myId, myProfile, onBack }: {
       </div>
 
       {/* Input */}
-      <div className="flex gap-2 p-3 border-t border-white/6 flex-shrink-0">
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="Tapez votre message ici…"
-          className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-white/25 focus:border-[#7b2bff]/50 focus:outline-none transition-colors"
-        />
-        <button onClick={send} disabled={!input.trim() || sending}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-30 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-          <Send size={15} />
-        </button>
+      <div className="px-3 pb-3 pt-2 flex-shrink-0"
+        style={{ borderTop: '1px solid rgba(123,43,255,.1)' }}>
+        <div className="flex gap-2 items-center rounded-2xl px-3 py-1.5"
+          style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(123,43,255,.2)' }}>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            placeholder="Tapez votre message ici…"
+            className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/20 outline-none py-1.5"
+          />
+          <button onClick={send} disabled={!input.trim() || sending}
+            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-20"
+            style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)', boxShadow: '0 0 12px rgba(123,43,255,.5)' }}>
+            <Send size={13} className="text-white" />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -214,9 +250,9 @@ export function ChatPanel() {
   const profile = useGameStore(s => s.profile)
   const { chatFriend, setChatFriend, chatPanelOpen, setChatPanelOpen, setUnreadBySender, setUnreadMessageCount } = useSocialStore()
 
-  const [friends, setFriends]   = useState<FriendPreview[]>([])
-  const [search, setSearch]     = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [friends, setFriends] = useState<FriendPreview[]>([])
+  const [search, setSearch]   = useState('')
+  const [loading, setLoading] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const loadPreviews = useCallback(async () => {
@@ -225,7 +261,6 @@ export function ChatPanel() {
     const data: FriendPreview[] = await fetch('/api/social/messages/previews')
       .then(r => r.ok ? r.json() : [])
     setFriends(data)
-    // Sync unread to store
     const bySender: Record<string, number> = {}
     let total = 0
     for (const f of data) { if (f.unread > 0) { bySender[f.friendId] = f.unread; total += f.unread } }
@@ -242,10 +277,9 @@ export function ChatPanel() {
   }, [chatPanelOpen, user, loadPreviews])
 
   useEffect(() => {
-    if (chatPanelOpen) setTimeout(() => searchRef.current?.focus(), 100)
+    if (chatPanelOpen) setTimeout(() => searchRef.current?.focus(), 150)
   }, [chatPanelOpen])
 
-  // Close on Escape
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') setChatPanelOpen(false) }
     window.addEventListener('keydown', fn)
@@ -257,28 +291,30 @@ export function ChatPanel() {
   const filtered = friends.filter(f =>
     !search || (f.username ?? '').toLowerCase().includes(search.toLowerCase())
   )
-
   const totalUnread = friends.reduce((s, f) => s + f.unread, 0)
 
   return (
     <>
-      {/* Floating trigger button */}
+      {/* Trigger button */}
       <button
         onClick={() => setChatPanelOpen(!chatPanelOpen)}
-        className="fixed bottom-24 right-4 z-[140] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-4 z-[140] w-11 h-11 rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
         style={{
           background: chatPanelOpen
-            ? 'rgba(123,43,255,.4)'
+            ? 'rgba(123,43,255,.3)'
             : 'linear-gradient(135deg,#7b2bff,#4a1fa8)',
-          boxShadow: '0 4px 20px rgba(123,43,255,.5)',
-          border: '1px solid rgba(123,43,255,.4)',
+          boxShadow: chatPanelOpen
+            ? '0 0 0 1px rgba(123,43,255,.4)'
+            : '0 4px 20px rgba(123,43,255,.55), 0 0 0 1px rgba(123,43,255,.3)',
+          border: '1px solid rgba(123,43,255,.35)',
         }}>
         {chatPanelOpen
-          ? <X size={20} className="text-white" />
-          : <MessageCircle size={20} className="text-white" />
+          ? <X size={17} className="text-white/70" />
+          : <MessageSquare size={17} className="text-white" />
         }
         {!chatPanelOpen && totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#ff4757] text-white text-[10px] font-black flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full px-1 text-white text-[9px] font-black flex items-center justify-center"
+            style={{ background: '#ff4757', boxShadow: '0 0 8px rgba(255,71,87,.7)' }}>
             {totalUnread > 9 ? '9+' : totalUnread}
           </span>
         )}
@@ -286,62 +322,76 @@ export function ChatPanel() {
 
       {/* Backdrop */}
       {chatPanelOpen && (
-        <div className="fixed inset-0 z-[141] bg-black/30 backdrop-blur-[2px]"
+        <div className="fixed inset-0 z-[141]" style={{ background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(3px)' }}
           onClick={() => setChatPanelOpen(false)} />
       )}
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 z-[142] flex transition-all duration-300 ease-out"
+      <div
+        className="fixed right-0 top-0 bottom-0 z-[142] flex"
         style={{
+          width: 'min(580px, 100vw)',
           transform: chatPanelOpen ? 'translateX(0)' : 'translateX(100%)',
-          width: 'min(560px, 100vw)',
+          transition: 'transform .28s cubic-bezier(.32,.72,0,1)',
           pointerEvents: chatPanelOpen ? 'all' : 'none',
         }}>
 
-        <div className="flex w-full h-full shadow-2xl"
-          style={{ background: '#08040f', borderLeft: '1px solid rgba(123,43,255,.15)' }}>
+        <div className="flex w-full h-full"
+          style={{
+            background: 'linear-gradient(160deg,#0c0518 0%,#07030f 60%,#060212 100%)',
+            borderLeft: '1px solid rgba(123,43,255,.18)',
+            boxShadow: '-20px 0 60px rgba(0,0,0,.7), -4px 0 20px rgba(123,43,255,.08)',
+          }}>
 
-          {/* ── Friends list ── */}
-          <div className="flex flex-col w-64 flex-shrink-0 border-r border-white/6 h-full"
-            style={{ display: chatFriend && window.innerWidth < 500 ? 'none' : undefined }}>
+          {/* ── Sidebar friends ─────────────────────────────────── */}
+          <div className="flex flex-col flex-shrink-0 h-full"
+            style={{ width: 240, borderRight: '1px solid rgba(123,43,255,.1)' }}>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-white/6 flex-shrink-0">
-              <span className="text-white font-black text-sm">Messages</span>
+            <div className="flex items-center justify-between px-4 py-4 flex-shrink-0"
+              style={{ borderBottom: '1px solid rgba(123,43,255,.08)' }}>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#7b2bff]"
+                  style={{ boxShadow: '0 0 6px #7b2bff' }} />
+                <span className="text-white font-black text-sm tracking-wide">Messages</span>
+              </div>
               <button onClick={() => setChatPanelOpen(false)}
-                className="text-white/30 hover:text-white transition-colors">
-                <X size={16} />
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/25 hover:text-white/70 hover:bg-white/5 transition-all">
+                <X size={14} />
               </button>
             </div>
 
             {/* Search */}
-            <div className="px-3 py-2.5 border-b border-white/6 flex-shrink-0">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/8 focus-within:border-[#7b2bff]/40 transition-colors">
-                <Search size={13} className="text-white/30 flex-shrink-0" />
+            <div className="px-3 py-2.5 flex-shrink-0"
+              style={{ borderBottom: '1px solid rgba(123,43,255,.06)' }}>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors"
+                style={{ background: 'rgba(123,43,255,.07)', border: '1px solid rgba(123,43,255,.15)' }}>
+                <Search size={12} style={{ color: 'rgba(168,85,247,.5)' }} className="flex-shrink-0" />
                 <input
                   ref={searchRef}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Rechercher un ami…"
-                  className="flex-1 bg-transparent text-xs text-white placeholder-white/25 outline-none"
+                  className="flex-1 bg-transparent text-xs text-white/70 placeholder:text-white/20 outline-none"
                 />
                 {search && (
-                  <button onClick={() => setSearch('')} className="text-white/30 hover:text-white/60">
-                    <X size={11} />
+                  <button onClick={() => setSearch('')} className="text-white/20 hover:text-white/50 transition-colors">
+                    <X size={10} />
                   </button>
                 )}
               </div>
             </div>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(123,43,255,.15) transparent' }}>
               {loading && friends.length === 0 && (
-                <div className="flex items-center justify-center pt-10">
-                  <div className="w-5 h-5 border-2 border-[#7b2bff]/20 border-t-[#7b2bff] rounded-full animate-spin" />
+                <div className="flex justify-center pt-10">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#7b2bff]/20 border-t-[#7b2bff] animate-spin" />
                 </div>
               )}
               {!loading && filtered.length === 0 && (
-                <p className="text-white/20 text-xs text-center pt-8 px-4">
+                <p className="text-center text-[11px] pt-10 px-4" style={{ color: 'rgba(255,255,255,.18)' }}>
                   {search ? 'Aucun résultat' : 'Aucun ami pour l\'instant'}
                 </p>
               )}
@@ -352,15 +402,14 @@ export function ChatPanel() {
                   active={chatFriend?.friend_id === f.friendId}
                   onClick={() => {
                     setChatFriend({ friend_id: f.friendId, username: f.username, avatar_url: f.avatarUrl })
-                    // Optimistically clear unread
-                    setFriends(prev => prev.map(p => p.friendId === f.friendId ? { ...p, unread: 0 } : p))
+                    setFriends(p => p.map(x => x.friendId === f.friendId ? { ...x, unread: 0 } : x))
                   }}
                 />
               ))}
             </div>
           </div>
 
-          {/* ── Conversation area ── */}
+          {/* ── Conversation ─────────────────────────────────────── */}
           <div className="flex-1 flex flex-col h-full min-w-0">
             {chatFriend ? (
               <Conversation
@@ -375,12 +424,14 @@ export function ChatPanel() {
                 onBack={() => setChatFriend(null)}
               />
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-3">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(123,43,255,.12)', border: '1px solid rgba(123,43,255,.2)' }}>
-                  <MessageCircle size={28} className="text-[#7b2bff]/60" />
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-30">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(123,43,255,.15)', border: '1px solid rgba(123,43,255,.25)' }}>
+                  <MessageSquare size={24} className="text-[#a855f7]" />
                 </div>
-                <p className="text-white/30 text-sm">Sélectionne un ami<br />pour commencer à chatter</p>
+                <p className="text-white text-xs text-center leading-relaxed">
+                  Sélectionne un ami<br />pour commencer à chatter
+                </p>
               </div>
             )}
           </div>
