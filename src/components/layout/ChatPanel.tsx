@@ -169,7 +169,7 @@ function Conversation({ friend, myId, myProfile, onBack }: {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
         style={{ borderBottom: '1px solid rgba(123,43,255,.12)', background: 'rgba(123,43,255,.04)' }}>
-        <button onClick={onBack} className="md:hidden text-white/30 hover:text-white transition-colors">
+        <button onClick={onBack} className="sm:hidden text-white/30 hover:text-white transition-colors">
           <ArrowLeft size={17} />
         </button>
         <div className="relative">
@@ -361,7 +361,9 @@ export function ChatPanel() {
           }}>
 
           {/* ── Sidebar friends ─────────────────────────────────── */}
-          <div className="flex flex-col flex-shrink-0 h-full"
+          {/* Sur mobile : masqué si une conv est ouverte */}
+          <div
+            className={`flex-col flex-shrink-0 h-full ${chatFriend ? 'hidden sm:flex' : 'flex'}`}
             style={{ width: 240, borderRight: '1px solid rgba(123,43,255,.1)' }}>
 
             {/* Header */}
@@ -427,7 +429,7 @@ export function ChatPanel() {
           </div>
 
           {/* ── Conversation ─────────────────────────────────────── */}
-          <div className="flex-1 flex flex-col h-full min-w-0">
+          <div className={`flex flex-col h-full min-w-0 ${chatFriend ? 'flex-1 w-full' : 'flex-1 hidden sm:flex'}`}>
             {chatFriend ? (
               <Conversation
                 friend={friends.find(f => f.friendId === chatFriend.friend_id) ?? {
