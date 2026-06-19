@@ -14,6 +14,7 @@ export interface PlayerProfile {
   selected_card_back: string | null
   unlocked_card_backs: string[] | null
   auto_reveal?: boolean
+  favorite_cards?: string[] | null
 }
 
 export interface BoosterCredit {

@@ -50,6 +50,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       level:         profile.level,
       xp:            profile.xp,
       highestRarity: profile.highestRarity,
+      favoriteCards: (profile.favoriteCards as string[] | null) ?? [],
     },
     collection,
     friendship,

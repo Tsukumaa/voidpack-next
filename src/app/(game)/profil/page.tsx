@@ -2,6 +2,7 @@
 import { BarChart2, Target, Trophy, Flame, Tv2, Lock, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
+import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
@@ -45,6 +46,7 @@ export default function ProfilPage() {
   const [claimMsg, setClaimMsg]         = useState('')
   const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
+  const [ownedIds, setOwnedIds] = useState<string[]>([])
 
   const todayMissions = getTodayMissions()
 
@@ -68,6 +70,7 @@ export default function ProfilPage() {
       }
       setStats({ totalCards, uniqueCards: cards.length, byRarity })
     }
+    setOwnedIds((cards ?? []).map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId ?? '').filter(Boolean))
     if (dailyData) setDaily({ last_claim_at: null, current_streak: dailyData.currentStreak ?? 0, best_streak: 0 })
     setAchievements((achData ?? []).map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
     setMissions([])
@@ -127,11 +130,22 @@ export default function ProfilPage() {
   const unlockedCount = achievements.length
   const completedMissions = missions.filter(m => m.completed).length
 
+  async function saveFavorites(ids: string[]) {
+    if (profile) setProfile({ ...profile, favorite_cards: ids })
+    await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ favoriteCards: ids }),
+    }).catch(() => {})
+  }
+
   if (!user) return (
     <StatePanel icon={LinkIcon} title="Pas connecté">
       Connecte-toi pour voir et personnaliser ton profil.
     </StatePanel>
   )
+
+  if (!profile) return null
 
   return (
     <div className="pb-4 space-y-4 max-w-4xl mx-auto w-full">
@@ -188,6 +202,12 @@ export default function ProfilPage() {
       {/* ── Overview ── */}
       {activeTab === 'overview' && (
         <div className="space-y-3">
+          <FavoriteShowcase
+            favoriteIds={profile.favorite_cards ?? []}
+            editable
+            ownedIds={ownedIds}
+            onSave={saveFavorites}
+          />
           {/* Twitch link */}
           <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
             <div className="flex items-center justify-between">

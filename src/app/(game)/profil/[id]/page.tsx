@@ -6,6 +6,7 @@ import { CardMedia } from '@/components/game/CardMedia'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
+import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { cn } from '@/lib/utils'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
@@ -261,6 +262,12 @@ export default function PlayerProfilePage() {
               ))}
             </div>
           </div>
+
+          {/* Vitrine (favoris) */}
+          <FavoriteShowcase
+            className="mb-6"
+            favoriteIds={(profile as unknown as { favoriteCards?: string[] }).favoriteCards ?? []}
+          />
 
           {/* Album */}
           <div className="space-y-6">
