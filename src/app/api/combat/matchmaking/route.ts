@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchmakingQueue, gameSessions } from '@/lib/db/schema'
-import { eq, ne, asc } from 'drizzle-orm'
+import { eq, lt, sql } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -11,9 +11,16 @@ export async function POST(req: NextRequest) {
 
   const { deck } = await req.json()
 
-  // Check if there's already someone waiting
+  // Nettoie les entrées de file périmées (joueurs ayant fermé l'onglet sans annuler)
+  await db.delete(matchmakingQueue)
+    .where(lt(matchmakingQueue.joinedAt, sql`datetime('now', '-120 seconds')`))
+
+  // Cherche un joueur en attente (récent, différent de soi)
   const waiting = await db.query.matchmakingQueue.findFirst({
-    where: (t, { ne }) => ne(t.userId, uid),
+    where: (t, { ne, and, gt }) => and(
+      ne(t.userId, uid),
+      gt(t.joinedAt, sql`datetime('now', '-120 seconds')`),
+    ),
   })
 
   if (waiting) {
