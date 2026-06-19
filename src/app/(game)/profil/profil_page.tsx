@@ -108,6 +108,22 @@ export default function ProfilPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Recharger le progress localStorage quand on passe sur l'onglet missions
+  useEffect(() => {
+    if (activeTab !== 'missions' || !user) return
+    const claimed = getClaimedMissions(user.id)
+    const missionList = todayMissions.map(m => {
+      const prog = getMissionProgress(user.id, m.id)
+      return {
+        mission_id: m.id,
+        progress: Math.min(prog, m.goal),
+        completed: prog >= m.goal,
+        xp_claimed: claimed.includes(m.id),
+      }
+    })
+    setMissions(missionList)
+  }, [activeTab]) // eslint-disable-line
+
   async function claimDaily() {
     if (claiming) return
     setClaiming(true)
@@ -159,7 +175,7 @@ export default function ProfilPage() {
   const { current: xpCurrent, needed: xpNeeded, progress } = getLevelProgress(xp, level)
   const unlockedCount = achievements.length
   const completedMissions = missions.filter(m =>
-    m.completed && todayMissions.some(t => t.id === m.mission_id)
+    (m.completed || m.xp_claimed) && todayMissions.some(t => t.id === m.mission_id)
   ).length
 
   if (!user) return (
@@ -357,42 +373,118 @@ export default function ProfilPage() {
       {/* ── Missions ── */}
       {activeTab === 'missions' && (
         <div className="space-y-3">
-          <p className="text-white/40 text-xs">Missions du jour — reset à minuit</p>
+          {/* Header missions */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white font-black text-sm">Missions du jour</p>
+              <p className="text-white/30 text-xs mt-0.5">
+                Reset à minuit · {completedMissions}/{todayMissions.length} complétées
+              </p>
+            </div>
+            <button onClick={load}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 text-xs font-bold hover:text-white/70 hover:bg-white/[0.08] transition-colors">
+              ↻ Actualiser
+            </button>
+          </div>
+
+          {/* XP total disponible */}
+          {completedMissions < todayMissions.length && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#7b2bff]/[0.08] border border-[#7b2bff]/20">
+              <span className="text-[#a78bfa] text-xs">⚡</span>
+              <p className="text-[#a78bfa] text-xs">
+                <span className="font-black">
+                  +{todayMissions.filter((m, i) => !(missions.find(p => p.mission_id === m.id)?.xp_claimed)).reduce((s, m) => s + m.xp, 0)} XP
+                </span>
+                {' '}disponibles aujourd&apos;hui
+              </p>
+            </div>
+          )}
+
           {todayMissions.map(mission => {
             const prog = missions.find(m => m.mission_id === mission.id)
-            const current = prog?.progress ?? 0
-            const completed = prog?.completed ?? (current >= mission.goal)
+            const current = Math.min(prog?.progress ?? 0, mission.goal)
+            const completed = (prog?.progress ?? 0) >= mission.goal
             const claimed = prog?.xp_claimed ?? false
             const pct = Math.min(100, (current / mission.goal) * 100)
+
             return (
-              <div key={mission.id} className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{mission.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-white font-bold text-sm">{mission.label}</p>
-                      <span className="text-[#a78bfa] text-xs font-bold flex-shrink-0">+{mission.xp} XP</span>
+              <div key={mission.id}
+                className="rounded-2xl border overflow-hidden transition-all"
+                style={{
+                  background: claimed
+                    ? 'rgba(0,200,150,0.04)'
+                    : completed
+                    ? 'rgba(255,154,61,0.06)'
+                    : 'rgba(255,255,255,0.03)',
+                  borderColor: claimed
+                    ? 'rgba(0,200,150,0.2)'
+                    : completed
+                    ? 'rgba(255,154,61,0.25)'
+                    : 'rgba(255,255,255,0.07)',
+                }}>
+
+                <div className="p-4 flex items-center gap-4">
+                  {/* Icône + état */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+                      style={{
+                        background: claimed
+                          ? 'rgba(0,200,150,0.15)'
+                          : completed
+                          ? 'rgba(255,154,61,0.15)'
+                          : 'rgba(255,255,255,0.06)',
+                      }}>
+                      {claimed ? '✅' : mission.icon}
                     </div>
-                    <p className="text-white/40 text-xs mt-0.5">{mission.desc}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width:`${pct}%`, background: completed ? '#00c896' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                    {completed && !claimed && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff9a3d] flex items-center justify-center animate-pulse">
+                        <span className="text-[8px] text-white font-black">!</span>
                       </div>
-                      <span className="text-white/40 text-xs flex-shrink-0">{Math.min(current, mission.goal)}/{mission.goal}</span>
+                    )}
+                  </div>
+
+                  {/* Contenu */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-white font-black text-sm">{mission.label}</p>
+                      <span className="text-xs font-black flex-shrink-0"
+                        style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : '#a78bfa' }}>
+                        {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
+                      </span>
+                    </div>
+                    <p className="text-white/40 text-xs mb-2">{mission.desc}</p>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full overflow-hidden"
+                        style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: claimed
+                              ? '#00c896'
+                              : completed
+                              ? 'linear-gradient(90deg,#ff9a3d,#ffb347)'
+                              : 'linear-gradient(90deg,#7b2bff,#a855f7)',
+                          }} />
+                      </div>
+                      <span className="text-[11px] font-bold flex-shrink-0"
+                        style={{ color: completed ? (claimed ? '#00c896' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
+                        {current}/{mission.goal}
+                      </span>
                     </div>
                   </div>
                 </div>
+
+                {/* Bouton claim */}
                 {completed && !claimed && (
-                  <button onClick={() => claimMission(mission.id)}
-                    disabled={claimingMission === mission.id}
-                    className="mt-3 w-full py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
-                    style={{ background:'linear-gradient(135deg,#00c896,#00a878)' }}>
-                    {claimingMission === mission.id ? '…' : `Réclamer +${mission.xp} XP`}
-                  </button>
-                )}
-                {claimed && (
-                  <p className="mt-2 text-xs text-[#00c896] text-center">✅ Récompense réclamée</p>
+                  <div className="px-4 pb-4">
+                    <button onClick={() => claimMission(mission.id)}
+                      disabled={claimingMission === mission.id}
+                      className="w-full py-2.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg,#ff9a3d,#e07820)', boxShadow: '0 0 16px rgba(255,154,61,0.3)' }}>
+                      {claimingMission === mission.id ? '…' : `🎁 Réclamer +${mission.xp} XP`}
+                    </button>
+                  </div>
                 )}
               </div>
             )
