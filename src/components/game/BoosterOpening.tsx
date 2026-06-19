@@ -202,8 +202,8 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
       </div>
 
       {/* Grille petites cartes */}
-      <div className="flex-1 overflow-y-auto px-4 pt-5 pb-4">
-        <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 overflow-hidden">
+        <div className="flex flex-wrap gap-4 justify-center max-w-2xl">
           {cards.map((card, i) => {
             const isNew = newCardIds.has(card.id)
             return (
