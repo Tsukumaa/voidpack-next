@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { useSocialStore } from '@/store/social'
 import { ToastOverlay } from '@/components/layout/ToastOverlay'
-import { FloatingChat } from '@/components/layout/FloatingChat'
+import { ChatPanel } from '@/components/layout/ChatPanel'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
@@ -68,7 +68,7 @@ export function GlobalOverlay() {
   return (
     <>
       <ToastOverlay />
-      <FloatingChat />
+      <ChatPanel />
     </>
   )
 }

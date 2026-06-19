@@ -20,6 +20,7 @@ interface SocialStore {
   unreadBySender: Record<string, number>
   pendingTradeCount: number
   chatFriend: ChatFriend | null
+  chatPanelOpen: boolean
   toasts: Toast[]
 
   setPendingFriendCount: (n: number) => void
@@ -28,6 +29,7 @@ interface SocialStore {
   clearUnreadMessages: () => void
   setPendingTradeCount: (n: number) => void
   setChatFriend: (f: ChatFriend | null) => void
+  setChatPanelOpen: (open: boolean) => void
   addToast: (t: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
 }
@@ -38,6 +40,7 @@ export const useSocialStore = create<SocialStore>((set) => ({
   unreadBySender: {},
   pendingTradeCount: 0,
   chatFriend: null,
+  chatPanelOpen: false,
   toasts: [],
 
   setPendingFriendCount: (n) => set({ pendingFriendCount: n }),
@@ -45,7 +48,8 @@ export const useSocialStore = create<SocialStore>((set) => ({
   setUnreadBySender: (m) => set({ unreadBySender: m }),
   clearUnreadMessages: () => set({ unreadMessageCount: 0, unreadBySender: {} }),
   setPendingTradeCount: (n) => set({ pendingTradeCount: n }),
-  setChatFriend: (f) => set({ chatFriend: f }),
+  setChatFriend: (f) => set(s => ({ chatFriend: f, chatPanelOpen: f !== null ? true : s.chatPanelOpen })),
+  setChatPanelOpen: (open) => set({ chatPanelOpen: open, ...(open ? {} : { chatFriend: null }) }),
   addToast: (t) => set(s => ({
     toasts: [...s.toasts, { ...t, id: `${Date.now()}_${Math.random()}` }],
   })),
