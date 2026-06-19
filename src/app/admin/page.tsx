@@ -320,27 +320,6 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       {modal && (
         <Modal title="🎴 Créditer un booster" onClose={() => setModal(null)}>
           <p className="text-sm text-white/50 mb-4">Joueur : <span className="text-white">{modal.username}</span></p>
-          <Field label="Rôle">
-            <select
-              value={modal.role ?? ''}
-              onChange={async e => {
-                const role = (e.target.value || null) as UserRole
-                setModal(m => m ? { ...m, role } : m)
-                setPlayers(ps => ps.map(p => p.user_id === modal.user_id ? { ...p, role } : p))
-                await fetch('/api/admin/players', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'update_role', userId: modal.user_id, data: { role } }),
-                })
-              }}
-              className={selectCls}
-            >
-              <option value="" className="bg-[#0a0318]">— Aucun rôle —</option>
-              <option value="founder" className="bg-[#0a0318]">👑 Fondateur</option>
-              <option value="developer" className="bg-[#0a0318]">💻 Développeur</option>
-              <option value="artist" className="bg-[#0a0318]">🎨 Artiste</option>
-            </select>
-          </Field>
           <Field label="Type de booster">
             <select value={cType} onChange={e => setCType(e.target.value)} className={selectCls}>
               {families.map(f => <option key={f.value} value={f.value} className="bg-[#0a0318]">{f.label}</option>)}
