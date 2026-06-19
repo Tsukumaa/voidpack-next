@@ -615,7 +615,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
                   >
                     <CardFrame rarity={cardPhase === 'revealed' ? currentCard.rarity : 'common'} name={cardPhase === 'revealed' ? currentCard.name : undefined} style={{ position:'absolute', inset:0 }}>
                       {currentCard.artUrl
-                        ? <CardMedia src={currentCard.artUrl} alt={currentCard.name} />
+                        ? <CardMedia src={currentCard.artUrl} alt={currentCard.name} sizes="(max-width: 768px) 80vw, 360px" priority />
                         : <div className="w-full h-full flex items-center justify-center">
                             <div className="w-20 h-20 rounded-full opacity-40"
                               style={{ background:`radial-gradient(circle,${revealedColor||'#7b2bff'},transparent)` }} />

@@ -63,7 +63,7 @@ export function CardModal({ name, rarity, family, artUrl, description, artist, a
         >
           <CardFrame rarity={rarity} name={name} style={{ position: 'absolute', inset: 0 }}>
             {artUrl
-              ? <CardMedia src={artUrl} alt={name} />
+              ? <CardMedia src={artUrl} alt={name} sizes="(max-width: 768px) 85vw, 380px" priority />
               : <div className="w-full h-full flex items-center justify-center">
                   <div className="w-24 h-24 rounded-full opacity-30"
                     style={{ background: `radial-gradient(circle, ${color}, transparent)` }} />
