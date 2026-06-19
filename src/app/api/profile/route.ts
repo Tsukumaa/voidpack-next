@@ -20,6 +20,7 @@ function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
     twitch_id:           p.twitchId,
     twitch_login:        p.twitchLogin,
     is_admin:            isAdmin,
+    role:                p.role ?? null,
     selected_card_back:  p.selectedCardBack ?? null,
     unlocked_card_backs: null,
     auto_reveal:         p.autoReveal ?? false,

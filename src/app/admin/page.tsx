@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -13,6 +14,7 @@ interface Player {
   void_pulls: number
   highest_rarity: string | null
   unlocked_card_backs: string[] | null
+  role: UserRole
 }
 
 interface Family {
@@ -253,13 +255,13 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       <div className="rounded-2xl border border-white/8 overflow-hidden">
         <table className="w-full text-sm">
           <thead><tr className="border-b border-white/8 bg-white/3">
-            {['Joueur','Niv','XP','Packs','Streak','VOID','Actions'].map(h => (
+            {['Joueur','Niv','XP','Packs','Streak','VOID','Rôle','Actions'].map(h => (
               <th key={h} className="text-left px-4 py-3 text-white/50 text-xs uppercase tracking-wider font-semibold">{h}</th>
             ))}
           </tr></thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-12 text-white/30">Chargement…</td></tr>
+              <tr><td colSpan={8} className="text-center py-12 text-white/30">Chargement…</td></tr>
             ) : filtered.map((p, i) => (
               <tr key={p.user_id} className={`border-b border-white/5 hover:bg-white/3 ${i%2===0?'':'bg-white/[0.02]'}`}>
                 <td className="px-4 py-3">
@@ -269,6 +271,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       {!p.avatar_url && (p.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
                     <span>{p.username ?? '—'}</span>
+                    <RoleBadge role={p.role} />
                   </div>
                 </td>
                 <td className="px-4 py-3 text-[#a78bfa]">{p.level}</td>
@@ -276,6 +279,26 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 <td className="px-4 py-3 text-white/70">{p.packs_opened ?? 0}</td>
                 <td className="px-4 py-3 text-white/70">{p.current_streak ?? 0}j</td>
                 <td className="px-4 py-3 text-[#a855f7] font-bold">{p.void_pulls ?? 0}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={p.role ?? ''}
+                    onChange={async e => {
+                      const role = (e.target.value || null) as UserRole
+                      setPlayers(ps => ps.map(q => q.user_id === p.user_id ? { ...q, role } : q))
+                      await fetch('/api/admin/players', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'update_role', userId: p.user_id, data: { role } }),
+                      })
+                    }}
+                    className="bg-[#0a0318] border border-white/10 rounded-lg text-xs text-white px-2 py-1.5 cursor-pointer"
+                  >
+                    <option value="">— Aucun —</option>
+                    <option value="founder">Fondateur</option>
+                    <option value="developer">Développeur</option>
+                    <option value="artist">Artiste</option>
+                  </select>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5">
                     <button onClick={() => { setModal(p); setCType('void'); setCQty(1) }}
@@ -297,6 +320,27 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       {modal && (
         <Modal title="🎴 Créditer un booster" onClose={() => setModal(null)}>
           <p className="text-sm text-white/50 mb-4">Joueur : <span className="text-white">{modal.username}</span></p>
+          <Field label="Rôle">
+            <select
+              value={modal.role ?? ''}
+              onChange={async e => {
+                const role = (e.target.value || null) as UserRole
+                setModal(m => m ? { ...m, role } : m)
+                setPlayers(ps => ps.map(p => p.user_id === modal.user_id ? { ...p, role } : p))
+                await fetch('/api/admin/players', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ action: 'update_role', userId: modal.user_id, data: { role } }),
+                })
+              }}
+              className={selectCls}
+            >
+              <option value="" className="bg-[#0a0318]">— Aucun rôle —</option>
+              <option value="founder" className="bg-[#0a0318]">👑 Fondateur</option>
+              <option value="developer" className="bg-[#0a0318]">💻 Développeur</option>
+              <option value="artist" className="bg-[#0a0318]">🎨 Artiste</option>
+            </select>
+          </Field>
           <Field label="Type de booster">
             <select value={cType} onChange={e => setCType(e.target.value)} className={selectCls}>
               {families.map(f => <option key={f.value} value={f.value} className="bg-[#0a0318]">{f.label}</option>)}

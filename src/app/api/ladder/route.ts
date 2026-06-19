@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
         rankPoints: combatStats.rankPoints,
         username:   playerProfiles.username,
         avatarUrl:  playerProfiles.avatarUrl,
+        role:       playerProfiles.role,
       })
       .from(combatStats)
       .leftJoin(playerProfiles, eq(combatStats.userId, playerProfiles.userId))
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
       username:      playerProfiles.username,
       avatarUrl:     playerProfiles.avatarUrl,
       highestRarity: playerProfiles.highestRarity,
+      role:          playerProfiles.role,
     })
     .from(playerCards)
     .leftJoin(playerProfiles, eq(playerCards.userId, playerProfiles.userId))

@@ -3,6 +3,7 @@ import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Sword
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { useSocialStore } from '@/store/social'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +17,7 @@ interface LadderEntry {
   unique_cards: number
   void_cards: number
   highest_rarity: string | null
+  role: UserRole
 }
 
 interface Friend {
@@ -338,6 +340,7 @@ export default function CommunautePage() {
       level:         e.level ?? 1,
       highest_rarity: e.highestRarity ?? e.highest_rarity ?? null,
       unique_cards:  e.total ?? e.unique_cards ?? 0,
+      role:          (e.role ?? null) as UserRole,
       void_cards:    e.void_cards ?? 0,
     })))
     setLoading(false)
@@ -538,6 +541,7 @@ export default function CommunautePage() {
                         {entry.username ?? 'Joueur'}
                         {isMe && <span className="text-xs text-white/40 font-normal ml-1">(toi)</span>}
                       </p>
+                      <RoleBadge role={entry.role} />
                       {rankTitle && (
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide"
                           style={{ color: rankTitle.color, background: rankTitle.color + '22', border: `1px solid ${rankTitle.color}55` }}>

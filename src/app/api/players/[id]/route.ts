@@ -46,6 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     profile: {
       userId:        profile.userId,
       username:      profile.username,
+      role:          profile.role ?? null,
       avatarUrl:     profile.avatarUrl,
       level:         profile.level,
       xp:            profile.xp,

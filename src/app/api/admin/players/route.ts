@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     user_id:             p.userId,
     username:            p.username,
     avatar_url:          p.avatarUrl,
+    role:                p.role ?? null,
     level:               p.level,
     xp:                  p.xp,
     packs_opened:        p.packsOpened,
@@ -41,6 +42,12 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { action, userId, data } = await req.json()
+
+  if (action === 'update_role') {
+    const role = data?.role ?? null
+    await db.update(playerProfiles).set({ role }).where(eq(playerProfiles.userId, userId))
+    return NextResponse.json({ ok: true })
+  }
 
   if (action === 'credit_booster') {
     const { boosterType, qty, source } = data

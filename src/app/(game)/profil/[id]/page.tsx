@@ -7,6 +7,7 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
+import { RoleBadge } from '@/components/game/RoleBadge'
 import { cn } from '@/lib/utils'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
@@ -225,7 +226,10 @@ export default function PlayerProfilePage() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-white font-black text-lg truncate">{profile?.username ?? '…'}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-white font-black text-lg truncate">{profile?.username ?? '…'}</p>
+              <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | null} />
+            </div>
             <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
             <p className="text-white/30 text-[10px] mt-0.5">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</p>
           </div>

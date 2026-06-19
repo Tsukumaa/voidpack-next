@@ -3,6 +3,7 @@ import { BarChart2, Target, Trophy, Flame, Tv2, Lock, Link as LinkIcon } from 'l
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
+import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
 
@@ -161,7 +162,10 @@ export default function ProfilPage() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-white text-lg truncate">{profile?.username ?? 'Joueur'}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-black text-white text-lg truncate">{profile?.username ?? 'Joueur'}</p>
+            <RoleBadge role={profile?.role} />
+          </div>
           <p className="text-[#a78bfa] text-sm font-bold">Niveau {level}</p>
         </div>
         {profile?.highest_rarity && (
