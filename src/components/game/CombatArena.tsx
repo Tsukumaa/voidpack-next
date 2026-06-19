@@ -1,7 +1,7 @@
 'use client'
 import './combat-arena.css'
 import { useState, useCallback, useRef, useEffect } from 'react'
-import Image from 'next/image'
+import { CardFrame } from './CardFrame'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface ArenaCard {
@@ -34,104 +34,84 @@ export interface CombatArenaProps {
   onEndTurn:   () => void
   onSurrender: () => void
   log?: string
-  // imperative animation triggers (called by parent after state updates)
-  onShakeUid?: (uid: string | number) => void
-  onDmgAt?:    (x: number, y: number, value: number) => void
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
-  rare: '#4aa3ff', common: '#9ca3af',
-}
-
 function hpColor(pct: number) {
-  return pct > 0.6 ? '#ff8080' : pct > 0.3 ? '#ff9a3d' : '#ff4757'
+  return pct > 0.6 ? '#e05050' : pct > 0.3 ? '#ff9a3d' : '#ff3030'
 }
 function myHpColor(pct: number) {
-  return pct > 0.6 ? '#a080ff' : pct > 0.3 ? '#ff9a3d' : '#ff4757'
+  return pct > 0.6 ? '#a080ff' : pct > 0.3 ? '#ff9a3d' : '#ff4040'
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
-function HpRow({ hp, maxHp = 30, label, color }: { hp: number; maxHp?: number; label: string; color: (p: number) => string }) {
-  const pct = Math.max(0, Math.min(1, hp / maxHp))
-  const col = color(pct)
-  return (
-    <div className="ca-hp-row">
-      <span className="ca-hp-label" style={{ color: col }}>{label}</span>
-      <div className="ca-hp-bg">
-        <div className="ca-hp-fill" style={{ width: `${pct * 100}%`, background: col }} />
-      </div>
-      <span className="ca-hp-text" style={{ color: col }}>{Math.max(0, hp)} / {maxHp}</span>
-    </div>
-  )
-}
-
-function ManaRow({ mana, max }: { mana: number; max: number }) {
-  return (
-    <div className="ca-mana-row">
-      {Array.from({ length: Math.min(max, 10) }).map((_, i) => (
-        <span key={i} className={`ca-mana-crystal${i < mana ? ' active' : ''}`} />
-      ))}
-      <span className="ca-mana-lbl">{mana}/{max}</span>
-    </div>
-  )
-}
-
+// ── CombatCard ─────────────────────────────────────────────────────────────
 function CombatCard({
   card, isEnemy, canAttack, isSelected, isAttackable, isInHand, canPlay,
-  onClick,
+  isShaking, onClick, dataUid, dataEnemy,
 }: {
   card: ArenaCard
-  isEnemy: boolean; canAttack?: boolean; isSelected?: boolean
+  isEnemy: boolean
+  canAttack?: boolean; isSelected?: boolean
   isAttackable?: boolean; isInHand?: boolean; canPlay?: boolean
+  isShaking?: boolean
   onClick: () => void
+  dataUid?: string | number
+  dataEnemy?: string
 }) {
-  const color = RARITY_COLOR[card.rarity] ?? '#9ca3af'
   const hpPct = card.currentHp / card.hp
 
-  let cls = 'ca-card'
-  if (isEnemy)      cls += ' enemy'
-  if (card.exhausted && !isAttackable) cls += ' exhausted'
-  if (canAttack)    cls += ' can-attack'
-  if (isSelected)   cls += ' selected'
-  if (isAttackable) cls += ' attackable'
-  if (isInHand && canPlay)  cls += ' playable'
+  let cls = 'ca-cw'
+  if (isEnemy && !isAttackable) cls += ' ca-cw--enemy'
+  if (card.exhausted && !isAttackable) cls += ' ca-cw--exhausted'
+  if (canAttack)    cls += ' ca-cw--can-attack'
+  if (isSelected)   cls += ' ca-cw--selected'
+  if (isAttackable) cls += ' ca-cw--attackable'
+  if (isShaking)    cls += ' ca-cw--shaking'
+  if (isInHand && !canPlay) cls += ' ca-cw--locked'
+  if (isInHand && canPlay)  cls += ' ca-cw--playable'
 
   return (
-    <div className={cls} onClick={onClick}>
-      {/* Rarity tint on cost gem */}
-      <div className="ca-card-cost" style={{ background: color }}>{card.cost}</div>
+    <div
+      className={cls}
+      onClick={onClick}
+      data-uid={dataUid}
+      data-enemy={dataEnemy}
+    >
+      <CardFrame
+        rarity={card.rarity}
+        name={card.name}
+        cost={card.cost}
+        atk={card.atk}
+        def={card.currentHp}
+        size="sm"
+        glow={isSelected || !!canAttack || !!isAttackable}
+        style={{ width: '100%', height: '100%' }}
+      >
+        {card.image_url ? (
+          <img
+            src={card.image_url}
+            alt={card.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }}
+          />
+        ) : null}
+      </CardFrame>
 
-      {/* Art */}
-      {card.image_url
-        ? <div className="ca-card-art" style={{ backgroundImage: `url('${card.image_url}')` }} />
-        : <div className="ca-card-art-placeholder">✦</div>
-      }
-
-      {/* Nom en haut */}
-      <div className="ca-card-name">{card.name}</div>
-
-      {/* Stats visibles : ATK bas-gauche, PV bas-droite */}
-      <div className="ca-card-stat ca-card-atk">{card.atk}</div>
-      <div className={`ca-card-stat ca-card-hp${card.currentHp < card.hp ? ' dmg' : ''}`}>{card.currentHp}</div>
-
-      {/* HP bar at bottom */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, zIndex: 3,
-        background: 'rgba(0,0,0,.6)',
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${Math.max(0, hpPct) * 100}%`,
-          background: hpPct > 0.5 ? '#50d080' : hpPct > 0.25 ? '#ff9a3d' : '#ff4757',
-          transition: 'width .4s',
-        }} />
-      </div>
+      {/* HP bar below card (only on board) */}
+      {!isInHand && (
+        <div className="ca-cw-hpbar">
+          <div style={{
+            height: '100%',
+            width: `${Math.max(0, hpPct) * 100}%`,
+            background: hpPct > 0.5 ? '#50d080' : hpPct > 0.25 ? '#ff9a3d' : '#ff4040',
+            transition: 'width .4s',
+            borderRadius: 99,
+          }} />
+        </div>
+      )}
 
       {/* Tooltip */}
       <div className="ca-tooltip">
-        <div className="ca-tooltip-name uppercase">{card.name}</div>
+        <div className="ca-tooltip-name">{card.name}</div>
         <div className="ca-tooltip-stats">
           <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {card.atk}</span>
           <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>
@@ -159,7 +139,6 @@ export function CombatArena({
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const arenaRef = useRef<HTMLDivElement>(null)
 
-  // Reset selection when turn changes
   useEffect(() => { setSelected(null) }, [myTurn])
 
   const shake = useCallback((uid: string | number) => {
@@ -195,10 +174,16 @@ export function CombatArena({
     ) as HTMLElement | null
   }
 
+  function getFaceEl(enemy: boolean): HTMLElement | null {
+    return arenaRef.current?.querySelector(
+      enemy ? '[data-face-enemy]' : '[data-face-player]'
+    ) as HTMLElement | null
+  }
+
   function handlePlayerAttack(attacker: ArenaCard, target: ArenaCard | 'face') {
     const atkEl = getCardEl(attacker.uid, false)
     const tgtEl = target === 'face'
-      ? arenaRef.current?.querySelector('[data-face-enemy]') as HTMLElement | null
+      ? getFaceEl(true)
       : getCardEl((target as ArenaCard).uid, true)
 
     shake(attacker.uid)
@@ -226,21 +211,20 @@ export function CombatArena({
   function handleFaceClick() {
     if (!selected || locked || !myTurn) return
     const hasTaunt = oppBoard.some(c => (c as ArenaCard & { effects?: string[] }).effects?.includes('taunt'))
-    if (hasTaunt) return
-    if (oppBoard.length === 0 || !hasTaunt) handlePlayerAttack(selected, 'face')
+    if (!hasTaunt) handlePlayerAttack(selected, 'face')
   }
 
   const canFace = !!selected && !selected.exhausted && myTurn && !locked
     && !oppBoard.some(c => (c as ArenaCard & { effects?: string[] }).effects?.includes('taunt'))
 
   const disabled = locked || !myTurn
+  const oppHpPct = Math.max(0, Math.min(1, oppHp / 30))
+  const myHpPct  = Math.max(0, Math.min(1, myHp  / 30))
 
   return (
     <div className="ca-root" ref={arenaRef}>
-      {/* Stars */}
       <div className="ca-stars" />
 
-      {/* Top badge */}
       {topLabel && <div className="ca-top-badge">{topLabel}</div>}
 
       <div className="ca-arena">
@@ -252,99 +236,118 @@ export function CombatArena({
           <div key={i.id} className="ca-impact-ring" style={{ left: i.x, top: i.y }} />
         ))}
 
-        {/* ── BOT SIDE ── */}
-        <HpRow hp={oppHp} label={oppName} color={hpColor} />
-        <ManaRow mana={0} max={0} />
-
-        <div className="ca-face-row">
-          <span className="ca-turn-lbl">{turnLabel ?? ''}</span>
-          <button
-            data-face-enemy
-            className={`ca-face-btn${canFace ? ' attackable' : ''}`}
-            onClick={handleFaceClick}
-            title={oppName}>
-            💀
-          </button>
-          <span style={{ minWidth: 80 }} />
+        {/* ── OPP HERO BAR ── */}
+        <div
+          className={`ca-hero-bar ca-hero-bar--opp${canFace ? ' ca-hero-bar--attackable' : ''}`}
+          onClick={handleFaceClick}
+        >
+          <div className="ca-hero-portrait ca-hero-portrait--opp" data-face-enemy>💀</div>
+          <div className="ca-hero-info">
+            <span className="ca-hero-name">{oppName}</span>
+            <div className="ca-hero-hpbar">
+              <div className="ca-hero-hpfill" style={{ width: `${oppHpPct * 100}%`, background: hpColor(oppHpPct) }} />
+            </div>
+          </div>
+          <div className="ca-hero-hp-num" style={{ color: hpColor(oppHpPct) }}>
+            {Math.max(0, oppHp)}<span className="ca-hero-hp-max">/30</span>
+          </div>
         </div>
 
-        {/* Enemy board */}
+        {/* ── OPP BOARD ── */}
         <div className="ca-board ca-board--enemy">
-          {oppBoard.length === 0
-            ? <span className="ca-board-empty">
-                {canFace ? '⚔ Attaquer directement' : 'Plateau adverse vide'}
-              </span>
-            : oppBoard.map(c => (
-              <div key={String(c.uid)} data-uid={c.uid} data-enemy="true" style={{ display: 'contents' }}>
-                <CombatCard
-                  card={c} isEnemy
-                  isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
-                  onClick={() => handleBoardClick(c, true)}
-                />
-              </div>
-            ))
-          }
+          {oppBoard.length === 0 ? (
+            <span className="ca-board-empty">
+              {canFace ? '⚔ Cliquez le héros pour attaquer' : 'Plateau adverse vide'}
+            </span>
+          ) : oppBoard.map(c => (
+            <CombatCard
+              key={String(c.uid)}
+              card={c} isEnemy
+              isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
+              isShaking={shakingUids.has(c.uid)}
+              dataUid={c.uid} dataEnemy="true"
+              onClick={() => handleBoardClick(c, true)}
+            />
+          ))}
         </div>
 
-        {/* Divider */}
-        <div className="ca-divider" />
+        {/* ── MID STRIP ── */}
+        <div className="ca-mid-strip">
+          <div className="ca-divider-line" />
+          <div className="ca-mid-center">
+            <span className="ca-turn-lbl">
+              {turnLabel ?? (myTurn ? 'Ton tour' : `Tour de ${oppName}`)}
+            </span>
+            <button className="ca-end-btn" onClick={onEndTurn} disabled={disabled}>
+              {disabled ? '⌛ Attente…' : 'Fin du tour ▶'}
+            </button>
+          </div>
+          <div className="ca-divider-line" />
+        </div>
 
-        {/* Player board */}
+        {/* ── PLAYER BOARD ── */}
         <div className="ca-board ca-board--player">
-          {myBoard.length === 0
-            ? <span className="ca-board-empty">Joue des cartes ici</span>
-            : myBoard.map(c => (
-              <div key={String(c.uid)} data-uid={c.uid} data-enemy="false" style={{ display: 'contents' }}>
-                <CombatCard
-                  card={c} isEnemy={false}
-                  canAttack={!c.exhausted && myTurn && !locked && !selected}
-                  isSelected={selected?.uid === c.uid}
-                  onClick={() => handleBoardClick(c, false)}
-                />
-              </div>
-            ))
-          }
+          {myBoard.length === 0 ? (
+            <span className="ca-board-empty">Joue des cartes ici</span>
+          ) : myBoard.map(c => (
+            <CombatCard
+              key={String(c.uid)}
+              card={c} isEnemy={false}
+              canAttack={!c.exhausted && myTurn && !locked && !selected}
+              isSelected={selected?.uid === c.uid}
+              isShaking={shakingUids.has(c.uid)}
+              dataUid={c.uid} dataEnemy="false"
+              onClick={() => handleBoardClick(c, false)}
+            />
+          ))}
         </div>
 
-        {/* Controls */}
-        <div className="ca-controls">
-          <button data-face-player className="ca-face-btn" title={myName}>🔮</button>
-          <button className="ca-end-btn" onClick={onEndTurn} disabled={disabled}>
-            {disabled ? 'Attente…' : 'Fin du tour'}
-          </button>
+        {/* ── PLAYER HERO BAR ── */}
+        <div className="ca-hero-bar ca-hero-bar--player">
+          <div className="ca-hero-portrait ca-hero-portrait--player" data-face-player>🔮</div>
+          <div className="ca-hero-info">
+            <span className="ca-hero-name">{myName}</span>
+            <div className="ca-hero-hpbar">
+              <div className="ca-hero-hpfill" style={{ width: `${myHpPct * 100}%`, background: myHpColor(myHpPct) }} />
+            </div>
+            <div className="ca-mana-row">
+              {Array.from({ length: Math.min(myMaxMana, 10) }).map((_, i) => (
+                <span key={i} className={`ca-mana-crystal${i < myMana ? ' active' : ''}`} />
+              ))}
+              <span className="ca-mana-lbl">{myMana}/{myMaxMana}</span>
+            </div>
+          </div>
+          <div className="ca-hero-hp-num" style={{ color: myHpColor(myHpPct) }}>
+            {Math.max(0, myHp)}<span className="ca-hero-hp-max">/30</span>
+          </div>
           <button className="ca-quit-btn" onClick={onSurrender}>✕ Quitter</button>
         </div>
 
-        {/* My mana */}
-        <ManaRow mana={myMana} max={myMaxMana} />
-
-        {/* My HP */}
-        <HpRow hp={myHp} label={myName} color={myHpColor} />
-
-        {/* Hand */}
+        {/* ── HAND ── */}
         <div className="ca-hand">
           {selected && (
             <span className="ca-hand-hint">{selected.name} — choisissez une cible</span>
           )}
-          {myHand.length === 0
-            ? <span className="ca-hand-empty">Main vide</span>
-            : myHand.map(card => (
-              <CombatCard
-                key={String(card.uid)}
-                card={card} isEnemy={false} isInHand
-                canPlay={myTurn && !locked && card.cost <= myMana}
-                onClick={() => {
-                  if (!myTurn || locked || card.cost > myMana) return
-                  onPlayCard(card)
-                  setSelected(null)
-                }}
-              />
-            ))
-          }
+          {myHand.length === 0 ? (
+            <span className="ca-hand-empty">Main vide</span>
+          ) : myHand.map(card => (
+            <CombatCard
+              key={String(card.uid)}
+              card={card} isEnemy={false} isInHand
+              canPlay={myTurn && !locked && card.cost <= myMana}
+              onClick={() => {
+                if (!myTurn || locked || card.cost > myMana) return
+                onPlayCard(card)
+                setSelected(null)
+              }}
+            />
+          ))}
         </div>
 
-        {/* Log */}
-        <div className="ca-log">{log || (myTurn && !locked ? 'Ton tour !' : `Tour de ${oppName}…`)}</div>
+        {/* ── LOG ── */}
+        <div className="ca-log">
+          {log || (myTurn && !locked ? 'Ton tour !' : `Tour de ${oppName}…`)}
+        </div>
       </div>
     </div>
   )
