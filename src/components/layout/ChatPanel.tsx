@@ -264,7 +264,7 @@ function Conversation({ friend, myId, myProfile, onBack }: {
 export function ChatPanel() {
   const user    = useGameStore(s => s.user)
   const profile = useGameStore(s => s.profile)
-  const { chatFriend, setChatFriend, chatPanelOpen, setChatPanelOpen, setUnreadBySender, setUnreadMessageCount } = useSocialStore()
+  const { chatFriend, setChatFriend, chatPanelOpen, setChatPanelOpen, setUnreadBySender, setUnreadMessageCount, unreadMessageCount } = useSocialStore()
 
   const [friends, setFriends] = useState<FriendPreview[]>([])
   const [search, setSearch]   = useState('')
@@ -286,9 +286,9 @@ export function ChatPanel() {
   }, [user, setUnreadBySender, setUnreadMessageCount])
 
   useEffect(() => {
-    if (!chatPanelOpen || !user) return
+    if (!user) return
     loadPreviews()
-    const iv = setInterval(loadPreviews, 8000)
+    const iv = setInterval(loadPreviews, chatPanelOpen ? 8000 : 30_000)
     return () => clearInterval(iv)
   }, [chatPanelOpen, user, loadPreviews])
 
@@ -307,7 +307,7 @@ export function ChatPanel() {
   const filtered = friends.filter(f =>
     !search || (f.username ?? '').toLowerCase().includes(search.toLowerCase())
   )
-  const totalUnread = friends.reduce((s, f) => s + f.unread, 0)
+  const totalUnread = unreadMessageCount
 
   return (
     <>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { directMessages, friendships, playerProfiles } from '@/lib/db/schema'
+import { directMessages, friendships } from '@/lib/db/schema'
 import { eq, or, and, isNull } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
@@ -22,10 +22,10 @@ export async function GET() {
   const friendIds = friendRows.map(r => r.senderId === uid ? r.receiverId : r.senderId)
   if (!friendIds.length) return NextResponse.json([])
 
-  // Get profiles
-  const profiles = await db.query.playerProfiles.findMany({
-    where: (t, { inArray }) => inArray(t.userId, friendIds),
-  })
+  // Get profiles (raw to include last_seen_at added via ALTER TABLE)
+  const profiles = await db.run(
+    sql`SELECT user_id, username, avatar_url, last_seen_at FROM player_profiles WHERE user_id IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`
+  ).then(r => (r.rows as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null }[]))
 
   // Get last message per friend + unread count
   const previews = await Promise.all(friendIds.map(async (fid) => {
@@ -48,18 +48,16 @@ export async function GET() {
         isNull(directMessages.readAt),
       ))
 
-    const profile = profiles.find(p => p.userId === fid)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lastSeenAt = (profile as any)?.lastSeenAt ?? (profile as any)?.last_seen_at ?? null
+    const profile = profiles.find(p => p.user_id === fid)
     return {
       friendId:    fid,
       username:    profile?.username ?? null,
-      avatarUrl:   profile?.avatarUrl ?? null,
+      avatarUrl:   profile?.avatar_url ?? null,
       lastMessage: lastMsg?.content ?? null,
       lastAt:      lastMsg?.createdAt ?? null,
       lastFromMe:  lastMsg?.senderId === uid,
       unread:      unreadRows.length,
-      lastSeenAt,
+      lastSeenAt:  profile?.last_seen_at ?? null,
     }
   }))
 
