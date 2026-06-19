@@ -163,9 +163,3 @@ export function cleanupSession() {
   _onAction = null;
   _lastActionSeq = 0;
 }
-
-export function initSession(session, myUserId) {
-  _session = session;
-  _myRole  = session.player1_id === myUserId ? 'player1' : 'player2';
-  _startPolling(session.id);
-}
