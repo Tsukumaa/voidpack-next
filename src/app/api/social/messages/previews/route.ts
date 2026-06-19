@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { db, dbClient } from '@/lib/db'
 import { directMessages, friendships } from '@/lib/db/schema'
 import { eq, or, and, isNull } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
@@ -22,10 +22,13 @@ export async function GET() {
   const friendIds = friendRows.map(r => r.senderId === uid ? r.receiverId : r.senderId)
   if (!friendIds.length) return NextResponse.json([])
 
-  // Get profiles (raw to include last_seen_at added via ALTER TABLE)
-  const profiles = await db.run(
-    sql`SELECT user_id, username, avatar_url, last_seen_at FROM player_profiles WHERE user_id IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`
-  ).then(r => (r.rows as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null }[]))
+  // Get profiles (raw to include last_seen_at added via ALTER TABLE, outside Drizzle schema)
+  const placeholders = friendIds.map(() => '?').join(', ')
+  const profileResult = await dbClient.execute({
+    sql: `SELECT user_id, username, avatar_url, last_seen_at FROM player_profiles WHERE user_id IN (${placeholders})`,
+    args: friendIds,
+  })
+  const profiles = profileResult.rows as unknown as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null }[]
 
   // Get last message per friend + unread count
   const previews = await Promise.all(friendIds.map(async (fid) => {
