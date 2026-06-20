@@ -442,12 +442,12 @@ export default function ProfilPage() {
                   <p className="text-white/40 text-xs">Uniques</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-1.5">
                 {['void','legendary','epic','rare','common'].filter(r => stats.byRarity[r]).map(r => (
-                  <div key={r} className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+                  <div key={r} className="flex-1 rounded-xl px-2 py-2.5 flex flex-col items-center gap-1"
                     style={{ background: `${RARITY_COLOR[r]}12`, border: `1px solid ${RARITY_COLOR[r]}28` }}>
-                    <span className="text-xs font-bold capitalize" style={{ color: RARITY_COLOR[r] }}>{r}</span>
-                    <span className="text-white font-black text-sm">{stats.byRarity[r]}</span>
+                    <span className="text-white font-black text-sm leading-none">{stats.byRarity[r]}</span>
+                    <span className="text-[10px] font-bold capitalize leading-none" style={{ color: RARITY_COLOR[r] }}>{r}</span>
                   </div>
                 ))}
               </div>
