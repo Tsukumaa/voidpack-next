@@ -59,6 +59,8 @@ function expandDeck(entries: (CardDef & { qty?: number })[]): ArenaCard[] {
         id: entry.id, name: entry.name, rarity: entry.rarity,
         atk: stats.atk, hp: stats.hp, currentHp: stats.hp, cost: stats.cost,
         exhausted: false, image_url: entry.image_url ?? null,
+        effects: stats.effects,
+        shieldUsed: false,
       })
     }
   }
@@ -154,14 +156,20 @@ function TrainingContent() {
       if (g.phase !== 'player' || g.locked || g.gameOver) return g
       if (card.cost > g.playerMana) return { ...g, log: 'Pas assez de mana !' }
       if (g.playerBoard.length >= MAX_BOARD)  return { ...g, log: 'Plateau plein !' }
-      return {
+      const hasCharge = card.effects?.includes('charge') ?? false
+      const hasVoidSurge = card.effects?.includes('void_surge') ?? false
+      const newEnemyBoard = hasVoidSurge
+        ? g.enemyBoard.map(c => ({ ...c, currentHp: c.currentHp - 1 })).filter(c => c.currentHp > 0)
+        : g.enemyBoard
+      return checkWin({
         ...g,
         playerMana:  g.playerMana - card.cost,
         playerHand:  g.playerHand.filter(c => c.uid !== card.uid),
-        playerBoard: [...g.playerBoard, { ...card, exhausted: true }],
+        playerBoard: [...g.playerBoard, { ...card, exhausted: !hasCharge }],
+        enemyBoard: newEnemyBoard,
         selected: null,
-        log: `${card.name} invoqué !`,
-      }
+        log: hasVoidSurge ? `${card.name} invoqué ! VOID Surge inflige 1 dégât à tous les ennemis !` : `${card.name} invoqué !`,
+      })
     })
   }
 
@@ -169,27 +177,59 @@ function TrainingContent() {
   function handleAttack(attacker: ArenaCard, target: ArenaCard | 'face') {
     set(g => {
       if (g.phase !== 'player' || g.locked || g.gameOver || attacker.exhausted) return g
+
       if (target === 'face') {
-        const newEnemyHp = Math.max(0, g.enemyHp - attacker.atk)
-        const newBoard = g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, exhausted: true } : c)
+        let newPlayerHp = g.playerHp
+        if (attacker.effects?.includes('lifesteal')) newPlayerHp = Math.min(30, newPlayerHp + attacker.atk)
+        const newBoard = g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, exhausted: true, effects: (c.effects ?? []).filter(e => e !== 'stealth') } : c)
         return checkWin({
           ...g,
-          enemyHp: newEnemyHp,
+          enemyHp: Math.max(0, g.enemyHp - attacker.atk),
+          playerHp: newPlayerHp,
           playerBoard: newBoard,
           selected: null,
           log: `${attacker.name} attaque le héros ennemi pour ${attacker.atk} !`,
         })
       }
+
       const t = target as ArenaCard
-      const tHp = t.currentHp - attacker.atk
-      const aHp = attacker.currentHp - t.atk
-      return {
+
+      // Shield cible : absorbe 1 hit
+      let tHp: number
+      let newTShieldUsed = t.shieldUsed
+      if (t.effects?.includes('shield') && !t.shieldUsed) {
+        tHp = t.currentHp
+        newTShieldUsed = true
+      } else {
+        tHp = t.currentHp - attacker.atk
+      }
+
+      // Shield attaquant : absorbe les dégâts reçus
+      let aHp: number
+      let newAShieldUsed = attacker.shieldUsed
+      if (attacker.effects?.includes('shield') && !attacker.shieldUsed) {
+        aHp = attacker.currentHp
+        newAShieldUsed = true
+      } else {
+        aHp = attacker.currentHp - t.atk
+      }
+
+      // Lifesteal : soigne si attaque sur carte
+      let newPlayerHp = g.playerHp
+      if (attacker.effects?.includes('lifesteal')) newPlayerHp = Math.min(30, newPlayerHp + attacker.atk)
+
+      return checkWin({
         ...g,
-        enemyBoard:  tHp <= 0 ? g.enemyBoard.filter(c => c.uid !== t.uid)  : g.enemyBoard.map(c => c.uid === t.uid  ? { ...c, currentHp: tHp } : c),
-        playerBoard: aHp <= 0 ? g.playerBoard.filter(c => c.uid !== attacker.uid) : g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: aHp, exhausted: true } : c),
+        playerHp: newPlayerHp,
+        enemyBoard:  tHp <= 0
+          ? g.enemyBoard.filter(c => c.uid !== t.uid)
+          : g.enemyBoard.map(c => c.uid === t.uid ? { ...c, currentHp: tHp, shieldUsed: newTShieldUsed } : c),
+        playerBoard: aHp <= 0
+          ? g.playerBoard.filter(c => c.uid !== attacker.uid)
+          : g.playerBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: aHp, shieldUsed: newAShieldUsed, exhausted: true, effects: (c.effects ?? []).filter(e => e !== 'stealth') } : c),
         selected: null,
         log: `${attacker.name} attaque ${t.name} !`,
-      }
+      })
     })
   }
 
@@ -226,12 +266,16 @@ function TrainingContent() {
           .sort((a, b) => b.cost - a.cost)
         if (playable.length) {
           const card = playable[0]
+          const botHasVoidSurge = card.effects?.includes('void_surge') ?? false
+          if (botHasVoidSurge) {
+            next.playerBoard = next.playerBoard.map(c => ({ ...c, currentHp: c.currentHp - 1 })).filter(c => c.currentHp > 0)
+          }
           next = {
             ...next,
             enemyMana:  next.enemyMana - card.cost,
             enemyHand:  next.enemyHand.filter(c => c.uid !== card.uid),
-            enemyBoard: [...next.enemyBoard, { ...card, exhausted: true }],
-            log: `Bot invoque ${card.name} !`,
+            enemyBoard: [...next.enemyBoard, { ...card, exhausted: !(card.effects?.includes('charge') ?? false) }],
+            log: botHasVoidSurge ? `Bot invoque ${card.name} — VOID Surge !` : `Bot invoque ${card.name} !`,
           }
         }
         return next
@@ -274,10 +318,33 @@ function TrainingContent() {
             if (!g2.enemyBoard.find(c => c.uid === card.uid)) return g2
 
             let next = { ...g2 }
-            if (next.playerBoard.length > 0) {
-              const tgt = [...next.playerBoard].sort((a, b) => a.currentHp - b.currentHp)[0]
-              const tHp = tgt.currentHp - card.atk
-              const aHp = card.currentHp - tgt.atk
+            // Cibler en priorité les cartes avec taunt
+            const taunters = next.playerBoard.filter(c => c.effects?.includes('taunt'))
+            const stealthTargets = next.playerBoard.filter(c => !c.effects?.includes('stealth'))
+            const targets = taunters.length > 0 ? taunters : stealthTargets
+            const allTargets = targets.length > 0 ? targets : next.playerBoard
+
+            if (allTargets.length > 0) {
+              const tgt = [...allTargets].sort((a, b) => a.currentHp - b.currentHp)[0]
+
+              // Shield cible
+              let tHp: number
+              if (tgt.effects?.includes('shield') && !tgt.shieldUsed) {
+                tHp = tgt.currentHp
+                next.playerBoard = next.playerBoard.map(c => c.uid === tgt.uid ? { ...c, shieldUsed: true } : c)
+              } else {
+                tHp = tgt.currentHp - card.atk
+              }
+
+              // Shield bot card
+              let aHp: number
+              if (card.effects?.includes('shield') && !card.shieldUsed) {
+                aHp = card.currentHp
+                next.enemyBoard = next.enemyBoard.map(c => c.uid === card.uid ? { ...c, shieldUsed: true } : c)
+              } else {
+                aHp = card.currentHp - tgt.atk
+              }
+
               next.playerBoard = tHp <= 0
                 ? next.playerBoard.filter(c => c.uid !== tgt.uid)
                 : next.playerBoard.map(c => c.uid === tgt.uid ? { ...c, currentHp: tHp } : c)

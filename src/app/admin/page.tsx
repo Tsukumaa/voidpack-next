@@ -42,7 +42,7 @@ interface Card {
   combat_atk: number
   combat_hp: number
   combat_cost: number
-  combat_effects: string
+  combat_effects: string[]
   artist: string
   artistUrl: string
 }
@@ -977,7 +977,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '', artist: '', artistUrl: '' }
+  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: [], artist: '', artistUrl: '' }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1024,7 +1024,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         artist: form.artist.trim(),
         artist_url: form.artistUrl?.trim() || null,
         description: (form.description ?? '').trim(),
-        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } })
+        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } })
       }
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
@@ -1110,7 +1110,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 <div className="px-2 py-1.5 flex items-center justify-between gap-1">
                   <span className="text-xs text-white truncate font-semibold">{c.name}</span>
                   <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
+                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
                       className={iconBtnCls}><Pencil size={11} /></button>
                     <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
                   </div>
@@ -1140,7 +1140,37 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
             <Field label="ATK"><input type="number" min={0} value={form.combat_atk} onChange={e => setForm(f => f && ({ ...f, combat_atk: +e.target.value }))} className={inputCls} /></Field>
             <Field label="HP"><input type="number" min={1} value={form.combat_hp} onChange={e => setForm(f => f && ({ ...f, combat_hp: +e.target.value }))} className={inputCls} /></Field>
             <Field label="Coût mana"><input type="number" min={0} max={10} value={form.combat_cost} onChange={e => setForm(f => f && ({ ...f, combat_cost: +e.target.value }))} className={inputCls} /></Field>
-            <Field label="Effets (taunt, shield, charge…)"><input value={form.combat_effects} onChange={e => setForm(f => f && ({ ...f, combat_effects: e.target.value }))} className={inputCls} placeholder="taunt, shield" /></Field>
+            <div className="col-span-1 sm:col-span-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/30 mb-2">Effets</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {([
+                  { key: 'taunt',      label: 'Provocation',  desc: 'Doit être attaqué en premier', color: '#ff7820' },
+                  { key: 'charge',     label: 'Charge',        desc: 'Peut attaquer immédiatement', color: '#50c850' },
+                  { key: 'shield',     label: 'Bouclier',      desc: 'Absorbe la première attaque',  color: '#2090ff' },
+                  { key: 'lifesteal',  label: 'Vol de vie',    desc: "Soigne le héros à l'attaque", color: '#e02850' },
+                  { key: 'void_surge', label: 'VOID Surge',    desc: '1 dégât à tous les ennemis',   color: '#8200ff' },
+                  { key: 'stealth',    label: 'Furtivité',     desc: 'Ne peut pas être ciblé',       color: '#6060a0' },
+                ] as const).map(({ key, label, desc, color }) => {
+                  const checked = (form.combat_effects ?? []).includes(key)
+                  return (
+                    <label key={key} className={`flex items-start gap-2 p-2 rounded-xl border cursor-pointer transition-all ${checked ? 'border-opacity-60 bg-opacity-10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/20'}`}
+                      style={checked ? { borderColor: color + '60', background: color + '15' } : {}}>
+                      <input type="checkbox" className="mt-0.5 accent-[#7b2bff]"
+                        checked={checked}
+                        onChange={e => setForm(f => {
+                          if (!f) return f
+                          const effects = f.combat_effects ?? []
+                          return { ...f, combat_effects: e.target.checked ? [...effects, key] : effects.filter(x => x !== key) }
+                        })} />
+                      <div>
+                        <div className="text-xs font-bold text-white" style={{ color: checked ? color : undefined }}>{label}</div>
+                        <div className="text-[10px] text-white/30 leading-tight mt-0.5">{desc}</div>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             <div className="col-span-1 sm:col-span-2">
               <Field label="URL artwork"><input value={form.image_url} onChange={e => setForm(f => f && ({ ...f, image_url: e.target.value }))} className={inputCls} placeholder="https://…" /></Field>
             </div>

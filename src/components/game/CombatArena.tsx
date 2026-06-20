@@ -14,6 +14,8 @@ export interface ArenaCard {
   currentHp: number
   cost: number
   exhausted: boolean
+  effects?: string[]
+  shieldUsed?: boolean
   image_url?: string | null
 }
 
@@ -113,6 +115,18 @@ function CombatCard({
         </div>
       )}
 
+      {/* Badges effets */}
+      {card.effects && card.effects.length > 0 && (
+        <div className="ca-effects">
+          {card.effects.includes('taunt')      && <span className="ca-fx ca-fx--taunt">PROVOC</span>}
+          {card.effects.includes('shield')     && <span className={`ca-fx ca-fx--shield${card.shieldUsed ? ' ca-fx--used' : ''}`}>⬡</span>}
+          {card.effects.includes('charge')     && <span className="ca-fx ca-fx--charge">⚡</span>}
+          {card.effects.includes('lifesteal')  && <span className="ca-fx ca-fx--lifesteal">♥</span>}
+          {card.effects.includes('void_surge') && <span className="ca-fx ca-fx--void">VOID</span>}
+          {card.effects.includes('stealth')    && <span className="ca-fx ca-fx--stealth">👁</span>}
+        </div>
+      )}
+
       {/* Tooltip */}
       <div className="ca-tooltip">
         <div className="ca-tooltip-name">{card.name}</div>
@@ -122,6 +136,17 @@ function CombatCard({
           <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
         </div>
         <div className="ca-tooltip-rarity">{card.rarity}</div>
+        {card.effects && card.effects.length > 0 && (
+          <div className="ca-tooltip-effects">
+            {card.effects.map(e => {
+              const labels: Record<string, string> = {
+                taunt: 'Provocation', charge: 'Charge', shield: 'Bouclier',
+                lifesteal: 'Vol de vie', void_surge: 'VOID Surge', stealth: 'Furtivité'
+              }
+              return <span key={e} className="ca-tooltip-effect">{labels[e] ?? e}</span>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -287,7 +312,12 @@ export function CombatArena({
   function handleBoardClick(card: ArenaCard, isEnemy: boolean) {
     if (locked || !myTurn) return
     if (isEnemy) {
-      if (selected && !selected.exhausted) handlePlayerAttack(selected, card)
+      if (selected && !selected.exhausted) {
+        // Stealth : ne peut pas être ciblé sauf si c'est la seule carte
+        const targetable = oppBoard.filter(c => !c.effects?.includes('stealth'))
+        if (card.effects?.includes('stealth') && targetable.length > 0) return
+        handlePlayerAttack(selected, card)
+      }
     } else {
       if (!card.exhausted) setSelected(s => s?.uid === card.uid ? null : card)
     }
@@ -358,7 +388,7 @@ export function CombatArena({
             <CombatCard
               key={String(c.uid)}
               card={c} isEnemy
-              isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
+              isAttackable={!!selected && !selected.exhausted && !locked && myTurn && (!c.effects?.includes('stealth') || oppBoard.every(c2 => c2.effects?.includes('stealth')))}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="true"
               onClick={() => handleBoardClick(c, true)}

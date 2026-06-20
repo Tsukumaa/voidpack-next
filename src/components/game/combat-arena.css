@@ -624,6 +624,50 @@
   50%      { opacity: 1; }
 }
 
+/* ── Badges effets ─────────────────────────────────────────── */
+.ca-effects {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+.ca-fx {
+  font-size: clamp(5px, 0.9vw, 8px);
+  font-weight: 900;
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+}
+.ca-fx--taunt      { background: rgba(255,120,0,.85);  color: #fff; }
+.ca-fx--shield     { background: rgba(0,140,255,.85);  color: #fff; font-size: clamp(7px, 1.2vw, 11px); }
+.ca-fx--shield.ca-fx--used { opacity: 0.3; }
+.ca-fx--charge     { background: rgba(80,200,80,.85);  color: #fff; }
+.ca-fx--lifesteal  { background: rgba(220,40,80,.85);  color: #fff; }
+.ca-fx--void       { background: rgba(130,0,255,.85);  color: #fff; }
+.ca-fx--stealth    { background: rgba(100,100,120,.7); color: #fff; font-size: clamp(7px, 1.2vw, 10px); }
+
+.ca-tooltip-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.ca-tooltip-effect {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+
 /* ── Écrans compacts (hauteur ≤ 900px, hors mobile paysage) ─────────── */
 /* Laptops 768p, petites fenêtres, tablettes paysage                     */
 /* Les cartes sont déjà gérées par la formule min(vw,vh) dans .ca-cw     */

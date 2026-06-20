@@ -25,19 +25,21 @@ interface GameState {
 // Normalise une carte brute du deck en ArenaCard jouable (art + stats top-level + uid).
 // Gère les deux formes de deck : { combat:{...} } (matchmaking) et { metadata:{combat:{...}} } (draft).
 function toArenaCard(raw: Record<string, unknown>, idx: number): ArenaCard {
-  const combat = (raw.combat ?? (raw.metadata as Record<string, unknown>)?.combat ?? {}) as Record<string, number>
-  const hp = (raw.hp as number) ?? combat.hp ?? 1
+  const combat = (raw.combat ?? (raw.metadata as Record<string, unknown>)?.combat ?? {}) as Record<string, unknown>
+  const hp = (raw.hp as number) ?? (combat.hp as number) ?? 1
   return {
     ...raw,
     uid: `${raw.id}_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
     id: String(raw.id),
     name: String(raw.name ?? '???'),
     rarity: String(raw.rarity ?? 'common'),
-    atk: (raw.atk as number) ?? combat.atk ?? 1,
+    atk: (raw.atk as number) ?? (combat.atk as number) ?? 1,
     hp,
     currentHp: (raw.currentHp as number) ?? hp,
-    cost: (raw.cost as number) ?? combat.cost ?? 1,
+    cost: (raw.cost as number) ?? (combat.cost as number) ?? 1,
     exhausted: false,
+    effects: (raw.effects as string[]) ?? (combat.effects as string[]) ?? [],
+    shieldUsed: (raw.shieldUsed as boolean) ?? false,
     image_url: (raw.image_url as string) ?? (raw.artUrl as string) ?? null,
   }
 }
@@ -150,20 +152,35 @@ export default function CombatPage() {
     if (!myTurn || !gameState) return
     if (card.cost > myMana) { addLog('Pas assez de mana'); return }
     if (myBoard.length >= 5) { addLog('Plateau plein !'); return }
-    const newHand  = myHand.filter(c => c.uid !== card.uid)
-    const newBoard = [...myBoard, { ...card, exhausted: true }]
-    const newState = { ...gameState, [`${me}_hand`]: newHand, [`${me}_board`]: newBoard, [`${me}_mana`]: myMana - card.cost }
+    const newHand = myHand.filter(c => c.uid !== card.uid)
+    const hasCharge = card.effects?.includes('charge') ?? false
+    const hasVoidSurge = card.effects?.includes('void_surge') ?? false
+    const newBoard = [...myBoard, { ...card, exhausted: !hasCharge }]
+    let newOppBoard = oppBoard
+    if (hasVoidSurge) {
+      newOppBoard = oppBoard.map(c => ({ ...c, currentHp: c.currentHp - 1 })).filter(c => c.currentHp > 0)
+    }
+    const newState = {
+      ...gameState,
+      [`${me}_hand`]: newHand,
+      [`${me}_board`]: newBoard,
+      [`${opp}_board`]: newOppBoard,
+      [`${me}_mana`]: myMana - card.cost,
+    }
     setGameState(newState)
-    addLog(`Tu joues ${card.name}`)
+    addLog(hasVoidSurge ? `Tu joues ${card.name} — VOID Surge !` : `Tu joues ${card.name}`)
     await submitAction('play_card', { card_id: card.uid }, newState as unknown as null)
   }
 
   async function handleAttack(attacker: ArenaCard, target: ArenaCard | 'face') {
     if (!myTurn || !gameState || attacker.exhausted) return
     let newState = { ...gameState }
+
     if (target === 'face') {
       const newOppHp = Math.max(0, oppHp - attacker.atk)
-      newState = { ...newState, [`${opp}_hp`]: newOppHp }
+      let newMyHp = myHp
+      if (attacker.effects?.includes('lifesteal')) newMyHp = Math.min(30, newMyHp + attacker.atk)
+      newState = { ...newState, [`${opp}_hp`]: newOppHp, [`${me}_hp`]: newMyHp }
       addLog(`${attacker.name} attaque l'adversaire pour ${attacker.atk}`)
       if (newOppHp <= 0 && user) {
         newState = { ...newState, winner: user.id }
@@ -173,17 +190,43 @@ export default function CombatPage() {
         return
       }
     } else {
-      const newTargetHp = target.currentHp - attacker.atk
-      const newAttHp    = attacker.currentHp - target.atk
-      const newOppBoard = newTargetHp <= 0 ? oppBoard.filter(c => c.uid !== target.uid) : oppBoard.map(c => c.uid === target.uid ? { ...c, currentHp: newTargetHp } : c)
-      const newMyBoard  = newAttHp <= 0 ? myBoard.filter(c => c.uid !== attacker.uid) : myBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: newAttHp, exhausted: true } : c)
-      newState = { ...newState, [`${me}_board`]: newMyBoard, [`${opp}_board`]: newOppBoard }
-      addLog(`${attacker.name} attaque ${target.name}`)
+      const t = target as ArenaCard
+      // Shield sur la cible
+      let tHp: number
+      let tShieldUsed = t.shieldUsed
+      if (t.effects?.includes('shield') && !t.shieldUsed) {
+        tHp = t.currentHp
+        tShieldUsed = true
+      } else {
+        tHp = t.currentHp - attacker.atk
+      }
+      // Shield sur l'attaquant
+      let aHp: number
+      let aShieldUsed = attacker.shieldUsed
+      if (attacker.effects?.includes('shield') && !attacker.shieldUsed) {
+        aHp = attacker.currentHp
+        aShieldUsed = true
+      } else {
+        aHp = attacker.currentHp - t.atk
+      }
+      // Lifesteal
+      let newMyHp = myHp
+      if (attacker.effects?.includes('lifesteal')) newMyHp = Math.min(30, newMyHp + attacker.atk)
+      const newOppBoard = tHp <= 0
+        ? oppBoard.filter(c => c.uid !== t.uid)
+        : oppBoard.map(c => c.uid === t.uid ? { ...c, currentHp: tHp, shieldUsed: tShieldUsed } : c)
+      const newMyBoard = aHp <= 0
+        ? myBoard.filter(c => c.uid !== attacker.uid)
+        : myBoard.map(c => c.uid === attacker.uid ? { ...c, currentHp: aHp, shieldUsed: aShieldUsed } : c)
+      newState = { ...newState, [`${me}_board`]: newMyBoard, [`${opp}_board`]: newOppBoard, [`${me}_hp`]: newMyHp }
+      addLog(`${attacker.name} attaque ${t.name}`)
     }
-    const updatedMyBoard = (newState as Record<string, ArenaCard[]>)[`${me}_board`]?.map(c => c.uid === attacker.uid ? { ...c, exhausted: true } : c)
+    const updatedMyBoard = (newState as Record<string, ArenaCard[]>)[`${me}_board`]?.map(c =>
+      c.uid === attacker.uid ? { ...c, exhausted: true, effects: (c.effects ?? []).filter(e => e !== 'stealth') } : c
+    )
     newState = { ...newState, [`${me}_board`]: updatedMyBoard }
     setGameState(newState)
-    await submitAction('attack', { attacker: attacker.uid, target: target === 'face' ? 'face' : target.uid }, newState as unknown as null)
+    await submitAction('attack', { attacker: attacker.uid, target: target === 'face' ? 'face' : (target as ArenaCard).uid }, newState as unknown as null)
   }
 
   async function handleEndTurn() {
