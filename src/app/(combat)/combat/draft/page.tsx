@@ -567,7 +567,7 @@ function DraftContent() {
             const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
             const { ok, reason } = canAdd(card)
             return (
-              <div key={card.card_id} className="relative group">
+              <div key={card.card_id} className="relative group hover:z-50">
                 <CardHover rarity={card.rarity}
                   className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
                   style={{ aspectRatio: '0.714', overflow: 'visible' }}>
