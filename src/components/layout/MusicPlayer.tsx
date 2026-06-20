@@ -8,7 +8,8 @@ const MUSIC_COMBAT = 'https://imgg.fr/r/KF3aA7Fy.mp3'
 
 // Singletons module-level — survivent aux navigations et changements de layout
 const audios: Record<string, HTMLAudioElement> = {}
-let started = false
+let started   = false
+let activeUrl: string | null = null
 
 function getAudio(url: string): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null
@@ -60,8 +61,6 @@ export function MusicPlayer() {
   const pathname  = usePathname()
   const volume    = useSettingsStore(s => s.musicVolume)
   const muted     = useSettingsStore(s => s.musicMuted)
-  const activeUrl = useRef<string | null>(null)
-
   const targetUrl = isCombatRoute(pathname) ? MUSIC_COMBAT : MUSIC_MENU
 
   // Tentative autoplay immédiate au premier montage, fallback sur interaction
@@ -71,8 +70,8 @@ export function MusicPlayer() {
     if (!audio) return
 
     audio.play().then(() => {
-      started = true
-      activeUrl.current = targetUrl
+      started   = true
+      activeUrl = targetUrl
     }).catch(() => {
       // Navigateur bloque l'autoplay — on attend la première interaction
       const onInteract = () => {
@@ -80,11 +79,11 @@ export function MusicPlayer() {
         const a = getAudio(targetUrl)
         if (!a) return
         a.play().then(() => {
-          started = true
-          activeUrl.current = targetUrl
+          started   = true
+          activeUrl = targetUrl
         }).catch(() => {})
-        window.removeEventListener('click',   onInteract)
-        window.removeEventListener('keydown', onInteract)
+        window.removeEventListener('click',    onInteract)
+        window.removeEventListener('keydown',  onInteract)
         window.removeEventListener('touchend', onInteract)
       }
       window.addEventListener('click',    onInteract)
@@ -96,13 +95,12 @@ export function MusicPlayer() {
   // Changement de piste selon la page
   useEffect(() => {
     if (!started) {
-      // Pas encore démarré : mémoriser la cible pour quand ça démarrera
-      activeUrl.current = targetUrl
+      activeUrl = targetUrl
       return
     }
-    if (activeUrl.current === targetUrl) return
-    const prev = activeUrl.current ?? MUSIC_MENU
-    activeUrl.current = targetUrl
+    if (activeUrl === targetUrl) return
+    const prev = activeUrl ?? MUSIC_MENU
+    activeUrl  = targetUrl
     crossfade(prev, targetUrl, volume)
   }, [targetUrl]) // eslint-disable-line
 
