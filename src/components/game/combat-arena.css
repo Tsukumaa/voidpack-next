@@ -81,7 +81,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 4;
-  height: 76px;
+  height: 84px;
 }
 .ca-hero-bar--opp {
   background: linear-gradient(0deg, transparent, rgba(200,40,40,.06));
@@ -411,11 +411,11 @@
 /* ── Hand ───────────────────────────────────────────────────────────── */
 .ca-hand {
   display: flex;
-  padding: 10px 14px 12px;
+  padding: 28px 14px 12px;
   justify-content: center;
   align-items: flex-end;
   background: linear-gradient(0deg, rgba(0,0,0,.65) 0%, rgba(8,3,26,.2) 100%);
-  height: clamp(165px, 22vh, 222px);
+  height: clamp(175px, 23vh, 232px);
   border-top: 1px solid rgba(123,43,255,.07);
   overflow: visible;
   position: relative;
