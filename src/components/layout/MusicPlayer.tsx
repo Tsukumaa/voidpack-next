@@ -36,7 +36,8 @@ export function MusicPlayer() {
   const muted      = useSettingsStore(s => s.musicMuted)
   const activeUrl  = useRef<string>(MUSIC_MENU)
 
-  const isCombat   = pathname.startsWith('/combat')
+  // Musique combat uniquement dans une partie active (/combat/[id] mais pas /combat/matchmaking etc.)
+  const isCombat   = /^\/combat\/[^/]+$/.test(pathname) && !['draft','matchmaking','training','join'].some(s => pathname.includes(s))
   const targetUrl  = isCombat ? MUSIC_COMBAT : MUSIC_MENU
 
   // Démarrage à la première interaction
