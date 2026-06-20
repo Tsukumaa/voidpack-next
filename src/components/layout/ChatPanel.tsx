@@ -108,8 +108,8 @@ function parseDuel(content: string): string | null {
 }
 
 // Carte de défi avec boutons Accepter / Refuser
-function DuelCard({ sessionId, isMe, onAccept, onDecline }: {
-  sessionId: string; isMe: boolean; onAccept: () => void; onDecline: () => void
+function DuelCard({ sessionId, isMe, status, onAccept, onDecline }: {
+  sessionId: string; isMe: boolean; status?: 'pending' | 'accepted' | 'declined'; onAccept: () => void; onDecline: () => void
 }) {
   return (
     <div className="rounded-2xl px-4 py-3 flex flex-col gap-2.5"
@@ -124,7 +124,11 @@ function DuelCard({ sessionId, isMe, onAccept, onDecline }: {
           <p className="text-[11px] text-white/45">Partie amicale</p>
         </div>
       </div>
-      {isMe ? (
+      {status === 'accepted' ? (
+        <p className="text-[11px] text-[#22c55e] font-bold">✓ Duel accepté — en cours</p>
+      ) : status === 'declined' ? (
+        <p className="text-[11px] text-white/35 italic">✕ Défi refusé</p>
+      ) : isMe ? (
         <p className="text-[11px] text-white/40 italic">En attente de sa réponse…</p>
       ) : (
         <div className="flex gap-2">
@@ -156,14 +160,17 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [sending, setSending]   = useState(false)
+  const [duelStatus, setDuelStatus] = useState<Record<string, 'accepted' | 'declined'>>({})
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
 
   function acceptDuel(sessionId: string) {
+    setDuelStatus(s => ({ ...s, [sessionId]: 'accepted' }))
     setChatPanelOpen(false)
     router.push(`/combat/join/${sessionId}`)
   }
-  async function declineDuel() {
+  async function declineDuel(sessionId: string) {
+    setDuelStatus(s => ({ ...s, [sessionId]: 'declined' }))
     await fetch('/api/social/messages', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ receiverId: friend.friendId, content: '❌ Défi refusé.' }),
@@ -257,9 +264,9 @@ function Conversation({ friend, myId, myProfile, onBack }: {
             <div key={gi} className={`flex gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
               {/* Avatar shown once per group */}
               <div className="flex-shrink-0 mt-auto">
-                {!isMe
-                  ? <Avatar src={friend.avatarUrl} name={friend.username} size={28} />
-                  : <div style={{ width: 28 }} />
+                {isMe
+                  ? <Avatar src={myProfile.avatar_url} name={myProfile.username} size={28} />
+                  : <Avatar src={friend.avatarUrl} name={friend.username} size={28} />
                 }
               </div>
 
@@ -268,7 +275,8 @@ function Conversation({ friend, myId, myProfile, onBack }: {
                   const duelId = parseDuel(m.content)
                   if (duelId) return (
                     <DuelCard key={m.id} sessionId={duelId} isMe={isMe}
-                      onAccept={() => acceptDuel(duelId)} onDecline={declineDuel} />
+                      status={duelStatus[duelId]}
+                      onAccept={() => acceptDuel(duelId)} onDecline={() => declineDuel(duelId)} />
                   )
                   return (
                   <div key={m.id}
