@@ -615,17 +615,16 @@
   .ca-turn-lbl          { display: none; }
   .ca-timer-lbl         { font-size: 10px; min-width: 22px; }
 
-  /* Cartes plateau — xs circles (18px) → 50px suffit sans chevauchement */
-  /* 7 cartes × 50px + 6 × 4px gap = 374px ≤ 382px dispo ✓ */
-  .ca-cw                { width: clamp(48px, 13vw, 62px); }
-  .ca-board             { gap: 4px; padding: 4px 6px; overflow: hidden; }
+  /* Cartes plateau — max 5 par côté → 5×70 + 4×6 = 374px ≤ 382px dispo ✓ */
+  .ca-cw                { width: clamp(64px, 17vw, 78px); }
+  .ca-board             { gap: 6px; padding: 4px 6px; overflow: hidden; }
 
-  /* Main — sm circles (30px) → cartes plus larges, marge agressive */
-  .ca-hand              { height: clamp(140px, 22vh, 175px); padding: 20px 8px 8px; }
-  /* 7 cartes × 78px avec -36px marge = 78 + 6×42 = 330px ≤ 374px ✓ */
-  .ca-hand .ca-cw       { width: clamp(70px, 18vw, 90px); margin-left: clamp(-36px, -9vw, -22px); }
+  /* Main — badges fixes, cartes plus larges */
+  .ca-hand              { height: clamp(150px, 24vh, 190px); padding: 22px 8px 8px; }
+  /* 5 cartes × 88px avec -40px marge = 88 + 4×48 = 280px ✓ */
+  .ca-hand .ca-cw       { width: clamp(80px, 21vw, 100px); margin-left: clamp(-42px, -10vw, -26px); }
   .ca-hand .ca-cw:first-child { margin-left: 0; }
-  .ca-hand .ca-cw--playable:hover { transform: translateY(-26px) scale(1.1) !important; }
+  .ca-hand .ca-cw--playable:hover { transform: translateY(-28px) scale(1.12) !important; }
 
   .ca-log               { font-size: 9px; padding: 4px 8px; }
   .ca-board-empty       { font-size: 9px; }
@@ -656,15 +655,15 @@
   .ca-turn-lbl          { display: none; }
   .ca-timer-lbl         { font-size: 9px; min-width: 18px; }
 
-  /* Cartes plateau paysage — xs circles, basé sur vh */
-  .ca-cw                { width: clamp(46px, 12vh, 60px); }
-  .ca-board             { gap: 3px; padding: 2px 6px; overflow: hidden; }
+  /* Cartes plateau paysage — max 5, basé sur vh */
+  .ca-cw                { width: clamp(56px, 14vh, 72px); }
+  .ca-board             { gap: 5px; padding: 2px 6px; overflow: hidden; }
 
   /* Main paysage */
-  .ca-hand              { height: clamp(108px, 27vh, 138px); padding: 14px 8px 6px; }
-  .ca-hand .ca-cw       { width: clamp(62px, 15vh, 82px); margin-left: clamp(-32px, -8vh, -20px); }
+  .ca-hand              { height: clamp(112px, 28vh, 145px); padding: 16px 8px 6px; }
+  .ca-hand .ca-cw       { width: clamp(70px, 17vh, 90px); margin-left: clamp(-36px, -9vh, -22px); }
   .ca-hand .ca-cw:first-child { margin-left: 0; }
-  .ca-hand .ca-cw--playable:hover { transform: translateY(-18px) scale(1.08) !important; }
+  .ca-hand .ca-cw--playable:hover { transform: translateY(-20px) scale(1.1) !important; }
 
   .ca-log               { font-size: 8px; padding: 2px 6px; }
   .ca-stars             { display: none; }
