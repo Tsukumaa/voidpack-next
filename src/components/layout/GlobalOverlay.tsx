@@ -5,8 +5,6 @@ import { useSocialStore } from '@/store/social'
 import { ToastOverlay } from '@/components/layout/ToastOverlay'
 import { ChatPanel } from '@/components/layout/ChatPanel'
 import { ChallengePopup, type PendingChallenge } from '@/components/layout/ChallengePopup'
-import { MusicPlayer } from '@/components/layout/MusicPlayer'
-import { SettingsButton } from '@/components/layout/SettingsButton'
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
@@ -100,9 +98,7 @@ export function GlobalOverlay() {
 
   return (
     <>
-      <MusicPlayer />
       <ToastOverlay />
-      <SettingsButton />
       <ChatPanel />
       {activeChallenge && (
         <ChallengePopup
