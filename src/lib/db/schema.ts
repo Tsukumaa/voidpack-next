@@ -173,6 +173,21 @@ export const playerDailyRewards = sqliteTable('player_daily_rewards', {
   updatedAt:     text('updated_at').notNull().default(now),
 })
 
+// ── player_daily_missions ─────────────────────────────────────────────────────
+export const playerDailyMissions = sqliteTable('player_daily_missions', {
+  userId:    text('user_id').notNull(),
+  date:      text('date').notNull(),           // YYYY-MM-DD
+  missionId: text('mission_id').notNull(),
+  progress:  integer('progress').notNull().default(0),
+  claimed:   integer('claimed', { mode: 'boolean' }).notNull().default(false),
+  claimedAt: text('claimed_at'),
+  createdAt: text('created_at').notNull().default(now),
+  updatedAt: text('updated_at').notNull().default(now),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.date, t.missionId] }),
+  index('pdm_user_date_idx').on(t.userId, t.date),
+])
+
 // ── player_achievements ───────────────────────────────────────────────────────
 export const playerAchievements = sqliteTable('player_achievements', {
   userId:        text('user_id').notNull(),

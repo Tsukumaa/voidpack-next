@@ -8,7 +8,7 @@ import { AvatarRing } from '@/components/game/AvatarRing'
 import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
-import { getMissionProgress, getClaimedMissions, markMissionClaimed, trackMissionProgress } from '@/lib/game/mission-tracker'
+import { trackMissionProgress } from '@/lib/game/mission-tracker'
 import { useSocialStore } from '@/store/social'
 import { Link as LinkIcon } from 'lucide-react'
 
@@ -94,17 +94,19 @@ export default function ProfilPage() {
     return () => clearInterval(t)
   }, [])
 
-  const loadMissionsFromStorage = useCallback(() => {
+  const loadMissions = useCallback(async () => {
     if (!user) return
-    trackMissionProgress(user.id, 'daily_login', 1)
-    const claimed = getClaimedMissions(user.id)
+    // Marquer la mission daily_login
+    await trackMissionProgress(user.id, 'daily_login', 1)
+    const data: { mission_id: string; progress: number; claimed: boolean }[] =
+      await fetch('/api/profile/missions').then(r => r.ok ? r.json() : [])
     setMissions(todayMissions.map(m => {
-      const prog = getMissionProgress(user.id, m.id)
+      const row = data.find(d => d.mission_id === m.id)
       return {
         mission_id: m.id,
-        progress: Math.min(prog, m.goal),
-        completed: prog >= m.goal,
-        xp_claimed: claimed.includes(m.id),
+        progress:   Math.min(row?.progress ?? 0, m.goal),
+        completed:  (row?.progress ?? 0) >= m.goal,
+        xp_claimed: row?.claimed ?? false,
       }
     }))
   }, [user]) // eslint-disable-line
@@ -141,15 +143,15 @@ export default function ProfilPage() {
 
     setAchievements((achData ?? []).map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
 
-    loadMissionsFromStorage()
-  }, [user, loadMissionsFromStorage])
+    await loadMissions()
+  }, [user, loadMissions])
 
   useEffect(() => { load() }, [load])
 
-  // Refresh missions depuis localStorage quand on bascule sur l'onglet
+  // Refresh missions depuis la DB quand on bascule sur l'onglet
   useEffect(() => {
-    if (activeTab === 'missions') loadMissionsFromStorage()
-  }, [activeTab, loadMissionsFromStorage])
+    if (activeTab === 'missions') loadMissions()
+  }, [activeTab, loadMissions])
 
   function linkTwitch() {
     const TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'
@@ -187,11 +189,11 @@ export default function ProfilPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        markMissionClaimed(user.id, missionId)
+
         if (data?.xp_gained && profile) setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
         const mission = todayMissions.find(m => m.id === missionId)
         addToast({ type: 'mission', title: 'Mission complétée !', body: mission ? `${mission.label} — +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP` })
-        loadMissionsFromStorage()
+        await loadMissions()
       }
     } catch(e) { console.error(e) }
     finally { setClaimingMission(null) }
@@ -471,7 +473,7 @@ export default function ProfilPage() {
               <p className="text-white font-black text-sm">Missions du jour</p>
               <p className="text-white/30 text-xs mt-0.5">Reset à minuit · {completedMissions}/{todayMissions.length} complétées</p>
             </div>
-            <button onClick={loadMissionsFromStorage}
+            <button onClick={loadMissions}
               className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 text-xs font-bold hover:text-white/70 hover:bg-white/[0.08] transition-colors">
               ↻ Actualiser
             </button>
