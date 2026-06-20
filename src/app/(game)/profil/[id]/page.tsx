@@ -239,8 +239,8 @@ export default function PlayerProfilePage() {
       <div className="sticky top-20 z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
-        <div className="flex items-center gap-3">
-          {/* Retour */}
+        {/* Ligne 1 : retour + avatar + nom + ami */}
+        <div className="flex items-center gap-2.5">
           <button onClick={() => router.back()}
             className="flex items-center px-2.5 py-2 rounded-xl transition-all flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
@@ -252,14 +252,14 @@ export default function PlayerProfilePage() {
           <AvatarRing
             avatarUrl={profile?.avatarUrl}
             username={profile?.username}
-            size={50}
+            size={44}
             xpProgress={progress}
             isComplete={isComplete}
           />
 
-          {/* Nom + niveau + streak */}
+          {/* Nom + badges */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-white font-black text-sm truncate leading-tight">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
               {profile?.highestRarity && (
@@ -269,7 +269,7 @@ export default function PlayerProfilePage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-0.5">
               <p className="text-[#a78bfa] text-xs font-bold">Niv. {level}</p>
               {(profile?.currentStreak ?? 0) > 0 && (
                 <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
@@ -281,19 +281,18 @@ export default function PlayerProfilePage() {
             </div>
           </div>
 
-          {/* XP droite */}
-          <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[80px]">
-            <div className="flex items-baseline gap-1">
-              <span className="text-white font-black text-sm leading-none">{xpCurrent.toLocaleString('fr-FR')}</span>
-              <span className="text-white/30 text-[10px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
-            </div>
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
-            </div>
-          </div>
-
           <FriendButton />
+        </div>
+
+        {/* Ligne 2 : barre XP */}
+        <div className="mt-2.5 flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+          </div>
+          <span className="text-white/30 text-[10px] flex-shrink-0">
+            {xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP
+          </span>
         </div>
       </div>
 
