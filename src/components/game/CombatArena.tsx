@@ -1,7 +1,6 @@
 'use client'
 import './combat-arena.css'
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { CardFrame } from './CardFrame'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -22,6 +21,7 @@ export interface ArenaCard {
 
 interface DmgPopup  { id: string; x: number; y: number; value: number }
 interface ImpactPop { id: string; x: number; y: number }
+interface CardTip   { card: ArenaCard; x: number; y: number }
 
 export interface CombatArenaProps {
   myHp: number; oppHp: number
@@ -52,7 +52,7 @@ function myHpColor(pct: number) {
 // ── CombatCard ─────────────────────────────────────────────────────────────
 function CombatCard({
   card, isEnemy, canAttack, isSelected, isAttackable, isInHand, canPlay,
-  isShaking, flashClass, onClick, dataUid, dataEnemy,
+  isShaking, flashClass, onClick, onTipShow, onTipHide, dataUid, dataEnemy,
 }: {
   card: ArenaCard
   isEnemy: boolean
@@ -61,17 +61,12 @@ function CombatCard({
   isShaking?: boolean
   flashClass?: string
   onClick: () => void
+  onTipShow?: (card: ArenaCard, x: number, y: number) => void
+  onTipHide?: () => void
   dataUid?: string | number
   dataEnemy?: string
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null)
-
-  function showTip() {
-    if (!cardRef.current) return
-    const r = cardRef.current.getBoundingClientRect()
-    setTip({ x: r.left + r.width / 2, y: r.top - 8 })
-  }
   const hpPct = card.currentHp / card.hp
   const fx = card.effects ?? []
   const hasShield   = fx.includes('shield')
@@ -95,7 +90,7 @@ function CombatCard({
   }
   if (flashClass) cls += ` ${flashClass}`
 
-  const hasEffects = card.effects && card.effects.length > 0
+  const hasEffects = !!(card.effects && card.effects.length > 0)
 
   return (
     <div
@@ -104,8 +99,11 @@ function CombatCard({
       onClick={onClick}
       data-uid={dataUid}
       data-enemy={dataEnemy}
-      onMouseEnter={hasEffects ? showTip : undefined}
-      onMouseLeave={hasEffects ? () => setTip(null) : undefined}
+      onMouseEnter={hasEffects && onTipShow ? () => {
+        const r = cardRef.current?.getBoundingClientRect()
+        if (r) onTipShow(card, r.left + r.width / 2, r.top)
+      } : undefined}
+      onMouseLeave={hasEffects && onTipHide ? onTipHide : undefined}
     >
       <CardFrame
         rarity={card.rarity}
@@ -141,26 +139,6 @@ function CombatCard({
         </div>
       )}
 
-      {/* Tooltip portalé en position fixed — échappe au overflow:hidden de .ca-arena */}
-      {tip && hasEffects && typeof document !== 'undefined' && createPortal(
-        <div className="ca-tooltip ca-tooltip--portal" style={{ left: tip.x, top: tip.y }}>
-          <div className="ca-tooltip-name">{card.name}</div>
-          <div className="ca-tooltip-stats">
-            <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {card.atk}</span>
-            <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>
-            <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
-          </div>
-          <div className="ca-tooltip-effects">
-            {card.effects!.includes('taunt')      && <span className="ca-tooltip-effect ca-tooltip-effect--taunt">Provocation</span>}
-            {card.effects!.includes('charge')     && <span className="ca-tooltip-effect ca-tooltip-effect--charge">Charge</span>}
-            {card.effects!.includes('shield')     && <span className={`ca-tooltip-effect ca-tooltip-effect--shield${card.shieldUsed ? ' ca-tooltip-effect--used' : ''}`}>{card.shieldUsed ? 'Bouclier (utilisé)' : 'Bouclier'}</span>}
-            {card.effects!.includes('lifesteal')  && <span className="ca-tooltip-effect ca-tooltip-effect--lifesteal">Vol de vie</span>}
-            {card.effects!.includes('void_surge') && <span className="ca-tooltip-effect ca-tooltip-effect--void">VOID Surge</span>}
-            {card.effects!.includes('stealth')    && <span className="ca-tooltip-effect ca-tooltip-effect--stealth">Furtivité</span>}
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   )
 }
@@ -184,6 +162,10 @@ export function CombatArena({
   const [flashUids,  setFlashUids]  = useState<Map<string | number, string>>(new Map())
   const [healFlash,     setHealFlash]     = useState(false)
   const [oppHealFlash,  setOppHealFlash]  = useState(false)
+  const [cardTip,       setCardTip]       = useState<CardTip | null>(null)
+
+  const showCardTip = useCallback((card: ArenaCard, x: number, y: number) => setCardTip({ card, x, y }), [])
+  const hideCardTip = useCallback(() => setCardTip(null), [])
   const arenaRef = useRef<HTMLDivElement>(null)
 
   // Refs pour détecter les diffs de board (animations adversaire + spectateur)
@@ -404,6 +386,26 @@ export function CombatArena({
     >
       <div className="ca-stars" />
 
+      {/* Tooltip effets — rendu dans ca-root hors de ca-arena (overflow:hidden) */}
+      {cardTip && cardTip.card.effects && cardTip.card.effects.length > 0 && (
+        <div className="ca-tooltip--portal" style={{ left: cardTip.x, top: cardTip.y }}>
+          <div className="ca-tooltip-name">{cardTip.card.name}</div>
+          <div className="ca-tooltip-stats">
+            <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {cardTip.card.atk}</span>
+            <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {cardTip.card.currentHp}/{cardTip.card.hp}</span>
+            <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {cardTip.card.cost}</span>
+          </div>
+          <div className="ca-tooltip-effects">
+            {cardTip.card.effects.includes('taunt')      && <span className="ca-tooltip-effect ca-tooltip-effect--taunt">Provocation</span>}
+            {cardTip.card.effects.includes('charge')     && <span className="ca-tooltip-effect ca-tooltip-effect--charge">Charge</span>}
+            {cardTip.card.effects.includes('shield')     && <span className={`ca-tooltip-effect ca-tooltip-effect--shield${cardTip.card.shieldUsed ? ' ca-tooltip-effect--used' : ''}`}>{cardTip.card.shieldUsed ? 'Bouclier (utilisé)' : 'Bouclier'}</span>}
+            {cardTip.card.effects.includes('lifesteal')  && <span className="ca-tooltip-effect ca-tooltip-effect--lifesteal">Vol de vie</span>}
+            {cardTip.card.effects.includes('void_surge') && <span className="ca-tooltip-effect ca-tooltip-effect--void">VOID Surge</span>}
+            {cardTip.card.effects.includes('stealth')    && <span className="ca-tooltip-effect ca-tooltip-effect--stealth">Furtivité</span>}
+          </div>
+        </div>
+      )}
+
       {topLabel && <div className="ca-top-badge">{topLabel}</div>}
 
       <div className="ca-arena">
@@ -451,6 +453,7 @@ export function CombatArena({
               isAttackable={!!selected && !selected.exhausted && !locked && myTurn && (!c.effects?.includes('stealth') || oppBoard.every(c2 => c2.effects?.includes('stealth')))}
               isShaking={shakingUids.has(c.uid)}
               flashClass={flashUids.get(c.uid)}
+              onTipShow={showCardTip} onTipHide={hideCardTip}
               dataUid={c.uid} dataEnemy="true"
               onClick={() => handleBoardClick(c, true)}
             />
@@ -497,6 +500,7 @@ export function CombatArena({
               isSelected={selected?.uid === c.uid}
               isShaking={shakingUids.has(c.uid)}
               flashClass={flashUids.get(c.uid)}
+              onTipShow={showCardTip} onTipHide={hideCardTip}
               dataUid={c.uid} dataEnemy="false"
               onClick={() => handleBoardClick(c, false)}
             />
@@ -545,6 +549,7 @@ export function CombatArena({
               key={String(card.uid)}
               card={card} isEnemy={false} isInHand
               canPlay={myTurn && !locked && card.cost <= myMana}
+              onTipShow={showCardTip} onTipHide={hideCardTip}
               onClick={() => {
                 if (!myTurn || locked || card.cost > myMana) return
                 // Flash charge (carte peut attaquer immédiatement)
