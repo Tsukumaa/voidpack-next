@@ -275,7 +275,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(12px, 1.4vw, 24px);
+  gap: clamp(4px, 1.4vw, 24px);
   padding: 10px 20px;
   min-height: 0;
   position: relative;
@@ -422,7 +422,14 @@
 /* ── Card wrapper ───────────────────────────────────────────────────── */
 .ca-cw {
   position: relative;
-  width: clamp(148px, 17vw, 210px);
+  /*
+   * Sizing bi-dimensionnel continu :
+   *   vw : max 5 cartes côte à côte  → (100vw - 96px) / 5 ≈ 20vw - 19px
+   *   vh : carte doit tenir dans un demi-plateau
+   *        plateau disponible ≈ 77vh - 242px, moitié - 20px padding → 27vh - 100px
+   * La valeur retenue est le MIN des deux contraintes, clampé entre 60 et 210px.
+   */
+  width: clamp(60px, min(calc(20vw - 19px), calc(27vh - 100px)), 210px);
   aspect-ratio: 64 / 89;
   flex-shrink: 0;
   cursor: pointer;
@@ -446,8 +453,9 @@
 
 /* Hand-specific card sizing and fan layout */
 .ca-hand .ca-cw {
-  width: clamp(110px, 12.5vw, 162px);
-  margin-left: clamp(-30px, -2.8vw, -18px);
+  /* Main : contrainte hauteur = (23vh - 40px padding) × 64/89 ≈ 21vh - 80px */
+  width: clamp(55px, min(12.5vw, calc(21vh - 80px)), 162px);
+  margin-left: clamp(-30px, min(-2.8vw, calc(-4.5vh + 20px)), -18px);
   transform-origin: bottom center;
 }
 .ca-hand .ca-cw:first-child { margin-left: 0; }
@@ -515,7 +523,7 @@
   justify-content: center;
   align-items: flex-end;
   background: linear-gradient(0deg, rgba(5,2,16,.72) 0%, rgba(10,5,20,.18) 100%);
-  height: clamp(175px, 23vh, 232px);
+  height: clamp(120px, 23vh, 232px);
   border-top: 1px solid rgba(107,42,238,.10);
   overflow: visible;
   position: relative;
@@ -618,8 +626,9 @@
 
 /* ── Écrans compacts (hauteur ≤ 900px, hors mobile paysage) ─────────── */
 /* Laptops 768p, petites fenêtres, tablettes paysage                     */
+/* Les cartes sont déjà gérées par la formule min(vw,vh) dans .ca-cw     */
 @media (max-height: 900px) and (min-height: 481px) {
-  /* Hero bars — réduire la hauteur fixe */
+  /* Hero bars — réduire la hauteur fixe pour libérer de l'espace plateau */
   .ca-hero-bar          { height: 68px; padding: 5px 14px; }
   .ca-hero-portrait     { width: 42px; height: 42px; font-size: 20px; }
   .ca-hero-hp-num       { font-size: 22px; min-width: 42px; padding: 2px 6px; border-radius: 9px; }
@@ -630,16 +639,8 @@
   .ca-mid-strip         { height: 36px; }
   .ca-end-btn           { padding: 7px 18px; font-size: 10px; }
 
-  /* Cartes plateau — vh au lieu de vw pour s'adapter à la hauteur écran */
-  /* À 768px : 12vh = 92px → carte 92×128px, 2 plateaux de ~130px chacun ✓ */
-  .ca-cw                { width: clamp(80px, 12vh, 150px); }
-  .ca-board             { gap: clamp(6px, 1vh, 14px); padding: 6px 14px; }
-
   /* Main */
-  .ca-hand              { height: clamp(135px, 19vh, 175px); padding: 20px 10px 8px; }
-  .ca-hand .ca-cw       { width: clamp(75px, 11vh, 130px); margin-left: clamp(-28px, -3.5vh, -16px); }
-  .ca-hand .ca-cw:first-child { margin-left: 0; }
-  .ca-hand .ca-cw--playable:hover { transform: translateY(-32px) scale(1.14) !important; }
+  .ca-hand              { height: clamp(130px, 20vh, 190px); }
 
   .ca-log               { font-size: 10px; padding: 5px 10px; }
 }
