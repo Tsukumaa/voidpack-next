@@ -59,6 +59,10 @@ const config: Config = {
           '0%':   { opacity: '1', transform: 'translateY(0) scale(1.2)' },
           '100%': { opacity: '0', transform: 'translateY(-40px) scale(0.8)' },
         },
+        spinSlow: {
+          from: { transform: 'rotate(0deg)' },
+          to:   { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
         'booster-float':  'boosterFloat 6.5s ease-in-out infinite',
@@ -68,6 +72,7 @@ const config: Config = {
         'notif-slide':    'notifSlide 0.3s ease-out',
         'shake':          'shake 0.4s ease-in-out',
         'damage-float':   'damageFloat 0.9s ease-out forwards',
+        'spin-slow':      'spinSlow 3s linear infinite',
       },
     },
   },

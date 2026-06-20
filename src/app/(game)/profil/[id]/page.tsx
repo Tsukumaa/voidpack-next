@@ -8,6 +8,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { RoleBadge } from '@/components/game/RoleBadge'
+import { AvatarRing } from '@/components/game/AvatarRing'
 import { cn } from '@/lib/utils'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
@@ -170,6 +171,8 @@ export default function PlayerProfilePage() {
   const rarityGroups = RARITY_ORDER.filter(r => cards.some(c => c.rarity === r))
   const level = profile?.level ?? 1
   const { current: xpCurrent, needed: xpNeeded, progress } = getLevelProgress(profile?.xp ?? 0, level)
+  const totalAvailable = cards.length
+  const isComplete = totalAvailable > 0 && uniqueCards === totalAvailable
 
   function FriendButton() {
     if (isSelf || !profile) return null
@@ -250,16 +253,13 @@ export default function PlayerProfilePage() {
 
         {/* Ligne 2 : avatar + infos + XP */}
         <div className="flex items-center gap-3">
-          {/* Avatar + anneau XP */}
-          <div className="relative rounded-full p-[3px] flex-shrink-0"
-            style={{ background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
-            <div className="w-11 h-11 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
-              style={profile?.avatarUrl ? { backgroundImage:`url(${profile.avatarUrl})`, backgroundSize:'cover' } : {}}>
-              {!profile?.avatarUrl && (
-                <span className="text-sm font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
-              )}
-            </div>
-          </div>
+          <AvatarRing
+            avatarUrl={profile?.avatarUrl}
+            username={profile?.username}
+            size={50}
+            xpProgress={progress}
+            isComplete={isComplete}
+          />
 
           {/* Nom + niveau + streak */}
           <div className="min-w-0 flex-1">

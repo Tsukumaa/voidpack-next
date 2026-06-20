@@ -4,6 +4,7 @@ import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus, Package, Sp
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
+import { AvatarRing } from '@/components/game/AvatarRing'
 import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
@@ -83,6 +84,7 @@ export default function ProfilPage() {
   const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
   const [ownedIds, setOwnedIds]         = useState<string[]>([])
+  const [totalAvailable, setTotalAvailable] = useState(0)
   const [now, setNow]                   = useState(() => Date.now())
 
   const todayMissions = getTodayMissions()
@@ -110,11 +112,13 @@ export default function ProfilPage() {
   const load = useCallback(async () => {
     if (!user) return
 
-    const [cards, dailyData, achData] = await Promise.all([
+    const [cards, dailyData, achData, allCards] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/profile/streak').then(r => r.ok ? r.json() : null),
       fetch('/api/achievements').then(r => r.ok ? r.json() : []),
+      fetch('/api/cards').then(r => r.ok ? r.json() : []),
     ])
+    if (allCards?.length) setTotalAvailable(allCards.length)
 
     if (cards?.length >= 0) {
       const byRarity: Record<string, number> = {}
@@ -230,13 +234,13 @@ export default function ProfilPage() {
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
         <div className="flex items-center gap-3 mb-3">
-          {/* Avatar */}
-          <div className="w-11 h-11 rounded-full overflow-hidden bg-[#0a0612] flex-shrink-0 border border-white/10 flex items-center justify-center"
-            style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : {}}>
-            {!profile?.avatar_url && (
-              <span className="text-base font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
-            )}
-          </div>
+          <AvatarRing
+            avatarUrl={profile?.avatar_url}
+            username={profile?.username}
+            size={50}
+            xpProgress={progress}
+            isComplete={totalAvailable > 0 && (stats?.uniqueCards ?? 0) >= totalAvailable}
+          />
 
           {/* Nom + badge */}
           <div className="min-w-0">
