@@ -538,13 +538,18 @@ export default function ProfilPage() {
                   </div>
                 </div>
 
-                {completed && !claimed && (
+                {completed && (
                   <div className="px-4 pb-4">
-                    <button onClick={() => claimMission(mission.id)}
-                      disabled={claimingMission === mission.id}
-                      className="w-full py-2.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      style={{ background: 'linear-gradient(135deg,#ff9a3d,#e07820)', boxShadow: '0 0 16px rgba(255,154,61,0.3)' }}>
-                      {claimingMission === mission.id ? '…' : <><Gift size={14} />Réclamer +{mission.xp} XP</>}
+                    <button onClick={() => !claimed && claimMission(mission.id)}
+                      disabled={claimed || claimingMission === mission.id}
+                      className="w-full py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                      style={claimed
+                        ? { background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'not-allowed' }
+                        : { background: 'rgba(255,154,61,0.15)', color: '#ff9a3d', border: '1px solid rgba(255,154,61,0.3)' }}>
+                      {claimingMission === mission.id ? '…'
+                        : claimed
+                          ? <><Check size={14} />Réclamé</>
+                          : <><Gift size={14} />Réclamer +{mission.xp} XP</>}
                     </button>
                   </div>
                 )}
