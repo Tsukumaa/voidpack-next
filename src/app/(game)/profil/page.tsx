@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus, Package, Sparkles, Gem, Zap, Crown, Wind, BookOpen, Map, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, LayoutGrid, Inbox } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { AvatarRing } from '@/components/game/AvatarRing'
@@ -85,6 +85,7 @@ export default function ProfilPage() {
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
   const [ownedIds, setOwnedIds]         = useState<string[]>([])
   const [totalAvailable, setTotalAvailable] = useState(0)
+  const notifiedRef = useRef(false)
   const [now, setNow]                   = useState(() => Date.now())
 
   const todayMissions = getTodayMissions()
@@ -94,13 +95,13 @@ export default function ProfilPage() {
     return () => clearInterval(t)
   }, [])
 
-  const loadMissions = useCallback(async () => {
+  const loadMissions = useCallback(async (isInitial = false) => {
     if (!user) return
     // Marquer la mission daily_login
     await trackMissionProgress(user.id, 'daily_login', 1)
     const data: { mission_id: string; progress: number; claimed: boolean }[] =
       await fetch('/api/profile/missions').then(r => r.ok ? r.json() : [])
-    setMissions(todayMissions.map(m => {
+    const mapped = todayMissions.map(m => {
       const row = data.find(d => d.mission_id === m.id)
       return {
         mission_id: m.id,
@@ -108,8 +109,23 @@ export default function ProfilPage() {
         completed:  (row?.progress ?? 0) >= m.goal,
         xp_claimed: row?.claimed ?? false,
       }
-    }))
-  }, [user]) // eslint-disable-line
+    })
+    setMissions(mapped)
+
+    // Notifier une seule fois au chargement initial
+    if (isInitial && !notifiedRef.current) {
+      notifiedRef.current = true
+      const unclaimed = mapped.filter(m => m.completed && !m.xp_claimed)
+      if (unclaimed.length > 0) {
+        addToast({
+          type: 'mission',
+          title: `${unclaimed.length} mission${unclaimed.length > 1 ? 's' : ''} à récupérer !`,
+          body: 'Rends-toi dans l\'onglet Missions de ton profil.',
+          action: { label: 'Voir', onClick: () => setActiveTab('missions') },
+        })
+      }
+    }
+  }, [user, addToast]) // eslint-disable-line
 
   const load = useCallback(async () => {
     if (!user) return
@@ -143,8 +159,22 @@ export default function ProfilPage() {
 
     setAchievements((achData ?? []).map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
 
-    await loadMissions()
-  }, [user, loadMissions])
+    // Toast daily au chargement initial si pas encore réclamé
+    if (!notifiedRef.current && dailyData) {
+      const lastMs = dailyData.lastClaimAt ? new Date(dailyData.lastClaimAt).getTime() : 0
+      const canClaimNow = Date.now() - lastMs > 20 * 3600 * 1000
+      if (canClaimNow) {
+        addToast({
+          type: 'streak',
+          title: 'Booster quotidien disponible !',
+          body: 'N\'oublie pas de récupérer ton booster du jour.',
+          action: { label: 'Récupérer', onClick: () => setActiveTab('overview') },
+        })
+      }
+    }
+
+    await loadMissions(true)
+  }, [user, loadMissions, addToast])
 
   useEffect(() => { load() }, [load])
 
@@ -218,7 +248,8 @@ export default function ProfilPage() {
   const xp    = profile?.xp ?? 0
   const { current: xpCurrent, needed: xpNeeded, progress } = getLevelProgress(xp, level)
   const unlockedCount = achievements.length
-  const completedMissions = missions.filter(m => m.completed || m.xp_claimed).length
+  const completedMissions  = missions.filter(m => m.completed || m.xp_claimed).length
+  const unclaimedMissions  = missions.filter(m => m.completed && !m.xp_claimed).length
 
   if (!user) return (
     <StatePanel icon={LinkIcon} title="Pas connecté">
@@ -274,13 +305,18 @@ export default function ProfilPage() {
 
         <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {([
-          { id: 'overview',     label: 'Vue d\'ensemble' },
-          { id: 'missions',     label: completedMissions > 0 ? `Missions · ${completedMissions}/${todayMissions.length}` : 'Missions' },
-          { id: 'achievements', label: `Succès (${unlockedCount})` },
+          { id: 'overview',     label: 'Vue d\'ensemble', dot: canClaim },
+          { id: 'missions',     label: completedMissions > 0 ? `Missions · ${completedMissions}/${todayMissions.length}` : 'Missions', dot: unclaimedMissions > 0, count: unclaimedMissions },
+          { id: 'achievements', label: `Succès (${unlockedCount})`, dot: false },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60'}`}>
+            className={`relative flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60'}`}>
             {tab.label}
+            {tab.dot && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center leading-none">
+                {'count' in tab && tab.count > 0 ? tab.count : '!'}
+              </span>
+            )}
           </button>
         ))}
         </div>
@@ -473,7 +509,7 @@ export default function ProfilPage() {
               <p className="text-white font-black text-sm">Missions du jour</p>
               <p className="text-white/30 text-xs mt-0.5">Reset à minuit · {completedMissions}/{todayMissions.length} complétées</p>
             </div>
-            <button onClick={loadMissions}
+            <button onClick={() => loadMissions()}
               className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 text-xs font-bold hover:text-white/70 hover:bg-white/[0.08] transition-colors">
               ↻ Actualiser
             </button>
