@@ -49,7 +49,16 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'settings' | 'sql'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'settings' | 'sql'
+
+interface Arena {
+  id?: string
+  name: string
+  image_url?: string
+  gradient?: string
+  active?: boolean
+  order_index?: number
+}
 
 interface CardBack {
   id?: string
@@ -91,6 +100,7 @@ export default function AdminPage() {
     { id: 'cards',    label: '🃏 Cartes' },
     { id: 'boosters', label: '🎴 Boosters' },
     { id: 'cardbacks', label: '🎁 Dos de carte' },
+    { id: 'arenas',   label: '🏟 Arènes' },
     { id: 'settings', label: '⚙ Paramètres' },
     { id: 'sql',      label: '⌨ SQL' },
   ]
@@ -165,6 +175,7 @@ export default function AdminPage() {
         {tab === 'cards'    && <CardsTab    onMsg={showMsg} />}
         {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
         {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
+        {tab === 'arenas'   && <ArenasTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
         {tab === 'sql'      && <SqlTab onMsg={showMsg} />}
       </div>
@@ -581,6 +592,126 @@ function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void })
             <input type="number" value={form.order_index ?? 0} onChange={e => setForm(f => f && ({ ...f, order_index: +e.target.value || 0 }))} className={inputCls} />
           </Field>
           <Field label="Actif (visible dans la boutique)">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => f && ({ ...f, active: e.target.checked }))} className="w-4 h-4" />
+              <span className="text-sm text-white/70">Visible</span>
+            </label>
+          </Field>
+          <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+
+// ─── Onglet Arènes (fonds de combat) ──────────────────────────────────────────
+function ArenasTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [arenas, setArenas] = useState<Arena[]>([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState<Arena | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await adminDb('select', 'arena_backgrounds', { order: 'order_index' })
+      setArenas(data ?? [])
+    } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const empty: Arena = {
+    name: '', image_url: '', gradient: 'linear-gradient(180deg, #050210 0%, #08031a 50%, #050210 100%)',
+    active: true, order_index: arenas.length,
+  }
+
+  async function save() {
+    if (!form) return
+    setSaving(true)
+    try {
+      const fields = { name: form.name, image_url: form.image_url || null, gradient: form.gradient || null, order_index: form.order_index ?? 0, active: form.active ?? true }
+      if (form.id) {
+        await adminDb('update', 'arena_backgrounds', fields, { col: 'id', val: form.id })
+      } else {
+        const id = form.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        await adminDb('insert', 'arena_backgrounds', { id, ...fields })
+      }
+      onMsg(`✅ Arène "${form.name}" sauvegardée`)
+      setForm(null); load()
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setSaving(false) }
+  }
+
+  async function del(arena: Arena) {
+    if (arena.id === 'default') { onMsg('L\'arène par défaut ne peut pas être supprimée', false); return }
+    if (!confirm(`Supprimer "${arena.name}" ?`)) return
+    await adminDb('delete', 'arena_backgrounds', undefined, { col: 'id', val: arena.id })
+    onMsg(`🗑 "${arena.name}" supprimée`); load()
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-white/40 text-sm">{arenas.length} arène{arenas.length > 1 ? 's' : ''}</p>
+        <button onClick={() => setForm({ ...empty })}
+          className="px-4 py-2 rounded-xl bg-[#7b2bff] text-white text-sm font-bold hover:opacity-90">
+          + Nouvelle arène
+        </button>
+      </div>
+
+      {loading ? <p className="text-white/30 text-sm">Chargement…</p> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {arenas.map(a => (
+            <div key={a.id} className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+              <div className="aspect-[16/9] relative overflow-hidden" style={a.image_url ? {} : { background: a.gradient }}>
+                {a.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                )}
+                {!a.active && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white/50 text-xs font-bold">
+                    Inactif
+                  </div>
+                )}
+              </div>
+              <div className="p-2.5 flex items-center justify-between gap-2">
+                <span className="text-sm text-white truncate">{a.name}</span>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button onClick={() => setForm({ ...a })} className="text-xs px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10">✏</button>
+                  <button onClick={() => del(a)} className="text-xs px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400">✕</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {form && (
+        <Modal title={form.id ? `Modifier "${form.name}"` : 'Nouvelle arène'} onClose={() => setForm(null)}>
+          <Field label="Nom">
+            <input value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))} className={inputCls} placeholder="Temple Céleste" />
+          </Field>
+          <Field label="Image URL (paysage, prioritaire sur le gradient)">
+            <input value={form.image_url ?? ''} onChange={e => setForm(f => f && ({ ...f, image_url: e.target.value }))} className={inputCls} placeholder="/assets/bg-arene.png ou https://…" />
+          </Field>
+          <Field label="Gradient CSS (si pas d'image)">
+            <textarea value={form.gradient ?? ''} onChange={e => setForm(f => f && ({ ...f, gradient: e.target.value }))} className={`${inputCls} resize-none h-16 font-mono text-xs`}
+              placeholder="linear-gradient(180deg, #050210, #08031a)" />
+          </Field>
+          <Field label="Aperçu">
+            <div className="aspect-[16/9] w-48 rounded-xl relative overflow-hidden border border-white/10" style={form.image_url ? {} : { background: form.gradient }}>
+              {form.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              )}
+            </div>
+          </Field>
+          <Field label="Ordre d'affichage">
+            <input type="number" value={form.order_index ?? 0} onChange={e => setForm(f => f && ({ ...f, order_index: +e.target.value || 0 }))} className={inputCls} />
+          </Field>
+          <Field label="Active (visible dans la boutique)">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.active ?? true} onChange={e => setForm(f => f && ({ ...f, active: e.target.checked }))} className="w-4 h-4" />
               <span className="text-sm text-white/70">Visible</span>

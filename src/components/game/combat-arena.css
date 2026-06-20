@@ -2,6 +2,8 @@
 .ca-root {
   /* Curseur épée (pointe en haut-gauche = hotspot 2 2) */
   --ca-sword: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><line x1='5' y1='5' x2='22' y2='22' stroke='%23eef3fb' stroke-width='5' stroke-linecap='round'/><line x1='6' y1='6' x2='21' y2='21' stroke='%238793a3' stroke-width='1.6'/><polygon points='1,1 9,4 4,9' fill='%23ffffff' stroke='%23b9c4d6' stroke-width='.6'/><line x1='18' y1='27' x2='27' y2='18' stroke='%23f0c860' stroke-width='5' stroke-linecap='round'/><line x1='22' y1='22' x2='29' y2='29' stroke='%239a6a33' stroke-width='5' stroke-linecap='round'/><circle cx='30' cy='30' r='2.6' fill='%23d8b454'/></svg>") 2 2, crosshair;
+  /* Fond d'arène (skin) — défaut = bg-void.png */
+  --ca-arena-bg: url("/assets/bg-void.png");
   position: fixed;
   inset: 0;
   z-index: 10;
@@ -9,10 +11,15 @@
   flex-direction: column;
   overflow: hidden;
   background:
+    /* halos lumineux au-dessus */
     radial-gradient(ellipse 80% 40% at 50% 0%,   rgba(123,43,255,.22) 0%, transparent 60%),
     radial-gradient(ellipse 60% 30% at 50% 100%,  rgba(0,243,255,.12)  0%, transparent 55%),
     radial-gradient(ellipse 35% 60% at 0%   50%,  rgba(123,43,255,.10) 0%, transparent 50%),
     radial-gradient(ellipse 35% 60% at 100% 50%,  rgba(0,243,255,.08)  0%, transparent 50%),
+    /* voile sombre pour la lisibilité des cartes */
+    linear-gradient(180deg, rgba(5,2,16,.72) 0%, rgba(8,3,26,.6) 45%, rgba(5,2,16,.82) 100%),
+    /* image d'arène */
+    var(--ca-arena-bg) center / cover no-repeat,
     linear-gradient(180deg, #050210 0%, #08031a 50%, #050210 100%);
 }
 

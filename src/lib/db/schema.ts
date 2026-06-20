@@ -78,6 +78,18 @@ export const cardBacks = sqliteTable('card_backs', {
   createdAt:  text('created_at').notNull().default(now),
 })
 
+// ── arena_backgrounds ──────────────────────────────────────────────────────────
+export const arenaBackgrounds = sqliteTable('arena_backgrounds', {
+  id:         text('id').primaryKey(),
+  name:       text('name').notNull(),
+  imageUrl:   text('image_url'),
+  gradient:   text('gradient'),
+  active:     integer('active', { mode: 'boolean' }).notNull().default(true),
+  orderIndex: integer('order_index').notNull().default(0),
+  price:      integer('price').notNull().default(0),
+  createdAt:  text('created_at').notNull().default(now),
+})
+
 // ── player_cards ──────────────────────────────────────────────────────────────
 export const playerCards = sqliteTable('player_cards', {
   userId:          text('user_id').notNull(),

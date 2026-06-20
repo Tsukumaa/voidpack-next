@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bot } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { useArenaBg } from '@/lib/game/useArenaBg'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 
 // ── Constants (matches old site) ───────────────────────────────────────────
@@ -88,6 +89,7 @@ export default function TrainingPage() { return <Suspense><TrainingContent /></S
 function TrainingContent() {
   const router  = useRouter()
   const profile = useGameStore(s => s.profile)
+  const arenaBg = useArenaBg()
   const [gs, setGs] = useState<GS | null>(null)
   const [botThinking, setBotThinking] = useState(false)
   const gsRef = useRef<GS | null>(null)
@@ -345,6 +347,7 @@ function TrainingContent() {
       locked={gs.locked || botThinking}
       myName={profile?.username ?? 'Toi'}
       oppName="Bot"
+      arenaBg={arenaBg}
       turnLabel={`Tour ${gs.turn}`}
       topLabel={
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

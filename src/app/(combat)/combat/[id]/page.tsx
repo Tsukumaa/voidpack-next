@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/game'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
+import { useArenaBg } from '@/lib/game/useArenaBg'
 import {
   onSessionUpdate, onOpponentAction, submitAction,
   endTurn, surrender, finishGame, cleanupSession,
@@ -45,6 +46,7 @@ export default function CombatPage() {
   const { id } = useParams<{ id: string }>()
   const router  = useRouter()
   const { user, profile } = useGameStore(s => ({ user: s.user, profile: s.profile }))
+  const arenaBg = useArenaBg()
 
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [myTurn, setMyTurn]       = useState(false)
@@ -227,6 +229,7 @@ export default function CombatPage() {
       myHand={myHand}
       myName={profile?.username ?? 'Moi'}
       oppName={oppName}
+      arenaBg={arenaBg}
       myTurn={myTurn}
       onPlayCard={playCard}
       onAttack={handleAttack}

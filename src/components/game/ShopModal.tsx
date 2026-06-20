@@ -6,10 +6,13 @@ import { CardBackDisplay } from '@/components/game/CardBackDisplay'
 const KOFI_URL = 'https://ko-fi.com/voidpack'
 
 interface CardBack { id: string; name: string; gradient: string; pattern: string; imageUrl?: string | null; image_url?: string | null }
+interface Arena { id: string; name: string; imageUrl?: string | null; image_url?: string | null; gradient?: string | null }
 
 export function ShopModal({ onClose }: { onClose: () => void }) {
   const { profile, setProfile } = useGameStore(s => ({ profile: s.profile, setProfile: s.setProfile }))
   const [cardBacks, setCardBacks] = useState<CardBack[]>([])
+  const [arenas, setArenas]       = useState<Arena[]>([])
+  const [selectedArena, setSelectedArena] = useState<string>('default')
   const [loading, setLoading]     = useState(true)
   const [buying, setBuying]       = useState<string | null>(null)
 
@@ -22,7 +25,18 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
       .then(r => r.json())
       .then(data => { setCardBacks(data ?? []); setLoading(false) })
       .catch(() => setLoading(false))
+    fetch('/api/arenas').then(r => r.json()).then(d => setArenas(d ?? [])).catch(() => {})
+    fetch('/api/profile/arena').then(r => r.json()).then(d => setSelectedArena(d?.arenaId ?? 'default')).catch(() => {})
   }, [])
+
+  async function selectArena(id: string) {
+    setSelectedArena(id)
+    await fetch('/api/profile/arena', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ arenaId: id }),
+    })
+  }
 
   async function selectBack(id: string) {
     if (!profile) return
@@ -154,6 +168,43 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                         </button>
                       )}
                     </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Arènes de combat ── */}
+          <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-7 mb-3">
+            Fonds d&apos;arène — change le décor de tes combats
+            {isSubscriber && <span className="ml-2 text-[#00c896]">· Tous débloqués avec ton abonnement</span>}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {arenas.map(arena => {
+              const img        = arena.imageUrl ?? arena.image_url
+              const isDefault  = arena.id === 'default'
+              const accessible = isDefault || isSubscriber
+              const isSel      = selectedArena === arena.id
+              return (
+                <div key={arena.id} className="rounded-2xl overflow-hidden border"
+                  style={{ borderColor: isSel ? '#7b2bff' : 'rgba(255,255,255,0.08)', borderWidth: isSel ? '2px' : '1px' }}>
+                  <div className="aspect-[16/9] relative cursor-pointer overflow-hidden"
+                    style={{ opacity: accessible ? 1 : 0.45, background: arena.gradient ?? '#08031a' }}
+                    onClick={() => accessible && selectArena(arena.id)}>
+                    {img && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={img} alt={arena.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                    )}
+                    {isSel && (
+                      <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-[#7b2bff] flex items-center justify-center"><Check size={12} className="text-white" /></div>
+                    )}
+                    {!accessible && <div className="absolute top-2 right-2"><Lock size={12} className="text-white/60" /></div>}
+                  </div>
+                  <div className="p-2.5 bg-white/[0.03] flex items-center justify-between">
+                    <p className="text-white text-xs font-bold">{arena.name}</p>
+                    {isDefault ? <p className="text-white/30 text-[10px]">Gratuit</p>
+                      : accessible ? <p className="text-[#00c896] text-[10px]">Débloqué</p>
+                      : <p className="text-white/40 text-[10px]">Via abonnement</p>}
                   </div>
                 </div>
               )

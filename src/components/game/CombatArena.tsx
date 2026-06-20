@@ -29,6 +29,7 @@ export interface CombatArenaProps {
   myName?: string; oppName?: string
   turnLabel?: string
   topLabel?: React.ReactNode
+  arenaBg?: string | null
   onPlayCard:  (card: ArenaCard) => void
   onAttack:    (attacker: ArenaCard, target: ArenaCard | 'face') => void
   onEndTurn:   () => void
@@ -129,7 +130,7 @@ export function CombatArena({
   myBoard, oppBoard, myHand,
   myTurn, locked = false,
   myName = 'Toi', oppName = 'Bot',
-  turnLabel, topLabel,
+  turnLabel, topLabel, arenaBg,
   onPlayCard, onAttack, onEndTurn, onSurrender,
   log = '',
 }: CombatArenaProps) {
@@ -242,7 +243,11 @@ export function CombatArena({
   const myHpPct  = Math.max(0, Math.min(1, myHp  / 30))
 
   return (
-    <div className="ca-root" ref={arenaRef}>
+    <div
+      className="ca-root"
+      ref={arenaRef}
+      style={arenaBg ? ({ '--ca-arena-bg': `url("${arenaBg}")` } as React.CSSProperties) : undefined}
+    >
       <div className="ca-stars" />
 
       {topLabel && <div className="ca-top-badge">{topLabel}</div>}
