@@ -51,18 +51,22 @@ function myHpColor(pct: number) {
 // ── CombatCard ─────────────────────────────────────────────────────────────
 function CombatCard({
   card, isEnemy, canAttack, isSelected, isAttackable, isInHand, canPlay,
-  isShaking, onClick, dataUid, dataEnemy, frameSize,
+  isShaking, flashClass, onClick, dataUid, dataEnemy,
 }: {
   card: ArenaCard
   isEnemy: boolean
   canAttack?: boolean; isSelected?: boolean
   isAttackable?: boolean; isInHand?: boolean; canPlay?: boolean
   isShaking?: boolean
+  flashClass?: string
   onClick: () => void
   dataUid?: string | number
   dataEnemy?: string
 }) {
   const hpPct = card.currentHp / card.hp
+  const fx = card.effects ?? []
+  const hasShield   = fx.includes('shield')
+  const shieldSpent = card.shieldUsed
 
   let cls = 'ca-cw'
   if (isEnemy && !isAttackable) cls += ' ca-cw--enemy'
@@ -73,6 +77,14 @@ function CombatCard({
   if (isShaking)    cls += ' ca-cw--shaking'
   if (isInHand && !canPlay) cls += ' ca-cw--locked'
   if (isInHand && canPlay)  cls += ' ca-cw--playable'
+  // Auras permanentes (seulement sur le board, pas en main)
+  if (!isInHand) {
+    if (fx.includes('taunt'))   cls += ' ca-cw--taunt'
+    if (hasShield && !shieldSpent) cls += ' ca-cw--shield'
+    if (shieldSpent)            cls += ' ca-cw--shield-used'
+    if (fx.includes('stealth')) cls += ' ca-cw--stealth'
+  }
+  if (flashClass) cls += ` ${flashClass}`
 
   return (
     <div
@@ -168,6 +180,8 @@ export function CombatArena({
   const [dmgPopups,  setDmgPopups]  = useState<DmgPopup[]>([])
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
+  const [flashUids,  setFlashUids]  = useState<Map<string | number, string>>(new Map())
+  const [healFlash,  setHealFlash]  = useState(false)
   const arenaRef = useRef<HTMLDivElement>(null)
 
   // Refs pour détecter les diffs de board (animations adversaire + spectateur)
@@ -234,6 +248,16 @@ export function CombatArena({
   const shake = useCallback((uid: string | number) => {
     setShakingUids(s => new Set([...s, uid]))
     setTimeout(() => setShakingUids(s => { const n = new Set(s); n.delete(uid); return n }), 350)
+  }, [])
+
+  const flashCard = useCallback((uid: string | number, cls: string, duration = 600) => {
+    setFlashUids(m => new Map([...m, [uid, cls]]))
+    setTimeout(() => setFlashUids(m => { const n = new Map(m); n.delete(uid); return n }), duration)
+  }, [])
+
+  const triggerHealFlash = useCallback(() => {
+    setHealFlash(true)
+    setTimeout(() => setHealFlash(false), 700)
   }, [])
 
   const spawnDmg = useCallback((el: HTMLElement | null, value: number) => {
@@ -305,6 +329,16 @@ export function CombatArena({
       spawnImpact(tgtEl)
       spawnDmg(tgtEl, attacker.atk)
       if (target !== 'face') spawnDmg(atkEl, (target as ArenaCard).atk)
+      // Shield absorb flash
+      if (target !== 'face') {
+        const t = target as ArenaCard
+        if (t.effects?.includes('shield') && !t.shieldUsed) flashCard(t.uid, 'ca-cw--shield-absorb', 550)
+      }
+      if (attacker.effects?.includes('shield') && !attacker.shieldUsed && target !== 'face') {
+        flashCard(attacker.uid, 'ca-cw--shield-absorb', 550)
+      }
+      // Lifesteal heal flash
+      if (attacker.effects?.includes('lifesteal')) triggerHealFlash()
       onAttack(attacker, target)
     })
   }
@@ -390,6 +424,7 @@ export function CombatArena({
               card={c} isEnemy
               isAttackable={!!selected && !selected.exhausted && !locked && myTurn && (!c.effects?.includes('stealth') || oppBoard.every(c2 => c2.effects?.includes('stealth')))}
               isShaking={shakingUids.has(c.uid)}
+              flashClass={flashUids.get(c.uid)}
               dataUid={c.uid} dataEnemy="true"
               onClick={() => handleBoardClick(c, true)}
             />
@@ -435,6 +470,7 @@ export function CombatArena({
               canAttack={!c.exhausted && myTurn && !locked && !selected}
               isSelected={selected?.uid === c.uid}
               isShaking={shakingUids.has(c.uid)}
+              flashClass={flashUids.get(c.uid)}
               dataUid={c.uid} dataEnemy="false"
               onClick={() => handleBoardClick(c, false)}
             />
@@ -446,7 +482,7 @@ export function CombatArena({
           <button className="ca-quit-btn" onClick={onSurrender} title="Quitter">✕</button>
 
           <div className="ca-hero-inner">
-            <div className="ca-hero-portrait ca-hero-portrait--player" data-face-player>
+            <div className={`ca-hero-portrait ca-hero-portrait--player${healFlash ? ' ca-heal-flash' : ''}`} data-face-player>
               {myAvatar
                 ? <img src={myAvatar} alt={myName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                 : '🔮'}
@@ -485,6 +521,14 @@ export function CombatArena({
               canPlay={myTurn && !locked && card.cost <= myMana}
               onClick={() => {
                 if (!myTurn || locked || card.cost > myMana) return
+                // Flash charge (carte peut attaquer immédiatement)
+                if (card.effects?.includes('charge')) {
+                  setTimeout(() => flashCard(card.uid, 'ca-cw--charge-flash', 650), 100)
+                }
+                // Flash void sur toutes les cartes ennemies
+                if (card.effects?.includes('void_surge')) {
+                  oppBoard.forEach(c => flashCard(c.uid, 'ca-cw--void-hit', 600))
+                }
                 onPlayCard(card)
                 setSelected(null)
               }}

@@ -710,7 +710,7 @@ export default function CommunautePage() {
           }}
           onSpectate={(f) => {
             setShowFriends(false)
-            router.push(`/combat/spectate/${f.activeSessionId}?p=${f.userId}`)
+            router.push(`/combat/spectate/${f.activeSessionId}?p=${f.friend_id}`)
           }}
           onRefresh={() => { loadFriends(); loadPendingRequests() }}
         />

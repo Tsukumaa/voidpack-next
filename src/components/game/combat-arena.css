@@ -624,6 +624,89 @@
   50%      { opacity: 1; }
 }
 
+/* ── Auras & effets visuels des cartes ──────────────────────── */
+
+/* TAUNT — aura orange pulsante */
+.ca-cw--taunt::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid rgba(255,120,0,.8);
+  box-shadow: 0 0 10px 2px rgba(255,120,0,.55), inset 0 0 8px rgba(255,120,0,.2);
+  animation: ca-aura-taunt 1.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+@keyframes ca-aura-taunt {
+  0%,100% { box-shadow: 0 0 8px 1px rgba(255,120,0,.45), inset 0 0 6px rgba(255,120,0,.15); opacity: .85; }
+  50%      { box-shadow: 0 0 18px 4px rgba(255,120,0,.8), inset 0 0 14px rgba(255,120,0,.35); opacity: 1; }
+}
+
+/* SHIELD — lueur bleue, animation d'absorption au blocage */
+.ca-cw--shield::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid rgba(60,160,255,.75);
+  box-shadow: 0 0 10px 2px rgba(60,160,255,.5), inset 0 0 10px rgba(60,160,255,.18);
+  animation: ca-aura-shield 2.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+.ca-cw--shield-used::after { opacity: 0; }
+@keyframes ca-aura-shield {
+  0%,100% { box-shadow: 0 0 8px 1px rgba(60,160,255,.4), inset 0 0 6px rgba(60,160,255,.12); }
+  50%      { box-shadow: 0 0 16px 3px rgba(60,160,255,.75), inset 0 0 12px rgba(60,160,255,.28); }
+}
+.ca-cw--shield-absorb {
+  animation: ca-shield-absorb .5s ease-out forwards !important;
+}
+@keyframes ca-shield-absorb {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(2.5) saturate(2) hue-rotate(200deg); box-shadow: 0 0 30px 10px rgba(60,160,255,.9); }
+  100% { filter: brightness(1); }
+}
+
+/* STEALTH — semi-transparent + filtre */
+.ca-cw--stealth {
+  opacity: 0.52;
+  filter: blur(0.5px) saturate(0.6);
+  transition: opacity .3s, filter .3s;
+}
+.ca-cw--stealth:hover { opacity: .9; filter: none; }
+
+/* CHARGE — flash vert bref à l'invocation */
+.ca-cw--charge-flash {
+  animation: ca-charge-flash .6s ease-out forwards;
+}
+@keyframes ca-charge-flash {
+  0%   { filter: brightness(1); }
+  25%  { filter: brightness(2.2) saturate(2) hue-rotate(80deg); box-shadow: 0 0 28px 8px rgba(80,220,80,.85); }
+  100% { filter: brightness(1); }
+}
+
+/* LIFESTEAL — flash rouge-rose sur le héros */
+.ca-heal-flash {
+  animation: ca-heal-flash .7s ease-out forwards;
+}
+@keyframes ca-heal-flash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(1.8) saturate(2) hue-rotate(300deg); box-shadow: 0 0 24px 8px rgba(220,60,120,.8); }
+  100% { filter: brightness(1); }
+}
+
+/* VOID SURGE — onde violette sur les cartes ennemies */
+.ca-cw--void-hit {
+  animation: ca-void-hit .55s ease-out forwards;
+}
+@keyframes ca-void-hit {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(2.5) saturate(3) hue-rotate(270deg); box-shadow: 0 0 32px 10px rgba(140,0,255,.9); }
+  100% { filter: brightness(1); }
+}
+
 /* ── Badges effets ─────────────────────────────────────────── */
 .ca-effects {
   position: absolute;

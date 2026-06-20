@@ -579,6 +579,17 @@ function DraftContent() {
                         </div>
                       )}
                     </button>
+                    {/* Badges effets */}
+                    {card.effects && card.effects.length > 0 && (
+                      <div className="absolute bottom-6 left-0 right-0 flex flex-wrap justify-center gap-0.5 px-1 pointer-events-none z-20">
+                        {card.effects.includes('taunt')      && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(255,120,0,.85)', color: '#fff', lineHeight: 1.2 }}>PROVOC</span>}
+                        {card.effects.includes('shield')     && <span style={{ fontSize: '7px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(0,140,255,.85)', color: '#fff', lineHeight: 1.2 }}>⬡</span>}
+                        {card.effects.includes('charge')     && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(80,200,80,.85)', color: '#fff', lineHeight: 1.2 }}>⚡</span>}
+                        {card.effects.includes('lifesteal')  && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(220,40,80,.85)', color: '#fff', lineHeight: 1.2 }}>♥</span>}
+                        {card.effects.includes('void_surge') && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(130,0,255,.85)', color: '#fff', lineHeight: 1.2 }}>VOID</span>}
+                        {card.effects.includes('stealth')    && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(100,100,120,.7)', color: '#fff', lineHeight: 1.2 }}>👁</span>}
+                      </div>
+                    )}
                   </CardFrame>
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
