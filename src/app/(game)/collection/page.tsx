@@ -227,30 +227,30 @@ export default function CollectionPage() {
     <div className="pb-4 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="sticky top-20 z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
-        <div className="flex items-center justify-between gap-3 mb-3 px-4">
-          <div className="flex items-center gap-3">
-            <h2 className="font-bold text-white text-base">Ma collection</h2>
-            <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="font-bold text-white text-base shrink-0">Ma collection</h2>
+            <span className="text-white/40 text-xs truncate">{cards.filter(c => c.owned).length} / {cards.length} · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
           </div>
           {/* Mana bar */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
               style={{ background: 'rgba(123,43,255,0.12)', border: '1px solid rgba(123,43,255,0.25)' }}>
-              <Flame size={13} className="text-[#a78bfa]" />
+              <Flame size={12} className="text-[#a78bfa]" />
               <span className="text-[#a78bfa] font-black text-sm">{mana.toLocaleString('fr-FR')}</span>
-              <span className="text-white/30 text-xs">mana</span>
+              <span className="text-white/30 text-xs hidden sm:inline">mana</span>
             </div>
             <button
               onClick={handleRedeem}
               disabled={mana < BOOSTER_COST || redeeming}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={mana >= BOOSTER_COST
                 ? { background: 'linear-gradient(135deg,#7b2bff,#a855f7)', color: '#fff', boxShadow: '0 0 12px rgba(123,43,255,0.4)' }
                 : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
               title={`Obtenir 1 booster pour ${BOOSTER_COST} mana`}
             >
               <ShoppingBag size={12} />
-              Booster ({BOOSTER_COST} mana)
+              <span className="hidden sm:inline">Booster —</span> {BOOSTER_COST}
             </button>
           </div>
         </div>
@@ -367,6 +367,10 @@ export default function CollectionPage() {
                       {group.map(card => (
                     !card.owned ? (
                       <div key={card.card_id} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-center py-1 rounded-lg text-[10px] font-bold"
+                          style={{ background: 'rgba(255,60,60,0.08)', border: '1px solid rgba(255,60,60,0.25)', color: 'rgba(255,100,100,0.55)' }}>
+                          Pas assez d&apos;exemplaires
+                        </div>
                         <div
                           className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40"
                           style={{ aspectRatio: '0.714' }}
