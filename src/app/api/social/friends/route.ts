@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { friendships, playerProfiles } from '@/lib/db/schema'
-import { eq, or, and } from 'drizzle-orm'
+import { eq, or, and, sql, count } from 'drizzle-orm'
+import { playerCards, customCards } from '@/lib/db/schema'
 
 export async function GET() {
   const session = await auth()
@@ -20,14 +21,29 @@ export async function GET() {
   const friendIds = rows.map(r => r.senderId === uid ? r.receiverId : r.senderId)
   if (!friendIds.length) return NextResponse.json([])
 
-  const profiles = await db.query.playerProfiles.findMany({
-    where: (t, { inArray }) => inArray(t.userId, friendIds),
-  })
+  const [profiles, [totalRow], uniqueRows] = await Promise.all([
+    db.query.playerProfiles.findMany({ where: (t, { inArray }) => inArray(t.userId, friendIds) }),
+    db.select({ total: count() }).from(customCards),
+    db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
+      .from(playerCards)
+      .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
+      .groupBy(playerCards.userId),
+  ])
+  const totalAvailable = totalRow?.total ?? 0
+  const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
 
   const result = rows.map(r => {
     const friendId = r.senderId === uid ? r.receiverId : r.senderId
     const profile  = profiles.find(p => p.userId === friendId)
-    return { friendshipId: r.id, userId: friendId, username: profile?.username, avatarUrl: profile?.avatarUrl, status: r.status }
+    const unique   = uniqueMap[friendId] ?? 0
+    return {
+      friendshipId: r.id,
+      userId: friendId,
+      username: profile?.username,
+      avatarUrl: profile?.avatarUrl,
+      status: r.status,
+      collectionComplete: totalAvailable > 0 && unique >= totalAvailable,
+    }
   })
 
   return NextResponse.json(result)

@@ -28,6 +28,7 @@ interface Friend {
   username: string | null
   avatar_url: string | null
   status: string
+  collectionComplete?: boolean
 }
 
 interface Trade {
@@ -342,8 +343,9 @@ export default function CommunautePage() {
       level:         e.level ?? 1,
       highest_rarity: e.highestRarity ?? e.highest_rarity ?? null,
       unique_cards:  e.total ?? e.unique_cards ?? 0,
-      role:          (e.role ?? null) as UserRole,
-      void_cards:    e.void_cards ?? 0,
+      role:               (e.role ?? null) as UserRole,
+      void_cards:         e.void_cards ?? 0,
+      collectionComplete: e.collectionComplete ?? false,
     })))
     setLoading(false)
   }, [])
@@ -352,11 +354,12 @@ export default function CommunautePage() {
     if (!user) return
     const data = await fetch('/api/social/friends').then(r => r.ok ? r.json() : [])
     setFriends(data.map((f: Record<string, unknown>) => ({
-      id:         f.friendshipId ?? f.id,
-      friend_id:  f.userId ?? f.friend_id,
-      username:   f.username ?? null,
-      avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
-      status:     f.status ?? 'accepted',
+      id:                 f.friendshipId ?? f.id,
+      friend_id:          f.userId ?? f.friend_id,
+      username:           f.username ?? null,
+      avatar_url:         f.avatarUrl ?? f.avatar_url ?? null,
+      status:             f.status ?? 'accepted',
+      collectionComplete: f.collectionComplete ?? false,
     })))
   }, [user])
 
@@ -861,7 +864,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
             return (
             <div key={f.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/3">
               <div className="relative flex-shrink-0">
-                <AvatarRing avatarUrl={f.avatar_url} username={f.username} size={32} />
+                <AvatarRing avatarUrl={f.avatar_url} username={f.username} size={32} isComplete={f.collectionComplete} />
                 {unread > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center z-10">
                     {unread > 9 ? '9+' : unread}

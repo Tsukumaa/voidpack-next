@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db, dbClient } from '@/lib/db'
 import { directMessages, friendships } from '@/lib/db/schema'
-import { eq, or, and, isNull } from 'drizzle-orm'
+import { eq, or, and, isNull, count } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
+import { playerCards, customCards } from '@/lib/db/schema'
 
 export async function GET() {
   const session = await auth()
@@ -29,6 +30,17 @@ export async function GET() {
     args: friendIds,
   })
   const profiles = profileResult.rows as unknown as { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null; role: string | null }[]
+
+  // Get total cards count and unique per friend
+  const [[totalRow], uniqueRows] = await Promise.all([
+    db.select({ total: count() }).from(customCards),
+    db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
+      .from(playerCards)
+      .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
+      .groupBy(playerCards.userId),
+  ])
+  const totalAvailable = totalRow?.total ?? 0
+  const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
 
   // Get last message per friend + unread count
   const previews = await Promise.all(friendIds.map(async (fid) => {
@@ -60,8 +72,9 @@ export async function GET() {
       lastAt:      lastMsg?.createdAt ?? null,
       lastFromMe:  lastMsg?.senderId === uid,
       unread:      unreadRows.length,
-      lastSeenAt:  profile?.last_seen_at ?? null,
-      role:        profile?.role ?? null,
+      lastSeenAt:         profile?.last_seen_at ?? null,
+      role:               profile?.role ?? null,
+      collectionComplete: totalAvailable > 0 && (uniqueMap[fid] ?? 0) >= totalAvailable,
     }
   }))
 

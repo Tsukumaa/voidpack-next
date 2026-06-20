@@ -26,6 +26,7 @@ interface FriendPreview {
   unread: number
   lastSeenAt: string | null
   role?: UserRole
+  collectionComplete?: boolean
 }
 
 function onlineStatus(lastSeenAt: string | null): { label: string; color: string } {
@@ -64,7 +65,7 @@ function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; 
         borderLeft: active ? '2px solid #7b2bff' : '2px solid transparent',
       }}>
       <div className="relative flex-shrink-0">
-        <Avatar src={f.avatarUrl} name={f.username} size={38} />
+        <AvatarRing avatarUrl={f.avatarUrl} username={f.username} size={38} isComplete={f.collectionComplete} />
         {f.unread > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full px-0.5 text-white text-[9px] font-black flex items-center justify-center"
             style={{ background: '#7b2bff', boxShadow: '0 0 10px rgba(123,43,255,.9)' }}>

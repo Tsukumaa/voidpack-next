@@ -118,7 +118,7 @@ export default function ProfilPage() {
       fetch('/api/achievements').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
     ])
-    if (allCards?.length) setTotalAvailable(allCards.length)
+    if (Array.isArray(allCards) && allCards.length > 0) setTotalAvailable(allCards.length)
 
     if (cards?.length >= 0) {
       const byRarity: Record<string, number> = {}
@@ -239,7 +239,7 @@ export default function ProfilPage() {
             username={profile?.username}
             size={50}
             xpProgress={progress}
-            isComplete={totalAvailable > 0 && (stats?.uniqueCards ?? 0) >= totalAvailable}
+            isComplete={!!profile?.collection_complete}
           />
 
           {/* Nom + badge */}
