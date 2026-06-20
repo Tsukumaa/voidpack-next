@@ -237,11 +237,31 @@ function DraftContent() {
     setView('builder')
   }
 
-  function selectAndPlay(deck: SavedDeck, mode: 'queue' | 'training') {
+  async function selectAndPlay(deck: SavedDeck, mode: 'queue' | 'training') {
     try {
       const entries = JSON.parse(deck.cards) as SelectedEntry[]
-      sessionStorage.setItem('draft_deck', JSON.stringify(buildPayload(entries)))
+      const payload = buildPayload(entries)
+      sessionStorage.setItem('draft_deck', JSON.stringify(payload))
       if (mode === 'training') { router.push('/combat/training'); return }
+      // Si on est en mode défi, accepter directement avec ce deck
+      if (challengeId) {
+        const res = await fetch(`/api/combat/challenges/${challengeId}/accept`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deck: payload }),
+        })
+        if (res.ok) {
+          const { sessionId } = await res.json()
+          sessionStorage.removeItem('draft_deck'); sessionStorage.removeItem('pending_challenge_id')
+          router.push(`/combat/${sessionId}`)
+        }
+        return
+      }
+      if (joinId) {
+        const res = await fetch(`/api/combat/session/${joinId}/join`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deck: payload }),
+        })
+        sessionStorage.removeItem('draft_deck')
+        if (res.ok) { router.push(`/combat/${joinId}`); return }
+      }
       router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')
     } catch { /* ignore */ }
   }
