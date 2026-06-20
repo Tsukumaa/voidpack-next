@@ -23,7 +23,13 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans:   ['Inter', 'system-ui', 'sans-serif'],
+        cinzel: ['Cinzel', 'serif'],
+        lore:   ['Crimson Text', 'serif'],
+      },
+      colors: {
+        gold:   { DEFAULT: '#c8a84b', light: '#f0d070', dark: '#8b6914' },
+        forest: { DEFAULT: '#3a6a28', light: '#6aaa50', dark: '#1e3a14' },
       },
       keyframes: {
         boosterFloat: {

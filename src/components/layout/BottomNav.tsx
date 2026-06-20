@@ -32,11 +32,11 @@ export function BottomNav() {
               href={tab.href}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 min-h-[54px] rounded-[18px] transition-all duration-300',
-                isActive ? 'text-[#a78bfa]' : 'text-white/30 hover:text-white/55'
+                isActive ? 'text-gold' : 'text-white/30 hover:text-white/50'
               )}
             >
               <div className="relative flex items-center justify-center"
-                style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.8))' } : {}}>
+                style={isActive ? { filter: 'drop-shadow(0 0 6px rgba(200,168,75,0.7))' } : {}}>
                 <div style={{ transform: isActive ? 'scale(1.15) translateY(-1px)' : 'scale(1)', transition: 'transform 0.2s ease' }}>
                   {tab.icon}
                 </div>
@@ -46,7 +46,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className={cn('text-[10px]', isActive ? 'font-bold text-[#a78bfa]' : 'font-medium')}>{tab.label}</span>
+              <span className={cn('text-[10px] font-cinzel tracking-wider uppercase', isActive ? 'font-bold text-gold' : 'font-medium')}>{tab.label}</span>
             </Link>
           )
         })}
