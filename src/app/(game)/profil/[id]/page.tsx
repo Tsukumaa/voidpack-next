@@ -229,7 +229,7 @@ export default function PlayerProfilePage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-white font-black text-lg truncate">{profile?.username ?? '…'}</p>
-              <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | null} />
+              <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
             </div>
             <div className="flex items-center gap-3 mt-0.5">
               <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
