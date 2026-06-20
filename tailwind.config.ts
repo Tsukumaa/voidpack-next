@@ -23,9 +23,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans:   ['Inter', 'system-ui', 'sans-serif'],
-        cinzel: ['Cinzel', 'serif'],
-        lore:   ['Crimson Text', 'serif'],
+        sans:   ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        cinzel: ['var(--font-cinzel)', 'serif'],
       },
       colors: {
         gold:   { DEFAULT: '#c8a84b', light: '#f0d070', dark: '#8b6914' },

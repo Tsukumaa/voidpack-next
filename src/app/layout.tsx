@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Cinzel } from 'next/font/google'
 import { Providers } from '@/components/layout/Providers'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter  = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const cinzel = Cinzel({ subsets: ['latin'], weight: ['400','600','700','900'], variable: '--font-cinzel' })
 
 export const metadata: Metadata = {
   title: 'VOID Pack',
@@ -20,8 +21,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.className}>
-      <body className="bg-[#06010e] text-[#f6f1ff] min-h-svh overflow-x-hidden antialiased">
+    <html lang="fr" className={`${inter.variable} ${cinzel.variable}`}>
+      <body className="font-sans bg-[#06010e] text-[#f6f1ff] min-h-svh overflow-x-hidden antialiased">
         {/* Fond image fixe */}
         <div
           className="fixed inset-0 z-0 pointer-events-none"
