@@ -86,7 +86,8 @@ export default function ProfilPage() {
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
   const [ownedIds, setOwnedIds]         = useState<string[]>([])
   const [totalAvailable, setTotalAvailable] = useState(0)
-  const notifiedRef = useRef(false)
+  const notifiedRef     = useRef(false)
+  const dataLoadedRef   = useRef(false)
   const [now, setNow]                   = useState(() => Date.now())
 
   const todayMissions = getTodayMissions()
@@ -175,6 +176,7 @@ export default function ProfilPage() {
     }
 
     await loadMissions(true)
+    dataLoadedRef.current = true
   }, [user, loadMissions, addToast])
 
   useEffect(() => { load() }, [load])
@@ -184,8 +186,9 @@ export default function ProfilPage() {
     if (activeTab === 'missions') loadMissions()
   }, [activeTab, loadMissions])
 
-  // Synchronise le badge BottomNav avec l'état réel
+  // Synchronise le badge BottomNav uniquement après chargement complet
   useEffect(() => {
+    if (!dataLoadedRef.current) return
     const lastMs = daily?.last_claim_at ? new Date(daily.last_claim_at).getTime() : 0
     const dailyAvail = Date.now() - lastMs > 20 * 3600 * 1000
     const unclaimed  = missions.filter(m => m.completed && !m.xp_claimed).length
