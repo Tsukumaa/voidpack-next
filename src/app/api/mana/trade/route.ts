@@ -5,11 +5,11 @@ import { playerCards, playerProfiles } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 
 export const MANA_PER_RARITY: Record<string, number> = {
-  common:    5,
-  rare:      20,
-  epic:      80,
-  legendary: 200,
-  void:      500,
+  common:    1,
+  rare:      2,
+  epic:      3,
+  legendary: 4,
+  void:      5,
 }
 
 export async function POST(req: NextRequest) {

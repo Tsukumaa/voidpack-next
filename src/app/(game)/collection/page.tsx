@@ -57,9 +57,9 @@ interface GroupedCard {
 }
 
 const MANA_PER_RARITY: Record<string, number> = {
-  common: 5, rare: 20, epic: 80, legendary: 200, void: 500,
+  common: 1, rare: 2, epic: 3, legendary: 4, void: 5,
 }
-const BOOSTER_COST = 200
+const BOOSTER_COST = 500
 
 interface TradeModal { card: GroupedCard; qty: number }
 
@@ -250,7 +250,7 @@ export default function CollectionPage() {
               title={`Obtenir 1 booster pour ${BOOSTER_COST} mana`}
             >
               <ShoppingBag size={12} />
-              Booster — {BOOSTER_COST}
+              Booster ({BOOSTER_COST} mana)
             </button>
           </div>
         </div>
@@ -392,7 +392,7 @@ export default function CollectionPage() {
                         style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
                       >
                         <Flame size={10} />
-                        Recycler · +{MANA_PER_RARITY[card.rarity] ?? 5} mana
+                        Recycler (+{MANA_PER_RARITY[card.rarity] ?? 5} mana)
                       </button>
                     )}
                     <CardHover
