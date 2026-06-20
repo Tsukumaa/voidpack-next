@@ -155,9 +155,15 @@ export async function finishGame(winnerId) {
   if (!res.ok) throw new Error(await res.text());
 }
 
-export function cleanupSession() {
+export function cleanupSession({ abandon = false } = {}) {
   if (_pollInterval) clearInterval(_pollInterval);
   _pollInterval = null;
+  if (abandon && _session?.id) {
+    // sendBeacon fonctionne même en fermeture de page
+    navigator.sendBeacon(`/api/combat/session/${_session.id}`, new Blob(['{}'], { type: 'application/json' }));
+    // sendBeacon n'accepte pas PATCH → fallback fetch keepalive
+    fetch(`/api/combat/session/${_session.id}`, { method: 'PATCH', keepalive: true }).catch(() => {});
+  }
   _session  = null;
   _myRole   = null;
   _onUpdate = null;

@@ -131,7 +131,7 @@ export default function CombatPage() {
         setLoading(false)
       })
 
-    return () => { cleanupSession() }
+    return () => { cleanupSession({ abandon: true }) }
   }, [user, id, syncState, addLog])
 
   const me  = role === 'player1' ? 'p1' : 'p2'

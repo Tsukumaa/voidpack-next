@@ -26,6 +26,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 }
 
+// Marque la session comme abandonnée si elle est encore active (appelé au unmount du combat)
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const now = new Date().toISOString()
+  await db.update(gameSessions)
+    .set({ status: 'finished', finishedAt: now, updatedAt: now })
+    .where(eq(gameSessions.id, id))
+  return NextResponse.json({ ok: true })
+}
+
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authSession = await auth()
   if (!authSession?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
