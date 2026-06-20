@@ -579,38 +579,38 @@ function DraftContent() {
                         </div>
                       )}
                     </button>
-                    {/* Badges effets — toujours visibles, en bas de la carte */}
-                    {card.effects && card.effects.length > 0 && (
-                      <div className="absolute bottom-5 left-0 right-0 flex flex-wrap justify-center gap-0.5 px-1 pointer-events-none z-20">
-                        {card.effects.includes('taunt')      && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(255,120,0,.85)', color: '#fff', lineHeight: 1.2 }}>PROVOC</span>}
-                        {card.effects.includes('shield')     && <span style={{ fontSize: '7px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(0,140,255,.85)', color: '#fff', lineHeight: 1.2 }}>⬡</span>}
-                        {card.effects.includes('charge')     && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(80,200,80,.85)', color: '#fff', lineHeight: 1.2 }}>⚡</span>}
-                        {card.effects.includes('lifesteal')  && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(220,40,80,.85)', color: '#fff', lineHeight: 1.2 }}>♥</span>}
-                        {card.effects.includes('void_surge') && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(130,0,255,.85)', color: '#fff', lineHeight: 1.2 }}>VOID</span>}
-                        {card.effects.includes('stealth')    && <span style={{ fontSize: '6px', fontWeight: 900, padding: '1px 3px', borderRadius: 3, background: 'rgba(100,100,120,.7)', color: '#fff', lineHeight: 1.2 }}>FURT</span>}
-                      </div>
-                    )}
                   </CardFrame>
+                  {/* Badges effets — sous le nom de la carte, hors CardFrame */}
+                  {card.effects && card.effects.length > 0 && (
+                    <div className="absolute left-0 right-0 flex flex-wrap justify-center gap-0.5 px-1 pointer-events-none" style={{ top: '9%', zIndex: 40 }}>
+                      {card.effects.includes('taunt')      && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(200,80,0,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>Provocation</span>}
+                      {card.effects.includes('shield')     && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(0,110,220,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>Bouclier</span>}
+                      {card.effects.includes('charge')     && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(40,160,40,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>Charge</span>}
+                      {card.effects.includes('lifesteal')  && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(180,20,60,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>Vol de vie</span>}
+                      {card.effects.includes('void_surge') && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(100,0,220,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>VOID Surge</span>}
+                      {card.effects.includes('stealth')    && <span style={{ fontSize: '8px', fontWeight: 900, padding: '2px 5px', borderRadius: 4, background: 'rgba(70,70,100,1)', color: '#fff', lineHeight: 1.3, textShadow: '0 1px 2px rgba(0,0,0,.8)', boxShadow: '0 2px 6px rgba(0,0,0,.8)' }}>Furtivité</span>}
+                    </div>
+                  )}
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
                   )}
+                  {/* Stats — dans CardHover pour suivre le tilt */}
+                  <div className="absolute left-0 right-0 flex flex-col items-center gap-0.5 pointer-events-none" style={{ top: '100%', paddingTop: 6 }}>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border text-white/80"
+                        style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
+                        <Gem size={9} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="Attaque">
+                        <Sword size={9} className="text-rose-300/90" />{card.atk}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="HP">
+                        <Shield size={9} className="text-sky-300/90" />{card.hp}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-white/25">{qty}/{max}</span>
+                  </div>
                 </CardHover>
-                {/* Stats en flux normal sous la carte */}
-                <div className="flex items-center justify-center gap-1 mt-1.5">
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border text-white/80"
-                    style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
-                    <Gem size={9} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="Attaque">
-                    <Sword size={9} className="text-rose-300/90" />{card.atk}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="HP">
-                    <Shield size={9} className="text-sky-300/90" />{card.hp}
-                  </span>
-                </div>
-                <div className="text-center mt-0.5">
-                  <span className="text-[9px] text-white/25">{qty}/{max}</span>
-                </div>
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
                     className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
