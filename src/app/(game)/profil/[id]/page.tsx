@@ -175,26 +175,26 @@ export default function PlayerProfilePage() {
     const s = friendship.status
     if (s === 'accepted') return (
       <button onClick={removeFriend} disabled={busy}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#00c896]/15 border border-[#00c896]/40 text-[#00c896] hover:bg-[#00c896]/25 transition-colors disabled:opacity-50">
-        <Check size={14} /> Amis
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#00c896]/15 border border-[#00c896]/40 text-[#00c896] hover:bg-[#00c896]/25 transition-colors disabled:opacity-50 flex-shrink-0">
+        <Check size={12} /> Amis
       </button>
     )
     if (s === 'pending_sent') return (
       <button disabled
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-white/5 border border-white/10 text-white/40">
-        <Clock size={14} /> En attente
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-white/5 border border-white/10 text-white/40 flex-shrink-0">
+        <Clock size={12} /> Envoyé
       </button>
     )
     if (s === 'pending_received') return (
       <button onClick={acceptFriend} disabled={busy}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#7b2bff]/20 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/35 transition-colors disabled:opacity-50">
-        <Check size={14} /> Accepter la demande
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#7b2bff]/20 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/35 transition-colors disabled:opacity-50 flex-shrink-0">
+        <Check size={12} /> Accepter
       </button>
     )
     return (
       <button onClick={addFriend} disabled={busy}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-[#7b2bff]/20 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/35 transition-colors disabled:opacity-50">
-        <UserPlus size={14} /> Ajouter
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#7b2bff]/20 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/35 transition-colors disabled:opacity-50 flex-shrink-0">
+        <UserPlus size={12} /> Ajouter
       </button>
     )
   }
@@ -234,7 +234,7 @@ export default function PlayerProfilePage() {
 
           {/* Nom + niveau */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 mb-1">
               <p className="text-white font-black text-sm truncate leading-tight">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
               {profile?.highestRarity && (
