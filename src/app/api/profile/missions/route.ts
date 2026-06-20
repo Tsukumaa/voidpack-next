@@ -25,11 +25,15 @@ export async function GET() {
 
   const rowMap = Object.fromEntries(rows.map(r => [r.missionId, r]))
 
-  return NextResponse.json(missions.map(m => ({
-    mission_id: m.id,
-    progress:   rowMap[m.id]?.progress ?? 0,
-    claimed:    rowMap[m.id]?.claimed  ?? false,
-  })))
+  return NextResponse.json(missions.map(m => {
+    const progress = rowMap[m.id]?.progress ?? 0
+    return {
+      mission_id: m.id,
+      progress,
+      completed: progress >= m.goal,
+      claimed:   rowMap[m.id]?.claimed ?? false,
+    }
+  }))
 }
 
 // POST — incrémente le progress d'une mission

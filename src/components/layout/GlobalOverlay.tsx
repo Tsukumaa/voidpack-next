@@ -71,7 +71,7 @@ export function GlobalOverlay() {
         fetch('/api/profile/missions').then(r => r.ok ? r.json() : []).catch(() => []),
         fetch('/api/profile/streak').then(r => r.ok ? r.json() : null).catch(() => null),
       ])
-      const unclaimed = (missionsData as { progress: number; claimed: boolean }[]).filter(m => !m.claimed && m.progress > 0).length
+      const unclaimed = (missionsData as { completed: boolean; claimed: boolean }[]).filter(m => m.completed && !m.claimed).length
       const lastMs = streakData?.lastClaimAt ? new Date(streakData.lastClaimAt).getTime() : 0
       const dailyAvail = Date.now() - lastMs > 20 * 3600 * 1000 ? 1 : 0
       setProfilBadge(unclaimed + dailyAvail)
