@@ -225,42 +225,44 @@ export default function ProfilPage() {
   return (
     <div className="pb-4 space-y-4 max-w-4xl mx-auto w-full">
 
-      {/* Header */}
-      <div className="flex items-center gap-4 pt-2">
-        <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10"
-          style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : { background:'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-          {!profile?.avatar_url && (
-            <div className="w-full h-full flex items-center justify-center text-xl font-black text-white">
-              {profile?.username?.[0]?.toUpperCase() ?? '?'}
+      {/* Header sticky */}
+      <div className="sticky top-20 z-20 rounded-2xl border border-white/[0.07] px-4 py-3 backdrop-blur-md"
+        style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
+
+        <div className="flex items-center gap-3 mb-3">
+          <div className="relative rounded-full p-[3px] flex-shrink-0"
+            style={{ background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
+              style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : {}}>
+              {!profile?.avatar_url && (
+                <span className="text-lg font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-black text-white text-base truncate">{profile?.username ?? 'Joueur'}</p>
+              <RoleBadge role={profile?.role} />
+            </div>
+            <div className="flex items-center gap-3 mt-0.5">
+              <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
+              <p className="text-white/30 text-[10px]">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</p>
+            </div>
+          </div>
+
+          {profile?.highest_rarity && (
+            <div className="px-2.5 py-1 rounded-lg text-xs font-bold capitalize flex-shrink-0"
+              style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity], border: `1px solid ${RARITY_COLOR[profile.highest_rarity]}33` }}>
+              {profile.highest_rarity}
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-black text-white text-lg truncate">{profile?.username ?? 'Joueur'}</p>
-            <RoleBadge role={profile?.role} />
-          </div>
-          <p className="text-[#a78bfa] text-sm font-bold">Niveau {level}</p>
-        </div>
-        {profile?.highest_rarity && (
-          <div className="px-3 py-1.5 rounded-xl text-xs font-bold capitalize"
-            style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity] }}>
-            {profile.highest_rarity}
-          </div>
-        )}
-      </div>
 
-      {/* XP bar */}
-      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-white/60 text-xs font-bold uppercase tracking-wider">Expérience</span>
-          <span className="text-white/50 text-xs">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</span>
-        </div>
-        <div className="h-2 rounded-full bg-white/[0.08] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
           <div className="h-full rounded-full transition-all duration-700"
             style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
         </div>
-        <p className="text-white/30 text-xs">{xp.toLocaleString('fr-FR')} XP total</p>
       </div>
 
       {/* Tabs */}
