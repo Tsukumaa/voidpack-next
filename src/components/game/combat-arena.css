@@ -149,7 +149,7 @@
   letter-spacing: .06em;
 }
 .ca-hero-hpbar {
-  height: 7px;
+  height: 10px;
   background: rgba(0,0,0,.45);
   border-radius: 99px;
   overflow: hidden;
@@ -235,13 +235,13 @@
   left: 20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px; height: 32px;
+  width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
-  background: transparent;
-  border: 1px solid rgba(255,100,100,.18);
-  border-radius: 8px;
-  color: rgba(255,100,100,.5);
-  font-size: 13px;
+  background: rgba(255,60,60,.06);
+  border: 1px solid rgba(255,100,100,.25);
+  border-radius: 10px;
+  color: rgba(255,100,100,.65);
+  font-size: 15px;
   cursor: pointer;
   transition: all .12s;
   z-index: 5;
@@ -250,9 +250,10 @@
 }
 .ca-quit-btn:hover { background: rgba(255,60,60,.1); color: #ff6060; border-color: rgba(255,60,60,.38); }
 
-/* ── Boards (flex:1, cards centered → fill space, breathe) ──────────── */
+/* ── Boards ──────────────────────────────────────────────────────────── */
 .ca-board {
-  flex: 1;
+  flex: 1 1 0;
+  max-height: clamp(200px, 28vh, 310px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -302,12 +303,13 @@
   flex-shrink: 0;
 }
 .ca-turn-lbl {
-  font-size: 10px;
-  color: rgba(185,124,255,.45);
-  font-weight: 600;
+  font-size: 13px;
+  color: rgba(185,124,255,.7);
+  font-weight: 700;
   white-space: nowrap;
   letter-spacing: .04em;
   text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(185,124,255,.4);
 }
 .ca-end-btn {
   padding: 9px 24px;
@@ -349,7 +351,7 @@
 /* ── Card wrapper ───────────────────────────────────────────────────── */
 .ca-cw {
   position: relative;
-  width: clamp(140px, 16vw, 200px);
+  width: clamp(148px, 17vw, 210px);
   aspect-ratio: 64 / 89;
   flex-shrink: 0;
   cursor: pointer;
@@ -360,7 +362,10 @@
 .ca-cw--exhausted { opacity: .38; filter: grayscale(.55); }
 .ca-cw--can-attack { cursor: pointer; }
 .ca-cw--can-attack:hover { transform: translateY(-12px) scale(1.07) !important; }
-.ca-cw--selected { transform: translateY(-14px) !important; }
+.ca-cw--selected {
+  transform: translateY(-14px) !important;
+  filter: drop-shadow(0 0 14px rgba(185,124,255,1)) !important;
+}
 .ca-cw--attackable {
   cursor: var(--ca-sword);
   animation: ca-pulse-red-card .8s ease-in-out infinite;
@@ -370,14 +375,18 @@
 
 /* Hand-specific card sizing and fan layout */
 .ca-hand .ca-cw {
-  width: clamp(100px, 11vw, 148px);
+  width: clamp(110px, 12.5vw, 162px);
   margin-left: clamp(-30px, -2.8vw, -18px);
   transform-origin: bottom center;
 }
 .ca-hand .ca-cw:first-child { margin-left: 0; }
+.ca-hand .ca-cw--playable {
+  filter: drop-shadow(0 0 7px rgba(123,43,255,.7));
+}
 .ca-hand .ca-cw--playable:hover {
   transform: translateY(-40px) scale(1.16) !important;
   z-index: 20;
+  filter: drop-shadow(0 0 14px rgba(185,124,255,1));
 }
 
 /* HP bar below board card */
