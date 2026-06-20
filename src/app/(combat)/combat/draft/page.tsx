@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle } from 'lucide-react'
+import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle, Plus, Pencil, Trash2, Save, ChevronLeft } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
@@ -38,6 +38,14 @@ interface SelectedEntry {
   qty: number
 }
 
+interface SavedDeck {
+  id: string
+  name: string
+  cards: string
+  total_cards: number
+  total_mana: number
+}
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -61,6 +69,15 @@ function DraftContent() {
     ? JSON.parse(sessionStorage.getItem('challenge_friend') ?? 'null') as { id: string; username: string } | null
     : null
   const { user } = useGameStore(s => ({ user: s.user }))
+
+  const [view, setView]                 = useState<'select' | 'builder'>('select')
+  const [savedDecks, setSavedDecks]     = useState<SavedDeck[]>([])
+  const [decksLoading, setDecksLoading] = useState(true)
+  const [editingDeck, setEditingDeck]   = useState<SavedDeck | null>(null)
+  const [deckName, setDeckName]         = useState('')
+  const [savingDeck, setSavingDeck]     = useState(false)
+  const [deletingId, setDeletingId]     = useState<string | null>(null)
+
   const [cards, setCards]       = useState<DraftCard[]>([])
   const [families, setFamilies] = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected] = useState<SelectedEntry[]>([])
@@ -78,22 +95,30 @@ function DraftContent() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const load = useCallback(async () => {
+  const loadDecks = useCallback(async () => {
+    if (!user) return
+    setDecksLoading(true)
+    try {
+      const data = await fetch('/api/decks').then(r => r.ok ? r.json() : [])
+      setSavedDecks(data ?? [])
+    } finally { setDecksLoading(false) }
+  }, [user])
+
+  useEffect(() => { loadDecks() }, [loadDecks])
+
+  const loadCards = useCallback(async () => {
     if (!user) return
     setLoading(true)
-
     const [rawCards, cardDefs, famData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
-
     const defMap: Record<string, { name: string; image_url: string | null; metadata: Record<string, unknown> }> = {}
     for (const d of cardDefs ?? []) {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
-
     const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
@@ -108,13 +133,12 @@ function DraftContent() {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
       return ri !== 0 ? ri : a.name.localeCompare(b.name)
     })
-
     setCards(sorted)
     setFamilies(famData ?? [])
     setLoading(false)
   }, [user])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { loadCards() }, [loadCards])
 
   const totalCards = selected.reduce((s, e) => s + e.qty, 0)
   const totalMana  = selected.reduce((s, e) => s + e.card.cost * e.qty, 0)
@@ -124,15 +148,15 @@ function DraftContent() {
     return selected.find(e => e.card.card_id === card_id)?.qty ?? 0
   }
 
-  function canAdd(card: DraftCard, currentSelected = selected): { ok: boolean; reason?: string } {
-    const curTotal = currentSelected.reduce((s, e) => s + e.qty, 0)
-    const curMana  = currentSelected.reduce((s, e) => s + e.card.cost * e.qty, 0)
-    if (curTotal >= DECK_SIZE)                    return { ok: false, reason: 'Deck plein' }
-    if (curMana > MANA_BUDGET)                    return { ok: false, reason: 'Budget mana dépassé' }
-    const qty = currentSelected.find(e => e.card.card_id === card.card_id)?.qty ?? 0
+  function canAdd(card: DraftCard, cur = selected): { ok: boolean; reason?: string } {
+    const t = cur.reduce((s, e) => s + e.qty, 0)
+    const m = cur.reduce((s, e) => s + e.card.cost * e.qty, 0)
+    if (t >= DECK_SIZE)              return { ok: false, reason: 'Deck plein' }
+    if (m > MANA_BUDGET)             return { ok: false, reason: 'Budget mana dépassé' }
+    const qty = cur.find(e => e.card.card_id === card.card_id)?.qty ?? 0
     const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
-    if (qty >= max)                               return { ok: false, reason: `Max ${max}` }
-    if (curMana + card.cost > MANA_BUDGET)        return { ok: false, reason: 'Budget mana dépassé' }
+    if (qty >= max)                  return { ok: false, reason: `Max ${max}` }
+    if (m + card.cost > MANA_BUDGET) return { ok: false, reason: 'Budget mana dépassé' }
     return { ok: true }
   }
 
@@ -171,9 +195,9 @@ function DraftContent() {
     setSelected(deck)
   }
 
-  function buildDeckPayload() {
+  function buildPayload(entries: SelectedEntry[]) {
     const deck: unknown[] = []
-    for (const { card, qty } of selected) {
+    for (const { card, qty } of entries) {
       for (let i = 0; i < qty; i++) {
         deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } } })
       }
@@ -181,44 +205,75 @@ function DraftContent() {
     return deck
   }
 
-  async function handleQueue() {
-    if (totalCards < DECK_SIZE || manaOver) return
-    const deck = buildDeckPayload()
-    sessionStorage.setItem('draft_deck', JSON.stringify(deck))
-
-    // Réponse à un défi direct → accepter le challenge et rejoindre
-    if (challengeId) {
-      const res = await fetch(`/api/combat/challenges/${challengeId}/accept`, {
+  async function saveDeck() {
+    if (!deckName.trim() || selected.length === 0) return
+    setSavingDeck(true)
+    try {
+      await fetch('/api/decks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deck }),
+        body: JSON.stringify({ id: editingDeck?.id, name: deckName.trim(), cards: selected, totalCards, totalMana }),
+      })
+      await loadDecks()
+      setView('select'); setEditingDeck(null); setSelected([]); setDeckName('')
+    } finally { setSavingDeck(false) }
+  }
+
+  async function deleteDeck(id: string) {
+    setDeletingId(id)
+    try {
+      await fetch('/api/decks', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      setSavedDecks(prev => prev.filter(d => d.id !== id))
+    } finally { setDeletingId(null) }
+  }
+
+  function openNewDeck() {
+    setEditingDeck(null); setSelected([]); setDeckName('Mon deck'); setView('builder')
+  }
+
+  function openEditDeck(deck: SavedDeck) {
+    setEditingDeck(deck); setDeckName(deck.name)
+    try { setSelected(JSON.parse(deck.cards) as SelectedEntry[]) } catch { setSelected([]) }
+    setView('builder')
+  }
+
+  function selectAndPlay(deck: SavedDeck, mode: 'queue' | 'training') {
+    try {
+      const entries = JSON.parse(deck.cards) as SelectedEntry[]
+      sessionStorage.setItem('draft_deck', JSON.stringify(buildPayload(entries)))
+      if (mode === 'training') { router.push('/combat/training'); return }
+      router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')
+    } catch { /* ignore */ }
+  }
+
+  async function handleQueue() {
+    if (totalCards < DECK_SIZE || manaOver) return
+    const deck = buildPayload(selected)
+    sessionStorage.setItem('draft_deck', JSON.stringify(deck))
+    if (challengeId) {
+      const res = await fetch(`/api/combat/challenges/${challengeId}/accept`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deck }),
       })
       if (res.ok) {
         const { sessionId } = await res.json()
-        sessionStorage.removeItem('draft_deck')
-        sessionStorage.removeItem('pending_challenge_id')
+        sessionStorage.removeItem('draft_deck'); sessionStorage.removeItem('pending_challenge_id')
         router.push(`/combat/${sessionId}`)
       }
       return
     }
-
-    // Rejoindre une partie amicale existante (lien d'invitation)
     if (joinId) {
       const res = await fetch(`/api/combat/session/${joinId}/join`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deck }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deck }),
       })
       sessionStorage.removeItem('draft_deck')
       if (res.ok) { router.push(`/combat/${joinId}`); return }
-      // sinon on retombe sur le flux normal
     }
-
     router.push(isFriendly ? '/combat/matchmaking?mode=friendly' : '/combat/matchmaking')
   }
 
   function handleTraining() {
     if (totalCards < 1) return
-    sessionStorage.setItem('draft_deck', JSON.stringify(buildDeckPayload()))
+    sessionStorage.setItem('draft_deck', JSON.stringify(buildPayload(selected)))
     router.push('/combat/training')
   }
 
@@ -233,46 +288,136 @@ function DraftContent() {
   const manaRatio = Math.min(1, totalMana / MANA_BUDGET)
   const ready     = totalCards === DECK_SIZE && !manaOver
 
+  // ── Vue sélection ──────────────────────────────────────────────────────
+  if (view === 'select') {
+    return (
+      <div className="min-h-screen pb-24" style={{ background: '#06010e', color: '#f6f1ff' }}>
+        <div className="sticky top-0 z-20 bg-[#06010e]/95 backdrop-blur-md pt-3 pb-4 px-4">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => router.push('/communaute')} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
+              <ArrowLeft size={16} /> Retour
+            </button>
+            {isFriendly && challengedFriend && (
+              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa]">
+                <Sword size={10} /> vs {challengedFriend.username}
+              </span>
+            )}
+          </div>
+          <h2 className="font-bold text-white text-lg">Mes decks</h2>
+          <p className="text-white/40 text-xs mt-0.5">Sélectionne un deck pour jouer ou crée-en un nouveau.</p>
+        </div>
+
+        <div className="px-4 pt-2">
+          {decksLoading ? (
+            <div className="text-white/30 text-sm py-10 text-center">Chargement…</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Créer un deck */}
+              <button onClick={openNewDeck}
+                className="flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border-2 border-dashed border-white/10 text-white/30 hover:border-[#7b2bff]/50 hover:text-[#a78bfa] hover:bg-[#7b2bff]/[0.04] transition-all">
+                <div className="w-10 h-10 rounded-full border-2 border-current flex items-center justify-center">
+                  <Plus size={18} />
+                </div>
+                <span className="text-sm font-bold uppercase tracking-wider font-cinzel">Créer un deck</span>
+              </button>
+
+              {/* Decks sauvegardés */}
+              {savedDecks.map(deck => {
+                const entries = (() => { try { return JSON.parse(deck.cards) as SelectedEntry[] } catch { return [] } })()
+                const isFull = deck.total_cards >= DECK_SIZE
+                return (
+                  <div key={deck.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:border-white/15 transition-all">
+                    {/* Aperçu cartes */}
+                    <div className="h-14 flex items-center px-3 gap-1 overflow-hidden bg-white/[0.02]">
+                      {entries.slice(0, 9).map((e, i) => (
+                        <div key={i} className="w-7 h-10 rounded flex-shrink-0 overflow-hidden border border-white/10"
+                          style={{ background: RARITY_COLOR[e.card.rarity] + '20' }}>
+                          {e.card.image_url && <img src={e.card.image_url} alt="" className="w-full h-full object-cover object-top" />}
+                        </div>
+                      ))}
+                      {entries.length > 9 && <span className="text-white/25 text-[10px] ml-1 flex-shrink-0">+{entries.length - 9}</span>}
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-bold text-sm text-white truncate">{deck.name}</p>
+                        <div className="flex gap-1 ml-2 flex-shrink-0">
+                          <button onClick={() => openEditDeck(deck)}
+                            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
+                            <Pencil size={11} className="text-white/40" />
+                          </button>
+                          <button onClick={() => deleteDeck(deck.id)} disabled={deletingId === deck.id}
+                            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-red-500/20 flex items-center justify-center transition-colors">
+                            <Trash2 size={11} className="text-white/40" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <span className={cn('text-[10px] font-bold', isFull ? 'text-[#00c896]' : 'text-white/30')}>
+                          {deck.total_cards}/{DECK_SIZE} cartes
+                        </span>
+                        <span className="text-white/20 text-[10px]">·</span>
+                        <span className="text-white/30 text-[10px]">{deck.total_mana} mana</span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => selectAndPlay(deck, 'training')}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[#a78bfa] text-xs font-bold hover:bg-white/10 transition-all">
+                          <Bot size={11} /> Entraînement
+                        </button>
+                        <button onClick={() => selectAndPlay(deck, 'queue')} disabled={!isFull}
+                          className={cn('flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-bold transition-all',
+                            isFull ? 'bg-[#7b2bff] text-white hover:bg-[#6920e0]' : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5')}>
+                          <Swords size={11} /> Jouer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Vue builder ────────────────────────────────────────────────────────
   return (
     <div className="pb-4 min-h-screen" style={{ background: '#06010e', color: '#f6f1ff' }}>
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-[#06010e]/95 backdrop-blur-md pt-3 pb-3 mb-4 px-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={() => router.push('/communaute')} className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
-            <ArrowLeft size={16} /> Retour
+          <button onClick={() => { setView('select'); setSelected([]); setEditingDeck(null) }}
+            className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
+            <ChevronLeft size={16} /> Mes decks
           </button>
           <div className="flex gap-2">
             <button onClick={autoDeck}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10"
-              title="Remplir automatiquement le deck aléatoirement">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white/5 border border-white/10 text-white/50 hover:text-white hover:bg-white/10">
               <Shuffle size={13} /> Auto
             </button>
             <button onClick={handleTraining} disabled={totalCards < 1}
               className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border',
-                totalCards >= 1 ? 'bg-white/5 border-white/10 text-[#a78bfa] hover:bg-white/10' : 'border-transparent bg-white/5 text-white/20 cursor-not-allowed')}
-              title="Jouer contre le bot (aucun point classé)">
+                totalCards >= 1 ? 'bg-white/5 border-white/10 text-[#a78bfa] hover:bg-white/10' : 'border-transparent bg-white/5 text-white/20 cursor-not-allowed')}>
               <Bot size={13} /> Entraînement
             </button>
             <button onClick={handleQueue} disabled={!ready}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
-                ready ? 'bg-[#7b2bff] text-white hover:bg-[#6920e0]' : 'bg-white/5 text-white/20 cursor-not-allowed'
-              )}>
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all',
+                ready ? 'bg-[#7b2bff] text-white hover:bg-[#6920e0]' : 'bg-white/5 text-white/20 cursor-not-allowed')}>
               <Swords size={13} /> Chercher un match
             </button>
           </div>
         </div>
 
+        {/* Nom + sauvegarder */}
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="font-bold text-white text-base">Construction du deck</h2>
-          {isFriendly && challengedFriend && (
-            <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa]">
-              <Sword size={10} /> vs {challengedFriend.username}
-            </span>
-          )}
-          {!isFriendly && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-[#ff9a3d]/10 border border-[#ff9a3d]/30 text-[#ff9a3d]">Ranked</span>
-          )}
+          <input value={deckName} onChange={e => setDeckName(e.target.value)} placeholder="Nom du deck…"
+            className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-1.5 text-sm font-bold text-white placeholder:text-white/25 focus:outline-none focus:border-[#7b2bff]/50 min-w-0" />
+          <button onClick={saveDeck} disabled={savingDeck || !deckName.trim() || selected.length === 0}
+            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0',
+              deckName.trim() && selected.length > 0
+                ? 'bg-[#00c896]/15 border border-[#00c896]/30 text-[#00c896] hover:bg-[#00c896]/25'
+                : 'bg-white/5 border border-white/10 text-white/20 cursor-not-allowed')}>
+            <Save size={13} /> {savingDeck ? 'Sauvegarde…' : 'Sauvegarder'}
+          </button>
         </div>
 
         {/* Compteurs */}
@@ -280,21 +425,16 @@ function DraftContent() {
           <div className="flex-1">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-white/40 font-bold">CARTES</span>
-              <span className={cn('font-bold', totalCards === DECK_SIZE ? 'text-[#00c896]' : 'text-white/60')}>
-                {totalCards}/{DECK_SIZE}
-              </span>
+              <span className={cn('font-bold', totalCards === DECK_SIZE ? 'text-[#00c896]' : 'text-white/60')}>{totalCards}/{DECK_SIZE}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06]">
-              <div className="h-full rounded-full bg-[#7b2bff] transition-all duration-300"
-                style={{ width: `${(totalCards / DECK_SIZE) * 100}%` }} />
+              <div className="h-full rounded-full bg-[#7b2bff] transition-all duration-300" style={{ width: `${(totalCards / DECK_SIZE) * 100}%` }} />
             </div>
           </div>
           <div className="flex-1">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-white/40 font-bold flex items-center gap-1"><Zap size={9} /> BUDGET</span>
-              <span className={cn('font-bold', manaOver ? 'text-red-400' : totalMana > MANA_BUDGET * 0.85 ? 'text-[#ff9a3d]' : 'text-white/60')}>
-                {totalMana}/{MANA_BUDGET}
-              </span>
+              <span className={cn('font-bold', manaOver ? 'text-red-400' : totalMana > MANA_BUDGET * 0.85 ? 'text-[#ff9a3d]' : 'text-white/60')}>{totalMana}/{MANA_BUDGET}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06]">
               <div className="h-full rounded-full transition-all duration-300"
@@ -315,22 +455,14 @@ function DraftContent() {
 
         {/* Recherche + filtres */}
         <div className="flex items-center gap-2 mb-2">
-          {/* Search */}
           <div className="relative flex-1 min-w-0">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher…"
-              className="w-full pl-7 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs focus:border-[#7b2bff]/50 focus:outline-none text-white placeholder:text-white/25"
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
+              className="w-full pl-7 pr-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs focus:border-[#7b2bff]/50 focus:outline-none text-white placeholder:text-white/25" />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
-                <X size={11} />
-              </button>
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"><X size={11} /></button>
             )}
           </div>
-
-          {/* Famille dropdown */}
           {families.length > 0 && (
             <div ref={famRef} className="relative flex-shrink-0">
               <button onClick={() => setFamOpen(v => !v)}
@@ -344,9 +476,7 @@ function DraftContent() {
                   style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
                   {isFamilyFilter && (
                     <button onClick={() => { setFilter('all'); setFamOpen(false) }}
-                      className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
-                      Toutes
-                    </button>
+                      className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">Toutes</button>
                   )}
                   {families.map(f => (
                     <button key={f.key} onClick={() => { setFilter(f.key); setFamOpen(false) }}
@@ -361,17 +491,13 @@ function DraftContent() {
           )}
         </div>
 
-        {/* Filtres rareté */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button onClick={() => setFilter('all')}
             className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-              filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
-            Tout
-          </button>
+              filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>Tout</button>
           {rarities.map(r => (
             <button key={r} onClick={() => setFilter(filter === r ? 'all' : r)}
-              className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap capitalize transition-all',
-                filter === r ? 'text-white' : 'text-white/40')}
+              className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap capitalize transition-all', filter === r ? 'text-white' : 'text-white/40')}
               style={filter === r ? { background: RARITY_COLOR[r] + '30', color: RARITY_COLOR[r] } : {}}>
               {r}
             </button>
@@ -379,14 +505,12 @@ function DraftContent() {
         </div>
       </div>
 
-      {/* Deck sélectionné */}
+      {/* Deck en cours */}
       {selected.length > 0 && (
-        <div className="mb-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+        <div className="mb-4 mx-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Deck sélectionné</p>
-            <button onClick={() => setSelected([])} className="text-white/20 hover:text-red-400 text-[10px] transition-colors">
-              Vider
-            </button>
+            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Deck en cours</p>
+            <button onClick={() => setSelected([])} className="text-white/20 hover:text-red-400 text-[10px] transition-colors">Vider</button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {selected.map(({ card, qty }) => (
@@ -394,9 +518,7 @@ function DraftContent() {
                 style={{ background: RARITY_COLOR[card.rarity] + '15' }}>
                 <span className="text-[10px] font-bold uppercase" style={{ color: RARITY_COLOR[card.rarity] }}>{card.name}</span>
                 {qty > 1 && <span className="text-[9px] text-white/40">×{qty}</span>}
-                <button onClick={() => remove(card.card_id)} className="text-white/30 hover:text-red-400 transition-colors ml-0.5">
-                  <X size={9} />
-                </button>
+                <button onClick={() => remove(card.card_id)} className="text-white/30 hover:text-red-400 transition-colors ml-0.5"><X size={9} /></button>
               </div>
             ))}
           </div>
@@ -413,50 +535,30 @@ function DraftContent() {
       ) : (
         <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11 gap-2 px-2 pb-8">
           {filtered.map(card => {
-            const qty    = getQty(card.card_id)
-            const max    = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
+            const qty = getQty(card.card_id)
+            const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
             const { ok, reason } = canAdd(card)
-
             return (
               <div key={card.card_id} className="relative">
-                <CardHover
-                  rarity={card.rarity}
+                <CardHover rarity={card.rarity}
                   className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
-                  style={{ aspectRatio: '0.714', overflow: 'visible' }}
-                >
-                  <CardFrame
-                    rarity={card.rarity}
-                    name={card.name}
-                    cost={card.cost}
-                    atk={card.atk}
-                    def={card.hp}
-                    glow={qty > 0}
-                    style={{ position: 'absolute', inset: 0 }}
-                  >
-                    <button onClick={() => add(card)} disabled={!ok} title={!ok ? reason : undefined}
-                      className="absolute inset-0 w-full h-full">
-                      {card.image_url ? (
-                        <CardMedia src={card.image_url} alt={card.name} />
-                      ) : (
+                  style={{ aspectRatio: '0.714', overflow: 'visible' }}>
+                  <CardFrame rarity={card.rarity} name={card.name} cost={card.cost} atk={card.atk} def={card.hp} glow={qty > 0} style={{ position: 'absolute', inset: 0 }}>
+                    <button onClick={() => add(card)} disabled={!ok} title={!ok ? reason : undefined} className="absolute inset-0 w-full h-full">
+                      {card.image_url ? <CardMedia src={card.image_url} alt={card.name} /> : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-12 h-12 rounded-full opacity-30"
-                            style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
+                          <div className="w-12 h-12 rounded-full opacity-30" style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
                         </div>
                       )}
                     </button>
                   </CardFrame>
-
                   {qty > 0 && (
-                    <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">
-                      {qty}
-                    </div>
+                    <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
                   )}
-
                   <div className="absolute -bottom-5 left-0 right-0 text-center">
                     <span className="text-[9px] text-white/30">{qty}/{max} · {card.ownedCount}×</span>
                   </div>
                 </CardHover>
-
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
                     className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
