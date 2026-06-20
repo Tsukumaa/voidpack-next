@@ -77,7 +77,7 @@ export function StatusBar() {
 
           <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl min-w-0">
 
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#4a9e6a] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
 
               {profile?.avatar_url ? (
                 <Image
@@ -121,7 +121,7 @@ export function StatusBar() {
             style={{
               background: `conic-gradient(
                 from -90deg,
-                #00c896,
+                #4a9e6a,
                 #7b2bff ${xpPercent}%,
                 rgba(255,255,255,.07) ${xpPercent}%
               )`,
@@ -135,7 +135,7 @@ export function StatusBar() {
         </div>
         ) : (
           <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#00c896] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#4a9e6a] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
               <span className="text-[10px] font-bold">?</span>
             </div>
             <span className="text-xs font-bold text-white/50">Pas connecté</span>

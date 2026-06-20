@@ -171,7 +171,7 @@ function MatchmakingContent() {
           </div>
           <button onClick={copyLink}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-sm transition-colors">
-            {copied ? <Check size={14} className="text-[#00c896]" /> : <Copy size={14} />}
+            {copied ? <Check size={14} className="text-[#4a9e6a]" /> : <Copy size={14} />}
             {copied ? 'Lien copié !' : 'Copier le lien d\'invitation'}
           </button>
           <button onClick={cancel}
@@ -183,11 +183,11 @@ function MatchmakingContent() {
 
       {status === 'matched' && (
         <>
-          <div className="w-24 h-24 rounded-full bg-[#00c896]/10 border border-[#00c896]/30 flex items-center justify-center">
-            <Swords size={40} className="text-[#00c896]" />
+          <div className="w-24 h-24 rounded-full bg-[#4a9e6a]/10 border border-[#4a9e6a]/30 flex items-center justify-center">
+            <Swords size={40} className="text-[#4a9e6a]" />
           </div>
           <div className="text-center">
-            <p className="text-[#00c896] font-bold text-lg">Adversaire trouvé !</p>
+            <p className="text-[#4a9e6a] font-bold text-lg">Adversaire trouvé !</p>
             <p className="text-white/40 text-sm mt-1">Chargement de la partie…</p>
           </div>
         </>

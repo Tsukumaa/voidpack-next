@@ -10,7 +10,7 @@
   :root {
     --void-bg: #06010e;
     --void-purple: #7b2bff;
-    --void-cyan: #00c896;
+    --void-cyan: #4a9e6a;
     --void-text: #f6f1ff;
     --void-muted: rgba(255,255,255,0.45);
     --void-border: rgba(255,255,255,0.08);
@@ -24,15 +24,15 @@
     --color-accent-d:  #7b2bff;
     /* Legacy vars pour compatibilité */
     --v16-purple: #7b2bff;
-    --v16-cyan: #00c896;
+    --v16-cyan: #4a9e6a;
     --v16-text: #f6f1ff;
     --v16-muted: rgba(230,220,255,.68);
     --color-text: #f4f7fb;
     --color-muted: rgba(255,255,255,.45);
     --color-border: rgba(255,255,255,.12);
     --neon-violet: #a855f7;
-    --neon-teal: #00c896;
-    --neon-cyan: #00c896;
+    --neon-teal: #4a9e6a;
+    --neon-cyan: #4a9e6a;
     --neon-gold: #ffd166;
   }
 

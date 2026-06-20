@@ -6,14 +6,14 @@ import Link from 'next/link'
 
 const ICONS = {
   friend_request: <Users size={16} className="text-[#a78bfa]" />,
-  mission:        <Target size={16} className="text-[#00c896]" />,
+  mission:        <Target size={16} className="text-[#4a9e6a]" />,
   streak:         <Flame size={16} className="text-orange-400" />,
   info:           null,
 }
 
 const COLORS = {
   friend_request: '#7b2bff',
-  mission:        '#00c896',
+  mission:        '#4a9e6a',
   streak:         '#f97316',
   info:           '#ffffff',
 }

@@ -276,7 +276,7 @@ export function PackScreen() {
               </div>
             )}
 
-            <p className="text-[#00c896] text-xs">
+            <p className="text-[#4a9e6a] text-xs">
               {pendingCredits.length} booster
               {pendingCredits.length > 1 ? 's' : ''} disponible
             </p>

@@ -180,7 +180,7 @@ export default function PlayerProfilePage() {
     if (s === 'accepted') return (
       <div className="relative flex-shrink-0">
         <button onClick={() => setConfirmRemove(true)} disabled={busy}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#00c896]/15 border border-[#00c896]/40 text-[#00c896] hover:bg-[#00c896]/25 transition-colors disabled:opacity-50">
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#4a9e6a]/15 border border-[#4a9e6a]/40 text-[#4a9e6a] hover:bg-[#4a9e6a]/25 transition-colors disabled:opacity-50">
           <Check size={12} /> Amis
         </button>
         {confirmRemove && (

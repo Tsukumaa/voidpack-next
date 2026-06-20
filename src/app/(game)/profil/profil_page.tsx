@@ -297,7 +297,7 @@ export default function ProfilPage() {
                   : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'default' }}>
                 {claiming ? '…' : canClaim ? '🎴 Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
               </button>
-              {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
+              {claimMsg && <p className="text-xs text-[#4a9e6a] text-center mt-2 font-bold">{claimMsg}</p>}
             </div>
           </div>
 
@@ -324,13 +324,13 @@ export default function ProfilPage() {
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="text-white text-xs font-bold truncate">{mission.label}</span>
                         <span className="text-[10px] flex-shrink-0 font-bold"
-                          style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
+                          style={{ color: claimed ? '#4a9e6a' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
                           {claimed ? '✓' : `+${mission.xp} XP`}
                         </span>
                       </div>
                       <div className="h-1 rounded-full bg-white/[0.07] overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, background: claimed ? '#00c896' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                          style={{ width: `${pct}%`, background: claimed ? '#4a9e6a' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
                       </div>
                     </div>
                     <span className="text-[10px] text-white/30 flex-shrink-0 w-8 text-right">{current}/{mission.goal}</span>
@@ -448,7 +448,7 @@ export default function ProfilPage() {
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <p className="text-white font-black text-sm">{mission.label}</p>
                       <span className="text-xs font-black flex-shrink-0"
-                        style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : '#a78bfa' }}>
+                        style={{ color: claimed ? '#4a9e6a' : completed ? '#ff9a3d' : '#a78bfa' }}>
                         {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
                       </span>
                     </div>
@@ -461,14 +461,14 @@ export default function ProfilPage() {
                           style={{
                             width: `${pct}%`,
                             background: claimed
-                              ? '#00c896'
+                              ? '#4a9e6a'
                               : completed
                               ? 'linear-gradient(90deg,#ff9a3d,#ffb347)'
                               : 'linear-gradient(90deg,#7b2bff,#a855f7)',
                           }} />
                       </div>
                       <span className="text-[11px] font-bold flex-shrink-0"
-                        style={{ color: completed ? (claimed ? '#00c896' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
+                        style={{ color: completed ? (claimed ? '#4a9e6a' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
                         {current}/{mission.goal}
                       </span>
                     </div>
@@ -514,7 +514,7 @@ export default function ProfilPage() {
                   </div>
                   <div className="flex-shrink-0 text-right">
                     {unlocked
-                      ? <span className="text-[#00c896] text-xs font-bold">✓</span>
+                      ? <span className="text-[#4a9e6a] text-xs font-bold">✓</span>
                       : <span className="text-[#a78bfa] text-xs">+{a.xp} XP</span>
                     }
                   </div>

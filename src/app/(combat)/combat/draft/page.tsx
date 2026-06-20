@@ -352,7 +352,7 @@ function DraftContent() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-2.5">
-                        <span className={cn('text-[10px] font-bold', isFull ? 'text-[#00c896]' : 'text-white/30')}>
+                        <span className={cn('text-[10px] font-bold', isFull ? 'text-[#4a9e6a]' : 'text-white/30')}>
                           {deck.totalCards}/{DECK_SIZE} cartes
                         </span>
                         <span className="text-white/20 text-[10px]">·</span>
@@ -414,7 +414,7 @@ function DraftContent() {
           <button onClick={saveDeck} disabled={savingDeck || !deckName.trim() || selected.length === 0}
             className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex-shrink-0',
               deckName.trim() && selected.length > 0
-                ? 'bg-[#00c896]/15 border border-[#00c896]/30 text-[#00c896] hover:bg-[#00c896]/25'
+                ? 'bg-[#4a9e6a]/15 border border-[#4a9e6a]/30 text-[#4a9e6a] hover:bg-[#4a9e6a]/25'
                 : 'bg-white/5 border border-white/10 text-white/20 cursor-not-allowed')}>
             <Save size={13} /> {savingDeck ? 'Sauvegarde…' : 'Sauvegarder'}
           </button>
@@ -425,7 +425,7 @@ function DraftContent() {
           <div className="flex-1">
             <div className="flex justify-between text-[10px] mb-1">
               <span className="text-white/40 font-bold">CARTES</span>
-              <span className={cn('font-bold', totalCards === DECK_SIZE ? 'text-[#00c896]' : 'text-white/60')}>{totalCards}/{DECK_SIZE}</span>
+              <span className={cn('font-bold', totalCards === DECK_SIZE ? 'text-[#4a9e6a]' : 'text-white/60')}>{totalCards}/{DECK_SIZE}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06]">
               <div className="h-full rounded-full bg-[#7b2bff] transition-all duration-300" style={{ width: `${(totalCards / DECK_SIZE) * 100}%` }} />

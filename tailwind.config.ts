@@ -9,7 +9,7 @@ const config: Config = {
           bg:      '#06010e',
           surface: '#0a0816',
           purple:  '#7b2bff',
-          cyan:    '#00c896',
+          cyan:    '#4a9e6a',
           text:    '#f6f1ff',
           muted:   'rgba(255,255,255,0.45)',
           border:  'rgba(255,255,255,0.08)',

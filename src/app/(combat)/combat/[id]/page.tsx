@@ -221,7 +221,7 @@ export default function CombatPage() {
   if (gameOver) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#030308] gap-6 px-4"
       style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #030308)' }}>
-      <div className={`text-5xl font-black ${gameOver.winner === user?.id ? 'text-[#00c896]' : 'text-[#ff4757]'}`}>
+      <div className={`text-5xl font-black ${gameOver.winner === user?.id ? 'text-[#4a9e6a]' : 'text-[#ff4757]'}`}>
         {gameOver.winner === user?.id ? 'Victoire !' : 'Défaite'}
       </div>
       <div className="flex gap-3">
