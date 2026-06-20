@@ -14,45 +14,28 @@ interface AvatarRingProps {
 export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isComplete = false, className = '' }: AvatarRingProps) {
   const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null)
 
-  // Glow needs room outside the avatar bounds — we allocate extra space so parents
-  // with overflow:hidden don't clip it. The avatar itself stays `size` pixels.
-  const glow   = isComplete ? Math.round(size * 0.18) : 0
-  const total  = size + glow * 2   // outer div size (includes glow bleed)
-  const pad    = Math.max(3, Math.round(size * 0.07))
+  const pad      = Math.max(3, Math.round(size * 0.07))
+  const ringW    = Math.max(2, Math.round(size * 0.06))   // ring thickness
   const badgeSize = Math.max(14, Math.round(size * 0.34))
   const iconSize  = Math.max(8,  Math.round(badgeSize * 0.6))
 
-  // All absolute children are offset by `glow` so they sit centered in `total`
-  const o = glow  // shorthand for the offset
-
   return (
-    <div
-      className={`relative flex-shrink-0 ${className}`}
-      style={{ width: total, height: total, margin: -glow }}   // negative margin keeps layout footprint = size
-    >
+    <div className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
+
       {isComplete ? (
-        <>
-          {/* Glow blur — sits in the extra space */}
-          <div className="absolute rounded-full animate-spin-slow pointer-events-none"
-            style={{
-              inset: 0,
-              background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-              filter: `blur(${Math.round(size * 0.14)}px)`,
-              opacity: 0.75,
-              borderRadius: '50%',
-            }} />
-          {/* Sharp ring */}
-          <div className="absolute rounded-full animate-spin-slow pointer-events-none"
-            style={{
-              inset: glow,
-              background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-              borderRadius: '50%',
-            }} />
-        </>
-      ) : (
-        <div className="absolute rounded-full pointer-events-none"
+        /* Rainbow ring — contained in size×size, glow via box-shadow inward */
+        <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none"
           style={{
-            inset: o,
+            borderRadius: '50%',
+            background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
+            /* inner mask — cover middle so only the ring edge is visible */
+            WebkitMask: `radial-gradient(circle, transparent ${50 - ringW * 2}%, black ${50 - ringW * 2 + 1}%)`,
+            mask:        `radial-gradient(circle, transparent ${50 - ringW * 2}%, black ${50 - ringW * 2 + 1}%)`,
+          }}
+        />
+      ) : (
+        <div className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
             background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${xpProgress}%, rgba(255,255,255,0.08) ${xpProgress}%)`,
             borderRadius: '50%',
           }} />
@@ -60,12 +43,12 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
 
       {/* Separator */}
       <div className="absolute rounded-full bg-[#0a0612] pointer-events-none"
-        style={{ inset: o + pad - 1, borderRadius: '50%' }} />
+        style={{ inset: pad - 1, borderRadius: '50%' }} />
 
       {/* Avatar */}
       <div className="absolute rounded-full overflow-hidden flex items-center justify-center bg-[#0a0612]"
         style={{
-          inset: o + pad,
+          inset: pad,
           backgroundImage: avatarUrl ? `url(${avatarUrl})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -84,9 +67,9 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
           className="absolute flex items-center justify-center rounded-full cursor-default"
           style={{
             width: badgeSize, height: badgeSize,
-            bottom: o - 2, right: o - 2,
+            bottom: -2, right: -2,
             background: 'linear-gradient(135deg, #ffe600, #ff9a3d)',
-            boxShadow: '0 0 10px rgba(255,200,0,0.9), 0 0 22px rgba(255,130,0,0.45)',
+            boxShadow: '0 0 8px rgba(255,200,0,0.8)',
             border: `${Math.max(1, Math.round(size * 0.04))}px solid #0a0612`,
             zIndex: 10,
           }}
