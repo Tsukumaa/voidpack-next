@@ -48,6 +48,7 @@ interface PlayerProfile {
   level: number
   xp: number
   highestRarity: string | null
+  currentStreak: number
 }
 
 interface Friendship { status: string; friendshipId: number | null }
@@ -230,7 +231,14 @@ export default function PlayerProfilePage() {
               <p className="text-white font-black text-lg truncate">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | null} />
             </div>
-            <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
+              {(profile?.currentStreak ?? 0) > 0 && (
+                <span className="flex items-center gap-1 text-xs font-bold" style={{ color: '#ff9a3d' }}>
+                  🔥 {profile!.currentStreak}j
+                </span>
+              )}
+            </div>
             <p className="text-white/30 text-[10px] mt-0.5">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</p>
           </div>
 
