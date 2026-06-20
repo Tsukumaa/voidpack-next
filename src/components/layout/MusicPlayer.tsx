@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/store/settings'
 const MUSIC_MENU   = 'https://imgg.fr/r/UsSEL3zY.mp3'
 const MUSIC_COMBAT = 'https://imgg.fr/r/KF3aA7Fy.mp3'
 
-// Singletons — survivent aux navigations Next.js
+// Singletons module-level — survivent aux navigations et changements de layout
 const audios: Record<string, HTMLAudioElement> = {}
 let started = false
 
@@ -14,7 +14,7 @@ function getAudio(url: string): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null
   if (!audios[url]) {
     const a = new Audio(url)
-    a.loop = true
+    a.loop   = true
     a.volume = useSettingsStore.getState().musicVolume
     a.muted  = useSettingsStore.getState().musicMuted
     audios[url] = a
@@ -22,80 +22,96 @@ function getAudio(url: string): HTMLAudioElement | null {
   return audios[url]
 }
 
-function tryStart(url: string) {
-  if (started) return
-  const a = getAudio(url)
-  if (!a) return
-  started = true
-  a.play().catch(() => { started = false })
+function isCombatRoute(pathname: string) {
+  // Combat music sur /combat/training et /combat/[id] (vraie partie)
+  // Pas sur /combat/draft, /combat/matchmaking, /combat/join/*
+  const parts = pathname.split('/').filter(Boolean)
+  if (parts[0] !== 'combat' || parts.length !== 2) return false
+  return !['draft', 'matchmaking'].includes(parts[1])
+}
+
+function crossfade(fromUrl: string, toUrl: string, volume: number) {
+  const from = getAudio(fromUrl)
+  const to   = getAudio(toUrl)
+  if (!from || !to) return
+
+  const STEPS    = 20
+  const INTERVAL = 800 / STEPS
+  let step = 0
+
+  to.volume = 0
+  to.play().catch(() => {})
+
+  const fade = setInterval(() => {
+    step++
+    from.volume = Math.max(0, volume - (volume / STEPS) * step)
+    to.volume   = Math.min(volume, (volume / STEPS) * step)
+    if (step >= STEPS) {
+      clearInterval(fade)
+      from.pause()
+      from.currentTime = 0
+      from.volume = volume
+      to.volume   = volume
+    }
+  }, INTERVAL)
 }
 
 export function MusicPlayer() {
-  const pathname   = usePathname()
-  const volume     = useSettingsStore(s => s.musicVolume)
-  const muted      = useSettingsStore(s => s.musicMuted)
-  const activeUrl  = useRef<string>(MUSIC_MENU)
+  const pathname  = usePathname()
+  const volume    = useSettingsStore(s => s.musicVolume)
+  const muted     = useSettingsStore(s => s.musicMuted)
+  const activeUrl = useRef<string | null>(null)
 
-  // Musique combat uniquement dans une partie active (/combat/[id] mais pas /combat/matchmaking etc.)
-  const isCombat   = /^\/combat\/[^/]+$/.test(pathname) && !['draft','matchmaking','training','join'].some(s => pathname.includes(s))
-  const targetUrl  = isCombat ? MUSIC_COMBAT : MUSIC_MENU
+  const targetUrl = isCombatRoute(pathname) ? MUSIC_COMBAT : MUSIC_MENU
 
-  // Démarrage à la première interaction
+  // Tentative autoplay immédiate au premier montage, fallback sur interaction
   useEffect(() => {
-    const start = () => {
-      tryStart(targetUrl)
-      window.removeEventListener('click',   start)
-      window.removeEventListener('keydown', start)
-    }
-    if (!started) {
-      window.addEventListener('click',   start)
-      window.addEventListener('keydown', start)
-    }
+    if (started) return
+    const audio = getAudio(targetUrl)
+    if (!audio) return
+
+    audio.play().then(() => {
+      started = true
+      activeUrl.current = targetUrl
+    }).catch(() => {
+      // Navigateur bloque l'autoplay — on attend la première interaction
+      const onInteract = () => {
+        if (started) return
+        const a = getAudio(targetUrl)
+        if (!a) return
+        a.play().then(() => {
+          started = true
+          activeUrl.current = targetUrl
+        }).catch(() => {})
+        window.removeEventListener('click',   onInteract)
+        window.removeEventListener('keydown', onInteract)
+        window.removeEventListener('touchend', onInteract)
+      }
+      window.addEventListener('click',    onInteract)
+      window.addEventListener('keydown',  onInteract)
+      window.addEventListener('touchend', onInteract)
+    })
   }, []) // eslint-disable-line
 
   // Changement de piste selon la page
   useEffect(() => {
+    if (!started) {
+      // Pas encore démarré : mémoriser la cible pour quand ça démarrera
+      activeUrl.current = targetUrl
+      return
+    }
     if (activeUrl.current === targetUrl) return
-    const prev = getAudio(activeUrl.current)
-    const next = getAudio(targetUrl)
-    if (!prev || !next) return
-
+    const prev = activeUrl.current ?? MUSIC_MENU
     activeUrl.current = targetUrl
-
-    if (!started) return  // pas encore démarré, on mémorise juste la piste cible
-
-    // Fondu enchaîné
-    const FADE = 800
-    const steps = 20
-    const interval = FADE / steps
-    let step = 0
-
-    const fadeOut = setInterval(() => {
-      step++
-      if (prev.volume > volume / steps) prev.volume = Math.max(0, prev.volume - volume / steps)
-      if (step >= steps) {
-        clearInterval(fadeOut)
-        prev.pause()
-        prev.currentTime = 0
-        prev.volume = volume
-        next.volume = 0
-        next.play().catch(() => {})
-        let stepIn = 0
-        const fadeIn = setInterval(() => {
-          stepIn++
-          next.volume = Math.min(volume, next.volume + volume / steps)
-          if (stepIn >= steps) { clearInterval(fadeIn); next.volume = volume }
-        }, interval)
-      }
-    }, interval)
+    crossfade(prev, targetUrl, volume)
   }, [targetUrl]) // eslint-disable-line
 
-  // Sync volume sur toutes les pistes
+  // Sync volume
   useEffect(() => {
     Object.values(audios).forEach(a => { if (!a.paused) a.volume = volume })
   }, [volume])
 
-  // Sync mute sur toutes les pistes
+  // Sync mute
   useEffect(() => {
     Object.values(audios).forEach(a => { a.muted = muted })
   }, [muted])
