@@ -567,7 +567,7 @@ function DraftContent() {
             const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
             const { ok, reason } = canAdd(card)
             return (
-              <div key={card.card_id} className="relative">
+              <div key={card.card_id} className="relative group">
                 <CardHover rarity={card.rarity}
                   className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
                   style={{ aspectRatio: '0.714', overflow: 'visible' }}>
@@ -581,7 +581,7 @@ function DraftContent() {
                     </button>
                     {/* Effets au hover — tooltip */}
                     {card.effects && card.effects.length > 0 && (
-                      <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity z-20 flex flex-col justify-end pointer-events-none">
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex flex-col justify-end pointer-events-none">
                         <div className="flex flex-wrap gap-1 p-1.5" style={{ background: 'linear-gradient(to top, rgba(5,2,18,0.92) 60%, transparent)' }}>
                           {(() => {
                             const EFFECT_LABELS: Record<string, { label: string; color: string; border: string }> = {
