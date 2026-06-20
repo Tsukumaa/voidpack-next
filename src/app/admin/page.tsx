@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Terminal, Download, Pin, ArrowLeft, Check, Lock, Hexagon } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -96,15 +97,15 @@ export default function AdminPage() {
     setTimeout(() => setMsg(''), 4000)
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'players',  label: '👥 Joueurs' },
-    { id: 'families', label: '🌐 Familles' },
-    { id: 'cards',    label: '🃏 Cartes' },
-    { id: 'boosters', label: '🎴 Boosters' },
-    { id: 'cardbacks', label: '🎁 Dos' },
-    { id: 'arenas',   label: '🏟 Arènes' },
-    { id: 'settings', label: '⚙ Params' },
-    { id: 'sql',      label: '⌨ SQL' },
+  const tabs: { id: Tab; icon: React.ReactNode; label: string }[] = [
+    { id: 'players',   icon: <Users size={13} />,    label: 'Joueurs' },
+    { id: 'families',  icon: <Globe size={13} />,    label: 'Familles' },
+    { id: 'cards',     icon: <Layers size={13} />,   label: 'Cartes' },
+    { id: 'boosters',  icon: <Package size={13} />,  label: 'Boosters' },
+    { id: 'cardbacks', icon: <Shirt size={13} />,    label: 'Dos' },
+    { id: 'arenas',    icon: <Shield size={13} />,   label: 'Arènes' },
+    { id: 'settings',  icon: <Settings size={13} />, label: 'Params' },
+    { id: 'sql',       icon: <Terminal size={13} />, label: 'SQL' },
   ]
 
   return (
@@ -122,7 +123,7 @@ export default function AdminPage() {
           className="text-base sm:text-lg font-bold tracking-widest uppercase"
           style={{ fontFamily: 'Cinzel, serif', color: '#c4a8ff' }}
         >
-          ⬡ Admin Void Pack
+          <Hexagon size={16} className="inline-block mr-1.5" /> Admin Void Pack
         </h1>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
           {msg && (
@@ -153,7 +154,7 @@ export default function AdminPage() {
                 a.download = `voidpack-seed-${new Date().toISOString().slice(0,10)}.json`
                 a.click()
                 URL.revokeObjectURL(url)
-                showMsg('Export téléchargé ✓')
+                showMsg('Export téléchargé')
               } catch {
                 showMsg('Erreur export', false)
               }
@@ -161,21 +162,21 @@ export default function AdminPage() {
             className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
             style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#c084fc' }}
           >
-            ↓ Seed
+            <Download size={12} className="inline-block mr-1" />Seed
           </button>
           <Link
             href="/admin/board"
             className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
             style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#f59e0b' }}
           >
-            📌 Board
+            <Pin size={12} className="inline-block mr-1" />Board
           </Link>
           <Link
             href="/pack"
             className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
           >
-            ← Jeu
+            <ArrowLeft size={12} className="inline-block mr-1" />Jeu
           </Link>
         </div>
       </div>
@@ -190,14 +191,14 @@ export default function AdminPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-shrink-0"
               style={
                 tab === t.id
                   ? { background: '#7b2bff', color: '#fff', fontFamily: 'Cinzel, serif' }
                   : { color: 'rgba(255,255,255,0.45)', fontFamily: 'Cinzel, serif' }
               }
             >
-              {t.label}
+              {t.icon}{t.label}
             </button>
           ))}
         </div>
@@ -405,21 +406,21 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
                     >
-                      🎴 Créditer
+                      Créditer
                     </button>
                     <button
                       onClick={() => setBackModal(p)}
                       className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{ background: 'rgba(255,94,91,0.12)', border: '1px solid rgba(255,94,91,0.25)', color: '#ff9a98' }}
                     >
-                      🎁 Dos
+                      Dos
                     </button>
                     <button
                       onClick={() => setArenaModal(p)}
                       className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
                       style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
                     >
-                      🏟 Arènes
+                      Arènes
                     </button>
                   </div>
                 </td>
@@ -467,21 +468,21 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
                 style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
               >
-                🎴 Créditer
+                Créditer
               </button>
               <button
                 onClick={() => setBackModal(p)}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
                 style={{ background: 'rgba(255,94,91,0.12)', border: '1px solid rgba(255,94,91,0.25)', color: '#ff9a98' }}
               >
-                🎁 Dos
+                Dos
               </button>
               <button
                 onClick={() => setArenaModal(p)}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
                 style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
               >
-                🏟 Arènes
+                Arènes
               </button>
             </div>
           </div>
@@ -489,7 +490,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       </div>
 
       {modal && (
-        <Modal title="🎴 Créditer un booster" onClose={() => setModal(null)}>
+        <Modal title="Créditer un booster" onClose={() => setModal(null)}>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Joueur : <span className="text-white font-semibold">{modal.username}</span>
           </p>
@@ -506,7 +507,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       )}
 
       {backModal && (
-        <Modal title="🎁 Dos de carte" onClose={() => setBackModal(null)}>
+        <Modal title="Dos de carte" onClose={() => setBackModal(null)}>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Joueur : <span className="text-white font-semibold">{backModal.username}</span>
           </p>
@@ -530,7 +531,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     {skin.id === 'default' && <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>(toujours débloqué)</span>}
                   </div>
                   <span className={`text-sm font-bold ${owned ? 'text-emerald-400' : 'text-white/30'}`}>
-                    {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
+                    {owned ? <><Check size={11} className="inline-block mr-0.5" />Débloqué</> : <><Lock size={11} className="inline-block mr-0.5" />Verrouillé</>}
                   </span>
                 </button>
               )
@@ -540,7 +541,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       )}
 
       {arenaModal && (
-        <Modal title="🏟 Arènes" onClose={() => setArenaModal(null)}>
+        <Modal title="Arènes" onClose={() => setArenaModal(null)}>
           <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Joueur : <span className="text-white font-semibold">{arenaModal.username}</span>
           </p>
@@ -568,7 +569,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     <span className="text-sm text-white">{arena.name}</span>
                   </div>
                   <span className={`text-sm font-bold ${owned ? 'text-emerald-400' : 'text-white/30'}`}>
-                    {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
+                    {owned ? <><Check size={11} className="inline-block mr-0.5" />Débloqué</> : <><Lock size={11} className="inline-block mr-0.5" />Verrouillé</>}
                   </span>
                 </button>
               )
