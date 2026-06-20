@@ -1,5 +1,6 @@
 'use client'
-import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus } from 'lucide-react'
+import React from 'react'
+import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus, Package, Sparkles, Gem, Zap, Crown, Wind, BookOpen, Map, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, LayoutGrid, Inbox } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
@@ -9,6 +10,36 @@ import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
 import { getMissionProgress, getClaimedMissions, markMissionClaimed, trackMissionProgress } from '@/lib/game/mission-tracker'
 import { useSocialStore } from '@/store/social'
 import { Link as LinkIcon } from 'lucide-react'
+
+const ACHIEVEMENT_ICON: Record<string, React.ReactNode> = {
+  open_first:    <Inbox size={18} />,
+  open_10:       <Package size={18} />,
+  open_50:       <LayoutGrid size={18} />,
+  open_100:      <Sparkles size={18} />,
+  get_rare:      <Gem size={18} />,
+  get_epic:      <Zap size={18} />,
+  get_legendary: <Crown size={18} />,
+  get_void:      <Wind size={18} />,
+  cards_10:      <BookOpen size={18} />,
+  cards_25:      <Map size={18} />,
+  cards_50:      <Archive size={18} />,
+  cards_100:     <Landmark size={18} />,
+  streak_3:      <Flame size={18} />,
+  streak_7:      <TrendingUp size={18} />,
+  streak_30:     <Trophy size={18} />,
+  level_5:       <Star size={18} />,
+  level_10:      <Award size={18} />,
+  level_25:      <Crown size={18} />,
+  level_50:      <Sparkles size={18} />,
+  // missions
+  open_1_pack:    <Inbox size={16} />,
+  open_3_packs:   <Package size={16} />,
+  get_rare_m:     <Gem size={16} />,
+  get_epic_m:     <Zap size={16} />,
+  daily_login:    <LogIn size={16} />,
+  collect_5:      <BookOpen size={16} />,
+  open_void_pack: <Wind size={16} />,
+}
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
@@ -364,7 +395,10 @@ export default function ProfilPage() {
                 const pct = Math.min(100, (current / mission.goal) * 100)
                 return (
                   <div key={mission.id} className="flex items-center gap-3">
-                    <span className="text-base flex-shrink-0">{mission.icon}</span>
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(167,139,250,0.1)', color: '#a78bfa' }}>
+                      {ACHIEVEMENT_ICON[mission.id] ?? ACHIEVEMENT_ICON[mission.id + '_m'] ?? <Target size={14} />}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="text-white text-xs font-bold truncate">{mission.label}</span>
@@ -452,7 +486,9 @@ export default function ProfilPage() {
                       }}>
                       {claimed
                         ? <CheckCircle2 size={20} style={{ color: '#00c896' }} />
-                        : <Target size={18} style={{ color: completed ? '#ff9a3d' : 'rgba(255,255,255,0.4)' }} />}
+                        : <span style={{ color: completed ? '#ff9a3d' : 'rgba(255,255,255,0.4)', display:'flex' }}>
+                            {ACHIEVEMENT_ICON[mission.id] ?? <Target size={18} />}
+                          </span>}
                     </div>
                     {completed && !claimed && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff9a3d] flex items-center justify-center animate-pulse">
@@ -517,7 +553,10 @@ export default function ProfilPage() {
                     border: unlocked ? '1px solid rgba(123,43,255,0.25)' : '1px solid rgba(255,255,255,0.05)',
                     opacity: unlocked ? 1 : 0.45,
                   }}>
-                  <span className="text-2xl flex-shrink-0">{a.icon}</span>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: unlocked ? 'rgba(123,43,255,0.15)' : 'rgba(255,255,255,0.05)', color: unlocked ? '#a78bfa' : 'rgba(255,255,255,0.3)' }}>
+                    {ACHIEVEMENT_ICON[a.id] ?? <Target size={18} />}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-bold text-sm">{a.label}</p>
                     <p className="text-white/40 text-xs truncate">{a.desc}</p>
