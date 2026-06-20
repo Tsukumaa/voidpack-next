@@ -19,6 +19,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
   const unlocked    = profile?.unlocked_card_backs ?? ['default']
   const selected    = profile?.selected_card_back ?? 'default'
   const isSubscriber = profile?.is_subscriber ?? false
+  const ownedArenas  = profile?.owned_arenas ?? []
 
   useEffect(() => {
     fetch('/api/card-backs')
@@ -183,7 +184,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
             {arenas.map(arena => {
               const img        = arena.imageUrl ?? arena.image_url
               const isDefault  = arena.id === 'default'
-              const accessible = isDefault || isSubscriber
+              const accessible = isDefault || isSubscriber || ownedArenas.includes(arena.id)
               const isSel      = selectedArena === arena.id
               return (
                 <div key={arena.id} className="rounded-2xl overflow-hidden border"
