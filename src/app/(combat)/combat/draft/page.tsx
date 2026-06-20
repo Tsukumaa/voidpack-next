@@ -561,7 +561,7 @@ function DraftContent() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-white/20 text-sm">Aucune carte trouvée.</div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 px-3 pb-8">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-x-2.5 gap-y-14 px-3 pb-8">
           {filtered.map(card => {
             const qty = getQty(card.card_id)
             const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
@@ -571,6 +571,7 @@ function DraftContent() {
                 <CardHover rarity={card.rarity}
                   className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
                   style={{ aspectRatio: '0.714', overflow: 'visible' }}>
+                  {/* Carte */}
                   <CardFrame rarity={card.rarity} name={card.name} hideStats glow={qty > 0} style={{ position: 'absolute', inset: 0 }}>
                     <button onClick={() => add(card)} disabled={!ok} title={!ok ? reason : undefined} className="absolute inset-0 w-full h-full">
                       {card.image_url ? <CardMedia src={card.image_url} alt={card.name} /> : (
@@ -580,26 +581,47 @@ function DraftContent() {
                       )}
                     </button>
                   </CardFrame>
+                  {/* Effets — hors CardFrame, clippés par leur propre rounded-xl */}
+                  {card.effects && card.effects.length > 0 && (
+                    <div className="absolute inset-0 z-20 flex flex-col justify-end pointer-events-none rounded-xl overflow-hidden">
+                      <div className="flex flex-wrap gap-0.5 p-1.5" style={{ background: 'linear-gradient(to top, rgba(5,2,18,0.92) 60%, transparent)' }}>
+                        {card.effects.map(e => {
+                          const EL: Record<string, [string, string, string]> = {
+                            taunt:      ['Provocation', '#ffaa55', 'rgba(255,120,0,.4)'],
+                            charge:     ['Charge',      '#7edc7e', 'rgba(80,200,80,.4)'],
+                            shield:     ['Bouclier',    '#7ec4ff', 'rgba(60,160,255,.4)'],
+                            lifesteal:  ['Vol de vie',  '#ff7090', 'rgba(220,40,80,.4)'],
+                            void_surge: ['VOID Surge',  '#c070ff', 'rgba(130,0,255,.4)'],
+                            stealth:    ['Furtivité',   '#aaaacc', 'rgba(100,100,140,.4)'],
+                          }
+                          const d = EL[e]; if (!d) return null
+                          return <span key={e} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(10,5,25,0.85)', color: d[1], border: `1px solid ${d[2]}`, lineHeight: 1.3 }}>{d[0]}</span>
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {/* Badge quantité */}
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
                   )}
-                  {/* Stats sous la carte — même style que collection */}
-                  <div className="absolute left-0 right-0 flex items-center justify-center gap-1" style={{ top: '100%', marginTop: 6 }}>
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border text-white/80"
-                      style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
-                      <Gem size={11} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Attaque">
-                      <Sword size={11} className="text-rose-300/90" />{card.atk}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="HP">
-                      <Shield size={11} className="text-sky-300/90" />{card.hp}
-                    </span>
+                  {/* Stats + compteur — inside CardHover pour suivre le tilt */}
+                  <div className="absolute left-0 right-0 flex flex-col items-center gap-1 pointer-events-none" style={{ top: '100%', paddingTop: 6 }}>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border text-white/80"
+                        style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
+                        <Gem size={9} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="Attaque">
+                        <Sword size={9} className="text-rose-300/90" />{card.atk}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-white/[0.07] border border-white/10 text-white/80" title="HP">
+                        <Shield size={9} className="text-sky-300/90" />{card.hp}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-white/25">{qty}/{max}</span>
                   </div>
                 </CardHover>
-                <div className="mt-1 text-center">
-                  <span className="text-[9px] text-white/25">{qty}/{max}</span>
-                </div>
+                {/* Bouton retirer */}
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
                     className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
