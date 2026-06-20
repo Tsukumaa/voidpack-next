@@ -56,13 +56,30 @@
   50%       { transform: translateY(-14px) rotate(1deg); }
 }
 
-/* ── Titres globaux ────────────────────────────────── */
+/* ── Identité typographique globale ─────────────────── */
 @layer base {
   body { font-family: var(--font-inter), system-ui, sans-serif; }
 
+  /* Tous les titres */
   h1, h2, h3 {
     font-family: var(--font-cinzel), serif;
     letter-spacing: .05em;
+  }
+
+  /* Tous les boutons → Cinzel */
+  button, [role="button"] {
+    font-family: var(--font-cinzel), serif;
+    letter-spacing: .04em;
+  }
+
+  /* Tout texte uppercase déjà stylisé → Cinzel (sections, badges, filtres) */
+  .uppercase {
+    font-family: var(--font-cinzel), serif;
+  }
+
+  /* Labels tracking-widest (VOID, LEGENDARY, etc.) */
+  .tracking-widest {
+    font-family: var(--font-cinzel), serif;
   }
 }
 

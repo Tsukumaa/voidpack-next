@@ -97,20 +97,19 @@ export function StatusBar() {
             </div>
 
             <div className="min-w-0">
-              <p className="text-xs font-bold text-white truncate max-w-[120px]">
+              <p className="text-xs font-bold truncate max-w-[120px]" style={{ fontFamily: 'var(--font-cinzel)', color: '#c8a84b', letterSpacing: '.04em' }}>
                 {profile?.username ?? 'Joueur'}
               </p>
-
-              <p className="text-[10px] text-white/50">
+              <p className="text-[10px]" style={{ color: 'rgba(200,168,75,.50)' }}>
                 Niveau {profile?.level ?? 1}
               </p>
             </div>
 
             <div className="w-px h-4 bg-white/10 hidden xs:block" />
 
-            <div className="flex items-center gap-1 text-xs font-bold shrink-0">
+            <div className="flex items-center gap-1 text-xs font-bold shrink-0" style={{ fontFamily: 'var(--font-cinzel)' }}>
               <Flame size={13} className="text-[#ff9a3d]" />
-              <span className="text-white/70">
+              <span style={{ color: 'rgba(200,168,75,.80)' }}>
                 {streak ?? 0}j
               </span>
             </div>
@@ -163,11 +162,11 @@ export function StatusBar() {
             href="https://ko-fi.com/voidpack"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 px-3 py-2 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30"
+            className="flex items-center gap-1 px-3 py-2 rounded-full"
+            style={{ background: 'rgba(200,168,75,.10)', border: '1px solid rgba(200,168,75,.30)' }}
           >
-            <Coins size={13} />
-
-            <span className="hidden sm:inline text-xs font-bold">
+            <Coins size={13} style={{ color: '#c8a84b' }} />
+            <span className="hidden sm:inline text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-cinzel)', color: '#c8a84b', letterSpacing: '.06em' }}>
               Soutenir
             </span>
           </a>

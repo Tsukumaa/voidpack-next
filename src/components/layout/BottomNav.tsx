@@ -32,7 +32,9 @@ export function BottomNav() {
               href={tab.href}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 min-h-[54px] rounded-[18px] transition-all duration-300',
-                isActive ? 'text-gold' : 'text-white/30 hover:text-white/50'
+                isActive
+                  ? 'text-gold bg-[rgba(200,168,75,0.08)] shadow-[inset_0_0_20px_rgba(200,168,75,0.06)]'
+                  : 'text-white/30 hover:text-white/50'
               )}
             >
               <div className="relative flex items-center justify-center"
