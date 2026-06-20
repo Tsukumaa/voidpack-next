@@ -396,7 +396,7 @@ export default function CollectionPage() {
                         style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
                       >
                         <Flame size={10} />
-                        Recycler · +{MANA_PER_RARITY[card.rarity] ?? 1} mana
+                        Recycler (+{MANA_PER_RARITY[card.rarity] ?? 1}) mana
                       </button>
                     ) : (
                       <div className="mb-1.5 flex items-center justify-center py-1 rounded-lg text-[10px] font-bold"
