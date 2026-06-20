@@ -31,6 +31,7 @@ interface DraftCard {
   atk: number
   hp: number
   cost: number
+  effects: string[]
 }
 
 interface SelectedEntry {
@@ -122,12 +123,13 @@ function DraftContent() {
     const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
-      const combat = (def?.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number }
+      const combat = (def?.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number; effects?: string[] }
       return {
         card_id: cardKey, rarity: c.rarity, family: c.family,
         name: def?.name ?? cardKey, image_url: def?.image_url ?? null,
         ownedCount: c.count ?? 1,
         atk: combat.atk ?? 1, hp: combat.hp ?? 2, cost: combat.cost ?? 1,
+        effects: combat.effects ?? [],
       }
     }).sort((a: DraftCard, b: DraftCard) => {
       const ri = RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
@@ -199,7 +201,7 @@ function DraftContent() {
     const deck: unknown[] = []
     for (const { card, qty } of entries) {
       for (let i = 0; i < qty; i++) {
-        deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: [] } } })
+        deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: card.effects ?? [] } } })
       }
     }
     return deck
