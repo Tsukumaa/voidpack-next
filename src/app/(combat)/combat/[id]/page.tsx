@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/game'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
@@ -51,22 +51,35 @@ export default function CombatPage() {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [myTurn, setMyTurn]       = useState(false)
   const [role, setRole]           = useState<'player1' | 'player2' | null>(null)
+  const myTurnRef = useRef(false)
   const [loading, setLoading]     = useState(true)
   const [gameOver, setGameOver]   = useState<{ winner: string } | null>(null)
   const [log, setLog]             = useState<string[]>([])
   const [oppName, setOppName]     = useState('Adversaire')
   const [oppAvatar, setOppAvatar] = useState<string | null>(null)
 
+  useEffect(() => { myTurnRef.current = myTurn }, [myTurn])
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
 
   const syncState = useCallback((sess: Record<string, unknown>) => {
     if (!user) return
     let state = sess.state as GameState
     if (typeof state === 'string') { try { state = JSON.parse(state) } catch { /* noop */ } }
+
+    const serverSaysMyTurn = sess.currentTurn === user.id
+
+    // Si c'est encore mon tour côté serveur ET localement → état optimiste déjà à jour,
+    // ne pas écraser (évite les rollbacks pendant les actions rapides)
+    if (serverSaysMyTurn && myTurnRef.current) {
+      if (state?.winner) setGameOver({ winner: state.winner })
+      else if (sess.status === 'finished' && sess.winnerId) setGameOver({ winner: sess.winnerId as string })
+      return
+    }
+
     setGameState(state)
     setRole(sess.player1Id === user.id ? 'player1' : 'player2')
-    setMyTurn(sess.currentTurn === user.id)
-    // Fin de partie : soit via l'état local, soit via la session persistée (adversaire)
+    myTurnRef.current = serverSaysMyTurn
+    setMyTurn(serverSaysMyTurn)
     if (state?.winner) setGameOver({ winner: state.winner })
     else if (sess.status === 'finished' && sess.winnerId) setGameOver({ winner: sess.winnerId as string })
   }, [user])
