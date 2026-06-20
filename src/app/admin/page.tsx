@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Terminal, Download, Pin, ArrowLeft, Check, Lock, Hexagon } from 'lucide-react'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'settings' | 'sql'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'settings'
 
 interface Arena {
   id?: string
@@ -105,7 +105,6 @@ export default function AdminPage() {
     { id: 'cardbacks', icon: <Shirt size={13} />,    label: 'Dos' },
     { id: 'arenas',    icon: <Shield size={13} />,   label: 'Arènes' },
     { id: 'settings',  icon: <Settings size={13} />, label: 'Params' },
-    { id: 'sql',       icon: <Terminal size={13} />, label: 'SQL' },
   ]
 
   return (
@@ -181,26 +180,39 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — style BottomNav */}
       <div className="px-4 sm:px-6 pt-4">
         <div
-          className="flex gap-1 p-1 rounded-xl overflow-x-auto"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+          className="grid p-2.5 rounded-[26px] overflow-x-auto"
+          style={{
+            gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
+            background: 'rgba(8,10,18,0.82)',
+            backdropFilter: 'blur(24px)',
+            boxShadow: '0 16px 50px rgba(0,0,0,0.6)',
+            gap: '8px',
+          }}
         >
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg whitespace-nowrap transition-all flex-shrink-0"
-              style={
-                tab === t.id
-                  ? { background: '#7b2bff', color: '#fff', fontFamily: 'Cinzel, serif' }
-                  : { color: 'rgba(255,255,255,0.45)', fontFamily: 'Cinzel, serif' }
-              }
-            >
-              {t.icon}{t.label}
-            </button>
-          ))}
+          {tabs.map(t => {
+            const active = tab === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-[18px] transition-all duration-300"
+                style={active
+                  ? { color: '#b97cff', background: 'rgba(123,43,255,0.10)', boxShadow: 'inset 0 0 20px rgba(185,124,255,0.06)' }
+                  : { color: 'rgba(255,255,255,0.30)' }
+                }
+              >
+                <div style={active ? { filter: 'drop-shadow(0 0 6px rgba(185,124,255,0.75))', transform: 'scale(1.15) translateY(-1px)', transition: 'transform 0.2s ease' } : { transform: 'scale(1)', transition: 'transform 0.2s ease' }}>
+                  {t.icon}
+                </div>
+                <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap" style={{ fontFamily: 'Cinzel, serif' }}>
+                  {t.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -213,7 +225,6 @@ export default function AdminPage() {
         {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
         {tab === 'arenas'   && <ArenasTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
-        {tab === 'sql'      && <SqlTab onMsg={showMsg} />}
       </div>
     </div>
   )
@@ -322,7 +333,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           placeholder="Rechercher…"
           className={inputCls + ' w-56'}
         />
-        <button onClick={load} className={iconBtnCls} title="Rafraîchir">🔄</button>
+        <button onClick={load} className={iconBtnCls} title="Rafraîchir"><RefreshCw size={13} /></button>
         <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{filtered.length} joueurs</span>
       </div>
 
@@ -331,7 +342,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
-              {['Joueur', 'Niv', 'XP', 'Packs', 'Streak', 'VOID', 'Rôle', 'Actions'].map(h => (
+              {['Joueur', 'Niv', 'XP', 'Packs', 'Streak', 'Rôle', 'Actions'].map(h => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 text-xs uppercase tracking-widest font-semibold"
@@ -345,7 +356,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <td colSpan={7} className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>
                   Chargement…
                 </td>
               </tr>
@@ -377,7 +388,6 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{(p.xp ?? 0).toLocaleString('fr-FR')}</td>
                 <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{p.packs_opened ?? 0}</td>
                 <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{p.current_streak ?? 0}j</td>
-                <td className="px-4 py-3 font-bold" style={{ color: '#a855f7' }}>{p.void_pulls ?? 0}</td>
                 <td className="px-4 py-3">
                   <select
                     value={p.role ?? ''}
@@ -457,8 +467,8 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 </div>
                 <div className="flex gap-3 text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   <span>Niv <span style={{ color: '#a78bfa' }}>{p.level}</span></span>
-                  <span>VOID <span style={{ color: '#a855f7' }}>{p.void_pulls}</span></span>
                   <span>{p.packs_opened ?? 0} packs</span>
+                  <span>{p.current_streak ?? 0}j streak</span>
                 </div>
               </div>
             </div>
@@ -648,8 +658,8 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => setForm({ ...f })} className={iconBtnCls}>✏</button>
-                <button onClick={() => del(f)} className={dangerIconBtnCls}>✕</button>
+                <button onClick={() => setForm({ ...f })} className={iconBtnCls}><Pencil size={12} /></button>
+                <button onClick={() => del(f)} className={dangerIconBtnCls}><X size={12} /></button>
               </div>
             </div>
           ))}
@@ -757,8 +767,8 @@ function CardBacksTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void })
               <div className="p-2.5 flex items-center justify-between gap-2">
                 <span className="text-sm text-white truncate">{b.name}</span>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => setForm({ ...b })} className={iconBtnCls}>✏</button>
-                  <button onClick={() => del(b)} className={dangerIconBtnCls}>✕</button>
+                  <button onClick={() => setForm({ ...b })} className={iconBtnCls}><Pencil size={12} /></button>
+                  <button onClick={() => del(b)} className={dangerIconBtnCls}><X size={12} /></button>
                 </div>
               </div>
             </div>
@@ -893,8 +903,8 @@ function ArenasTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               <div className="p-2.5 flex items-center justify-between gap-2">
                 <span className="text-sm text-white truncate">{a.name}</span>
                 <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => setForm({ ...a })} className={iconBtnCls}>✏</button>
-                  <button onClick={() => del(a)} className={dangerIconBtnCls}>✕</button>
+                  <button onClick={() => setForm({ ...a })} className={iconBtnCls}><Pencil size={12} /></button>
+                  <button onClick={() => del(a)} className={dangerIconBtnCls}><X size={12} /></button>
                 </div>
               </div>
             </div>
@@ -1069,85 +1079,46 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       </div>
 
       {loading ? <LoadingText /> : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden md:block rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
-                  {['Carte', 'Famille', 'Rareté', 'ATK', 'HP', 'Coût', 'Actions'].map(h => (
-                    <th
-                      key={h}
-                      className="text-left px-4 py-3 text-xs uppercase tracking-widest font-semibold"
-                      style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>Aucune carte.</td></tr>
-                ) : filtered.map((c, i) => (
-                  <tr
-                    key={c.id}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i%2===0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}
-                    className="transition-colors hover:bg-white/[0.03]"
-                  >
-                    <td className="px-4 py-3 font-medium">{c.name}</td>
-                    <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.55)' }}>{c.family || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>
-                        {c.rarity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.65)' }}>{c.metadata?.combat?.atk ?? '—'}</td>
-                    <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.65)' }}>{c.metadata?.combat?.hp ?? '—'}</td>
-                    <td className="px-4 py-3" style={{ color: 'rgba(255,255,255,0.65)' }}>{c.metadata?.combat?.cost ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
-                          className={iconBtnCls}>✏</button>
-                        <button onClick={() => del(c)} className={dangerIconBtnCls}>✕</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile list */}
-          <div className="md:hidden space-y-2">
-            {filtered.length === 0 ? (
-              <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.25)' }}>Aucune carte.</p>
-            ) : filtered.map(c => (
+        filtered.length === 0 ? (
+          <p className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>Aucune carte.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {filtered.map(c => (
               <div
                 key={c.id}
-                className="flex items-center justify-between px-4 py-3 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                className="rounded-2xl overflow-hidden flex flex-col"
+                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${RARITY_COLOR[c.rarity]}44` }}
               >
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-white">{c.name}</span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>{c.rarity}</span>
-                  </div>
-                  <div className="flex gap-3 text-xs mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    <span>{c.family || '—'}</span>
-                    <span>ATK {c.metadata?.combat?.atk ?? '—'}</span>
-                    <span>HP {c.metadata?.combat?.hp ?? '—'}</span>
+                <div className="aspect-[0.714] relative overflow-hidden bg-[#0a0612]">
+                  {c.image_url
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={c.image_url} alt={c.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                    : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-2xl">?</div>
+                  }
+                  <span
+                    className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                    style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '33', backdropFilter: 'blur(8px)', border: `1px solid ${RARITY_COLOR[c.rarity]}55` }}
+                  >
+                    {c.rarity}
+                  </span>
+                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 flex justify-between text-[10px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
+                    <span style={{ color: '#f87171' }}>⚔{c.metadata?.combat?.atk ?? '?'}</span>
+                    <span style={{ color: '#60a5fa' }}>♥{c.metadata?.combat?.hp ?? '?'}</span>
+                    <span style={{ color: '#a78bfa' }}>◆{c.metadata?.combat?.cost ?? '?'}</span>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
-                    className={iconBtnCls}>✏</button>
-                  <button onClick={() => del(c)} className={dangerIconBtnCls}>✕</button>
+                <div className="px-2 py-1.5 flex items-center justify-between gap-1">
+                  <span className="text-xs text-white truncate font-semibold">{c.name}</span>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
+                      className={iconBtnCls}><Pencil size={11} /></button>
+                    <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-        </>
+        )
       )}
 
       {form && (
@@ -1297,20 +1268,30 @@ function BoostersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
           {allKeys.map(({ key, label }) => (
             <div
               key={key}
-              className="p-4 rounded-2xl"
+              className="p-4 rounded-2xl flex gap-4 items-start"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <p className="text-sm font-semibold mb-3 text-white">{label}</p>
-              <input
-                defaultValue={settings[key] ?? ''}
-                onBlur={e => { if (e.target.value !== settings[key]) save(key, e.target.value) }}
-                placeholder="https://…"
-                className={`${inputCls} text-xs`}
-              />
-              {settings[key] && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings[key]} alt="" className="mt-3 h-24 rounded-xl object-cover w-full" style={{ border: '1px solid rgba(255,255,255,0.08)' }} />
-              )}
+              {/* Carte booster preview */}
+              <div
+                className="flex-shrink-0 rounded-xl overflow-hidden"
+                style={{ width: 64, aspectRatio: '0.714', border: '1px solid rgba(255,255,255,0.12)', background: '#0a0612' }}
+              >
+                {settings[key]
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={settings[key]} alt="" className="w-full h-full object-cover" style={{ display: 'block' }} />
+                  : <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'rgba(255,255,255,0.15)' }}>?</div>
+                }
+              </div>
+              {/* Champ URL */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold mb-2 text-white">{label}</p>
+                <input
+                  defaultValue={settings[key] ?? ''}
+                  onBlur={e => { if (e.target.value !== settings[key]) save(key, e.target.value) }}
+                  placeholder="https://…"
+                  className={`${inputCls} text-xs`}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -1569,8 +1550,8 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
           <h2 className="font-bold text-base text-white" style={{ fontFamily: 'Cinzel, serif', letterSpacing: '0.05em' }}>
             {title}
           </h2>
-          <button onClick={onClose} className="text-xl leading-none transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            ✕
+          <button onClick={onClose} className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <X size={15} />
           </button>
         </div>
         <div className="space-y-4">{children}</div>
