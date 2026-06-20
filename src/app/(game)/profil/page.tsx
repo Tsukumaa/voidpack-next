@@ -382,8 +382,11 @@ export default function ProfilPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Missions du jour</p>
               <button onClick={() => setActiveTab('missions')}
-                className="text-[#a78bfa] text-xs font-bold hover:text-white transition-colors">
-                Voir tout →
+                className="px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
+                style={{ background: 'rgba(123,43,255,0.12)', color: '#a78bfa', border: '1px solid rgba(123,43,255,0.2)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(123,43,255,0.22)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(123,43,255,0.12)' }}>
+                Voir tout
               </button>
             </div>
             <div className="space-y-2.5">
@@ -402,10 +405,16 @@ export default function ProfilPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="text-white text-xs font-bold truncate">{mission.label}</span>
-                        <span className="flex items-center gap-0.5 text-[10px] flex-shrink-0 font-black"
-                          style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
-                          {claimed && <Check size={10} />}{claimed ? 'Réclamé' : `+${mission.xp} XP`}
-                        </span>
+                        {claimed
+                          ? <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold flex-shrink-0"
+                              style={{ background: 'rgba(0,200,150,0.12)', color: '#00c896', border: '1px solid rgba(0,200,150,0.2)' }}>
+                              <Check size={9} />Réclamé
+                            </span>
+                          : <span className="text-[10px] flex-shrink-0 font-black"
+                              style={{ color: completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
+                              +{mission.xp} XP
+                            </span>
+                        }
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
                         <div className="h-full rounded-full transition-all duration-700"
