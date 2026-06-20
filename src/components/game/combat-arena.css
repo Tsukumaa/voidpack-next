@@ -592,8 +592,25 @@
   transform: translate(-50%, -50%);
 }
 
-/* ── Tooltip — masqué (infos déjà visibles sur la carte) ───────────── */
-.ca-tooltip { display: none; }
+/* ── Tooltip au hover ───────────────────────────────────────────────── */
+.ca-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  min-width: 130px;
+  max-width: 180px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(10, 5, 25, 0.96);
+  border: 1px solid rgba(185, 124, 255, 0.25);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 12px rgba(107,42,238,0.2);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+.ca-cw:hover .ca-tooltip { display: block; }
 
 /* ── Keyframes ──────────────────────────────────────────────────────── */
 @keyframes ca-pulse-red-portrait {
@@ -739,17 +756,26 @@
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 .ca-tooltip-effect {
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.7);
+  font-size: 10px;
+  font-family: 'Crimson Text', serif;
+  font-style: normal;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
 }
+.ca-tooltip-effect--taunt    { background: rgba(255,120,0,.2);  color: #ffaa55; border: 1px solid rgba(255,120,0,.35); }
+.ca-tooltip-effect--charge   { background: rgba(80,200,80,.2);  color: #7edc7e; border: 1px solid rgba(80,200,80,.35); }
+.ca-tooltip-effect--shield   { background: rgba(60,160,255,.2); color: #7ec4ff; border: 1px solid rgba(60,160,255,.35); }
+.ca-tooltip-effect--shield.ca-tooltip-effect--used { opacity: 0.4; text-decoration: line-through; }
+.ca-tooltip-effect--lifesteal{ background: rgba(220,40,80,.2);  color: #ff7090; border: 1px solid rgba(220,40,80,.35); }
+.ca-tooltip-effect--void     { background: rgba(130,0,255,.2);  color: #c070ff; border: 1px solid rgba(130,0,255,.35); }
+.ca-tooltip-effect--stealth  { background: rgba(100,100,140,.2);color: #aaaacc; border: 1px solid rgba(100,100,140,.35); }
 
 /* ── Écrans compacts (hauteur ≤ 900px, hors mobile paysage) ─────────── */
 /* Laptops 768p, petites fenêtres, tablettes paysage                     */

@@ -127,19 +127,7 @@ function CombatCard({
         </div>
       )}
 
-      {/* Badges effets */}
-      {card.effects && card.effects.length > 0 && (
-        <div className="ca-effects">
-          {card.effects.includes('taunt')      && <span className="ca-fx ca-fx--taunt">PROVOC</span>}
-          {card.effects.includes('shield')     && <span className={`ca-fx ca-fx--shield${card.shieldUsed ? ' ca-fx--used' : ''}`}>⬡</span>}
-          {card.effects.includes('charge')     && <span className="ca-fx ca-fx--charge">⚡</span>}
-          {card.effects.includes('lifesteal')  && <span className="ca-fx ca-fx--lifesteal">♥</span>}
-          {card.effects.includes('void_surge') && <span className="ca-fx ca-fx--void">VOID</span>}
-          {card.effects.includes('stealth')    && <span className="ca-fx ca-fx--stealth">👁</span>}
-        </div>
-      )}
-
-      {/* Tooltip */}
+      {/* Tooltip au hover */}
       <div className="ca-tooltip">
         <div className="ca-tooltip-name">{card.name}</div>
         <div className="ca-tooltip-stats">
@@ -147,16 +135,14 @@ function CombatCard({
           <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>
           <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
         </div>
-        <div className="ca-tooltip-rarity">{card.rarity}</div>
         {card.effects && card.effects.length > 0 && (
           <div className="ca-tooltip-effects">
-            {card.effects.map(e => {
-              const labels: Record<string, string> = {
-                taunt: 'Provocation', charge: 'Charge', shield: 'Bouclier',
-                lifesteal: 'Vol de vie', void_surge: 'VOID Surge', stealth: 'Furtivité'
-              }
-              return <span key={e} className="ca-tooltip-effect">{labels[e] ?? e}</span>
-            })}
+            {card.effects.includes('taunt')      && <span className="ca-tooltip-effect ca-tooltip-effect--taunt">Provocation</span>}
+            {card.effects.includes('charge')     && <span className="ca-tooltip-effect ca-tooltip-effect--charge">Charge</span>}
+            {card.effects.includes('shield')     && <span className={`ca-tooltip-effect ca-tooltip-effect--shield${card.shieldUsed ? ' ca-tooltip-effect--used' : ''}`}>{card.shieldUsed ? 'Bouclier (utilisé)' : 'Bouclier'}</span>}
+            {card.effects.includes('lifesteal')  && <span className="ca-tooltip-effect ca-tooltip-effect--lifesteal">Vol de vie</span>}
+            {card.effects.includes('void_surge') && <span className="ca-tooltip-effect ca-tooltip-effect--void">VOID Surge</span>}
+            {card.effects.includes('stealth')    && <span className="ca-tooltip-effect ca-tooltip-effect--stealth">Furtivité</span>}
           </div>
         )}
       </div>
