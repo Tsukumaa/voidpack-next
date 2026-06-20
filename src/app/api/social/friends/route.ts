@@ -32,8 +32,7 @@ export async function GET() {
       .from(gameSessions)
       .where(and(
         eq(gameSessions.status, 'active'),
-        sql`(${gameSessions.player1Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}) OR ${gameSessions.player2Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}))`,
-        sql`${gameSessions.updatedAt} > datetime('now', '-3 hours')`
+        sql`(${gameSessions.player1Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}) OR ${gameSessions.player2Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}))`
       )),
   ])
   const totalAvailable = totalRow?.total ?? 0
