@@ -145,6 +145,54 @@ export function CombatArena({
   const [timeLeft,   setTimeLeft]   = useState(60)
   const arenaRef = useRef<HTMLDivElement>(null)
 
+  // Refs pour détecter les diffs de board (animations adversaire + spectateur)
+  const prevOppBoard = useRef<ArenaCard[]>([])
+  const prevMyBoard  = useRef<ArenaCard[]>([])
+  const prevOppHp    = useRef<number>(oppHp)
+  const prevMyHp     = useRef<number>(myHp)
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      prevOppBoard.current = oppBoard
+      prevMyBoard.current  = myBoard
+      prevOppHp.current    = oppHp
+      prevMyHp.current     = myHp
+      return
+    }
+    // Laisser le DOM se mettre à jour avant de chercher les éléments
+    requestAnimationFrame(() => {
+      // Dégâts sur cartes adversaire
+      for (const card of oppBoard) {
+        const prev = prevOppBoard.current.find(c => c.uid === card.uid)
+        if (prev && card.currentHp < prev.currentHp) {
+          shake(card.uid)
+          spawnDmg(getCardEl(card.uid, true), prev.currentHp - card.currentHp)
+          spawnImpact(getCardEl(card.uid, true))
+        }
+      }
+      // Dégâts sur mes cartes
+      for (const card of myBoard) {
+        const prev = prevMyBoard.current.find(c => c.uid === card.uid)
+        if (prev && card.currentHp < prev.currentHp) {
+          shake(card.uid)
+          spawnDmg(getCardEl(card.uid, false), prev.currentHp - card.currentHp)
+          spawnImpact(getCardEl(card.uid, false))
+        }
+      }
+      // Dégâts sur le visage adversaire
+      if (oppHp < prevOppHp.current) spawnDmg(getFaceEl(true), prevOppHp.current - oppHp)
+      // Dégâts sur mon visage
+      if (myHp < prevMyHp.current) spawnDmg(getFaceEl(false), prevMyHp.current - myHp)
+
+      prevOppBoard.current = oppBoard
+      prevMyBoard.current  = myBoard
+      prevOppHp.current    = oppHp
+      prevMyHp.current     = myHp
+    })
+  }) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
 
   useEffect(() => {
