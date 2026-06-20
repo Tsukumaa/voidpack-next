@@ -351,6 +351,50 @@
   box-shadow: none;
 }
 
+/* ── Timer label ────────────────────────────────────────────────────── */
+.ca-timer-lbl {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(185,124,255,.6);
+  font-family: monospace;
+  min-width: 28px;
+  text-align: center;
+  transition: color .3s;
+}
+.ca-timer-lbl--urgent {
+  color: #ff4444;
+  animation: ca-timer-blink .5s ease-in-out infinite;
+}
+@keyframes ca-timer-blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .5; }
+}
+
+/* ── Rope ───────────────────────────────────────────────────────────── */
+.ca-rope {
+  height: 3px;
+  background: rgba(255,255,255,.04);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.ca-rope-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7b2bff, #b97cff);
+  box-shadow: 0 0 8px rgba(185,124,255,.6);
+  border-radius: 0 2px 2px 0;
+  transition: width 1s linear, background .3s, box-shadow .3s;
+}
+.ca-rope-fill--urgent {
+  background: linear-gradient(90deg, #ff2200, #ff6644);
+  box-shadow: 0 0 12px rgba(255,60,0,.8);
+  animation: ca-rope-flicker .3s ease-in-out infinite alternate;
+}
+@keyframes ca-rope-flicker {
+  from { opacity: .85; }
+  to   { opacity: 1; }
+}
+
 /* ── Card wrapper ───────────────────────────────────────────────────── */
 .ca-cw {
   position: relative;

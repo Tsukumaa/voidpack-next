@@ -140,9 +140,21 @@ export function CombatArena({
   const [shakingUids, setShakingUids] = useState<Set<string | number>>(new Set())
   const [dmgPopups,  setDmgPopups]  = useState<DmgPopup[]>([])
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
+  const [timeLeft,   setTimeLeft]   = useState(60)
   const arenaRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { setSelected(null) }, [myTurn])
+  useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
+
+  useEffect(() => {
+    if (!myTurn || locked) return
+    const iv = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) { clearInterval(iv); onEndTurn(); return 0 }
+        return t - 1
+      })
+    }, 1000)
+    return () => clearInterval(iv)
+  }, [myTurn, locked]) // eslint-disable-line
 
   const shake = useCallback((uid: string | number) => {
     setShakingUids(s => new Set([...s, uid]))
@@ -314,9 +326,23 @@ export function CombatArena({
             <button className="ca-end-btn" onClick={onEndTurn} disabled={disabled}>
               {disabled ? '⌛ Attente…' : 'Fin du tour ▶'}
             </button>
+            {myTurn && !locked && (
+              <span className={`ca-timer-lbl${timeLeft <= 10 ? ' ca-timer-lbl--urgent' : ''}`}>
+                {timeLeft}s
+              </span>
+            )}
           </div>
           <div className="ca-divider-line" />
         </div>
+        {/* ── ROPE ── */}
+        {myTurn && !locked && (
+          <div className="ca-rope">
+            <div
+              className={`ca-rope-fill${timeLeft <= 10 ? ' ca-rope-fill--urgent' : ''}`}
+              style={{ width: `${(timeLeft / 60) * 100}%` }}
+            />
+          </div>
+        )}
 
         {/* ── PLAYER BOARD ── */}
         <div className={`ca-board ca-board--player${myTurn && !locked ? ' ca-board--myturn' : ''}`}>
