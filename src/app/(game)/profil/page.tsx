@@ -230,43 +230,43 @@ export default function ProfilPage() {
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
         <div className="flex items-center gap-3 mb-3">
-          <div className="relative rounded-full p-[3px] flex-shrink-0"
-            style={{ background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
-              style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : {}}>
-              {!profile?.avatar_url && (
-                <span className="text-lg font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
+          {/* Avatar */}
+          <div className="w-11 h-11 rounded-full overflow-hidden bg-[#0a0612] flex-shrink-0 border border-white/10 flex items-center justify-center"
+            style={profile?.avatar_url ? { backgroundImage:`url(${profile.avatar_url})`, backgroundSize:'cover' } : {}}>
+            {!profile?.avatar_url && (
+              <span className="text-base font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
+            )}
+          </div>
+
+          {/* Nom + badge */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="font-black text-white text-base truncate leading-tight">{profile?.username ?? 'Joueur'}</p>
+              <RoleBadge role={profile?.role} />
+              {profile?.highest_rarity && (
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
+                  style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity] }}>
+                  {profile.highest_rarity}
+                </span>
               )}
             </div>
+            <p className="text-[#a78bfa] text-xs font-bold mt-0.5">Niveau {level}</p>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-black text-white text-base truncate">{profile?.username ?? 'Joueur'}</p>
-              <RoleBadge role={profile?.role} />
+          {/* XP — droite */}
+          <div className="ml-auto flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[90px]">
+            <div className="flex items-baseline gap-1">
+              <span className="text-white font-black text-sm leading-none">{xpCurrent.toLocaleString('fr-FR')}</span>
+              <span className="text-white/30 text-[10px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
             </div>
-            <div className="flex items-center gap-3 mt-0.5">
-              <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
-              <p className="text-white/30 text-[10px]">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</p>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
             </div>
           </div>
-
-          {profile?.highest_rarity && (
-            <div className="px-2.5 py-1 rounded-lg text-xs font-bold capitalize flex-shrink-0"
-              style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity], border: `1px solid ${RARITY_COLOR[profile.highest_rarity]}33` }}>
-              {profile.highest_rarity}
-            </div>
-          )}
         </div>
 
-        <div className="h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700"
-            style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {([
           { id: 'overview',     label: 'Vue d\'ensemble' },
           { id: 'missions',     label: completedMissions > 0 ? `Missions · ${completedMissions}/${todayMissions.length}` : 'Missions' },
@@ -277,6 +277,7 @@ export default function ProfilPage() {
             {tab.label}
           </button>
         ))}
+        </div>
       </div>
 
       {/* ── Overview ── */}
