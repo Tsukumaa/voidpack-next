@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronDown, Lock, UserPlus, Check, Clock, ArrowLeft, Gem, Sword, Shield } from 'lucide-react'
+import { ChevronDown, Lock, UserPlus, Check, Clock, ArrowLeft, Gem, Sword, Shield, Flame } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
@@ -208,41 +208,67 @@ export default function PlayerProfilePage() {
 
   return (
     <div className="pb-4 max-w-5xl mx-auto w-full">
-      <div className="sticky top-20 z-20 py-4 mb-6 backdrop-blur-md rounded-xl px-4" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-white/40 hover:text-white/70 text-xs font-bold mb-3 transition-colors">
-          <ArrowLeft size={14} /> Retour
-        </button>
+      <div className="sticky top-20 z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
+        style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
+        {/* Retour + bouton ami */}
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={() => router.back()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.09)'; b.style.color = 'rgba(255,255,255,0.7)' }}
+            onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.05)'; b.style.color = 'rgba(255,255,255,0.4)' }}>
+            <ArrowLeft size={13} /> Retour
+          </button>
+          <FriendButton />
+        </div>
+
+        {/* Ligne principale */}
         <div className="flex items-center gap-3">
-          <div className="relative rounded-full p-[4px] shrink-0"
-            style={{ background: `conic-gradient(from -90deg, #00c896, #7b2bff ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
-            <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center">
-              {profile?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-lg font-bold text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
+          {/* Avatar + anneau XP */}
+          <div className="relative rounded-full p-[3px] flex-shrink-0"
+            style={{ background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
+              style={profile?.avatarUrl ? { backgroundImage:`url(${profile.avatarUrl})`, backgroundSize:'cover' } : {}}>
+              {!profile?.avatarUrl && (
+                <span className="text-base font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
               )}
             </div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-white font-black text-lg truncate">{profile?.username ?? '…'}</p>
+          {/* Infos */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-white font-black text-base truncate leading-tight">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
-            </div>
-            <div className="flex items-center gap-3 mt-0.5">
-              <p className="text-[#a78bfa] text-xs font-bold">Niveau {level}</p>
-              {(profile?.currentStreak ?? 0) > 0 && (
-                <span className="flex items-center gap-1 text-xs font-bold" style={{ color: '#ff9a3d' }}>
-                  🔥 {profile!.currentStreak}j
+              {profile?.highestRarity && (
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
+                  style={{ background: RARITY_COLOR[profile.highestRarity]+'20', color: RARITY_COLOR[profile.highestRarity] }}>
+                  {profile.highestRarity}
                 </span>
               )}
             </div>
-            <p className="text-white/30 text-[10px] mt-0.5">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</p>
+            <p className="text-[#a78bfa] text-xs font-bold mt-0.5">Niveau {level}</p>
           </div>
 
-          <FriendButton />
+          {/* XP + streak — droite */}
+          <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[100px]">
+            <div className="flex items-baseline gap-1">
+              <span className="text-white font-black text-sm leading-none">{xpCurrent.toLocaleString('fr-FR')}</span>
+              <span className="text-white/30 text-[10px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+            </div>
+            {(profile?.currentStreak ?? 0) > 0 && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full self-end"
+                style={{ background: 'rgba(255,154,61,0.12)', border: '1px solid rgba(255,154,61,0.25)' }}>
+                <Flame size={10} style={{ color: '#ff9a3d' }} />
+                <span className="text-[10px] font-black" style={{ color: '#ff9a3d' }}>{profile!.currentStreak}j</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -253,23 +279,21 @@ export default function PlayerProfilePage() {
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 mb-6">
             <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="rounded-xl bg-white/[0.03] p-3 text-center">
+              <div className="rounded-xl bg-white/[0.03] p-3">
                 <p className="text-white font-black text-xl">{totalCards}</p>
-                <p className="text-white/40 text-[10px] uppercase tracking-wide">Cartes</p>
+                <p className="text-white/40 text-xs">Cartes total</p>
               </div>
-              <div className="rounded-xl bg-white/[0.03] p-3 text-center">
+              <div className="rounded-xl bg-white/[0.03] p-3">
                 <p className="text-white font-black text-xl">{uniqueCards}</p>
-                <p className="text-white/40 text-[10px] uppercase tracking-wide">Uniques</p>
+                <p className="text-white/40 text-xs">Uniques</p>
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="flex gap-1.5">
               {RARITY_ORDER.filter(r => byRarity[r]).map(r => (
-                <div key={r} className="flex items-center gap-2">
-                  <span className="capitalize text-[10px] font-bold w-16 shrink-0" style={{ color: RARITY_COLOR[r] }}>{r}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${(byRarity[r] / Math.max(1, totalCards)) * 100}%`, background: RARITY_COLOR[r] }} />
-                  </div>
-                  <span className="text-white/40 text-xs w-6 text-right">{byRarity[r]}</span>
+                <div key={r} className="flex-1 rounded-xl px-2 py-2.5 flex flex-col items-center gap-1"
+                  style={{ background: `${RARITY_COLOR[r]}12`, border: `1px solid ${RARITY_COLOR[r]}28` }}>
+                  <span className="text-white font-black text-sm leading-none">{byRarity[r]}</span>
+                  <span className="text-[10px] font-bold capitalize leading-none" style={{ color: RARITY_COLOR[r] }}>{r}</span>
                 </div>
               ))}
             </div>
