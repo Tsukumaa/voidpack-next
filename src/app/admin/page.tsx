@@ -14,6 +14,7 @@ interface Player {
   void_pulls: number
   highest_rarity: string | null
   unlocked_card_backs: string[] | null
+  owned_arenas:        string[]
   role: UserRole
 }
 
@@ -196,6 +197,9 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [backModal, setBackModal] = useState<Player | null>(null)
   const [savingBacks, setSavingBacks] = useState(false)
   const [cardBacks, setCardBacks] = useState<CardBack[]>([])
+  const [arenaModal, setArenaModal] = useState<Player | null>(null)
+  const [savingArenas, setSavingArenas] = useState(false)
+  const [arenas, setArenas] = useState<Arena[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -213,6 +217,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       ])
     }).catch(() => setFamilies([{ value: 'void', label: 'VOID Pack (global)' }]))
     adminDb('select', 'card_backs', { order: 'order_index' }).then((data) => setCardBacks(data ?? [])).catch(() => {})
+    adminDb('select', 'arena_backgrounds', { order: 'order_index' }).then((data) => setArenas(data ?? [])).catch(() => {})
   }, [load])
 
   async function credit() {
@@ -249,6 +254,26 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       setPlayers(ps => ps.map(p => p.user_id === backModal.user_id ? { ...p, unlocked_card_backs: next } : p))
     } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
     finally { setSavingBacks(false) }
+  }
+
+  async function toggleArena(arenaId: string) {
+    if (!arenaModal) return
+    const current = arenaModal.owned_arenas ?? []
+    const has = current.includes(arenaId)
+    const next = has ? current.filter(id => id !== arenaId) : [...current, arenaId]
+
+    setSavingArenas(true)
+    try {
+      const res = await fetch('/api/admin/players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_arenas', userId: arenaModal.user_id, data: { ownedArenas: next } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setArenaModal({ ...arenaModal, owned_arenas: next })
+      setPlayers(ps => ps.map(p => p.user_id === arenaModal.user_id ? { ...p, owned_arenas: next } : p))
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setSavingArenas(false) }
   }
 
   const filtered = players.filter(p => !search || (p.username ?? '').toLowerCase().includes(search.toLowerCase()))
@@ -320,6 +345,10 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       className="px-3 py-1.5 rounded-lg bg-[#ff5e5b]/15 border border-[#ff5e5b]/30 text-[#ff9a98] text-xs font-bold hover:bg-[#ff5e5b]/30">
                       🎁 Dos
                     </button>
+                    <button onClick={() => setArenaModal(p)}
+                      className="px-3 py-1.5 rounded-lg bg-[#f59e0b]/15 border border-[#f59e0b]/30 text-[#fcd34d] text-xs font-bold hover:bg-[#f59e0b]/30">
+                      🏟 Arènes
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -360,6 +389,35 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     <div className="w-8 h-8 rounded-lg" style={{ background: skin.gradient }} />
                     <span className="text-sm text-white">{skin.name}</span>
                     {skin.id === 'default' && <span className="text-white/30 text-xs">(toujours débloqué)</span>}
+                  </div>
+                  <span className={owned ? 'text-[#00c896] text-sm font-bold' : 'text-white/30 text-sm'}>
+                    {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </Modal>
+      )}
+
+      {arenaModal && (
+        <Modal title="🏟 Arènes" onClose={() => setArenaModal(null)}>
+          <p className="text-sm text-white/50 mb-4">Joueur : <span className="text-white">{arenaModal.username}</span></p>
+          <div className="space-y-2">
+            {arenas.map(arena => {
+              const owned = (arenaModal.owned_arenas ?? []).includes(arena.id!)
+              return (
+                <button key={arena.id} onClick={() => toggleArena(arena.id!)} disabled={savingArenas}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors text-left disabled:opacity-50"
+                  style={{
+                    background: owned ? 'rgba(0,200,150,0.08)' : 'rgba(255,255,255,0.03)',
+                    borderColor: owned ? 'rgba(0,200,150,0.3)' : 'rgba(255,255,255,0.08)',
+                  }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-8 rounded-lg overflow-hidden flex-shrink-0" style={arena.image_url ? {} : { background: arena.gradient ?? '#1a0a2e' }}>
+                      {arena.image_url && <img src={arena.image_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                    <span className="text-sm text-white">{arena.name}</span>
                   </div>
                   <span className={owned ? 'text-[#00c896] text-sm font-bold' : 'text-white/30 text-sm'}>
                     {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
