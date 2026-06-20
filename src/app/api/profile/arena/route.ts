@@ -16,7 +16,10 @@ export async function GET() {
   try {
     const row = await db.select().from(settings).where(eq(settings.key, key)).limit(1)
     const arenaId = row[0]?.value ?? 'default'
-    if (arenaId === 'default') return NextResponse.json({ arenaId, imageUrl: DEFAULT_IMG })
+    if (arenaId === 'default') {
+      const defaultArena = await db.select().from(arenaBackgrounds).limit(1)
+      return NextResponse.json({ arenaId, imageUrl: defaultArena[0]?.imageUrl ?? DEFAULT_IMG })
+    }
 
     const arena = await db.select().from(arenaBackgrounds).where(eq(arenaBackgrounds.id, arenaId)).limit(1)
     return NextResponse.json({ arenaId, imageUrl: arena[0]?.imageUrl ?? DEFAULT_IMG })
