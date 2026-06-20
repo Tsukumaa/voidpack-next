@@ -260,6 +260,9 @@ function TrainingContent() {
         if (next.enemyDeck.length && next.enemyHand.length < MAX_HAND) {
           next = { ...next, enemyHand: [...next.enemyHand, next.enemyDeck[0]], enemyDeck: next.enemyDeck.slice(1) }
         }
+        // Unexhaust existing board at start of bot turn
+        next.enemyBoard = next.enemyBoard.map(c => ({ ...c, exhausted: false }))
+
         // Play most expensive affordable card
         const playable = next.enemyHand
           .filter(c => c.cost <= next.enemyMana && next.enemyBoard.length < MAX_BOARD)
@@ -274,6 +277,7 @@ function TrainingContent() {
             ...next,
             enemyMana:  next.enemyMana - card.cost,
             enemyHand:  next.enemyHand.filter(c => c.uid !== card.uid),
+            // Newly played card: exhausted unless charge. Existing cards already unexhausted above.
             enemyBoard: [...next.enemyBoard, { ...card, exhausted: !(card.effects?.includes('charge') ?? false) }],
             log: botHasVoidSurge ? `Bot invoque ${card.name} — VOID Surge !` : `Bot invoque ${card.name} !`,
           }
@@ -284,8 +288,9 @@ function TrainingContent() {
       // Step 2: attack sequence
       function botAttackSeq(i: number) {
         if (cancelled) return
-        const g = read()
-        if (g.gameOver) { setBotThinking(false); return }
+        // Use gsRef for fresh state (setState from step 1 may not be flushed yet)
+        const g = gsRef.current!
+        if (!g || g.gameOver) { setBotThinking(false); return }
 
         const attackers = g.enemyBoard.filter(c => !c.exhausted)
         if (i >= attackers.length) {
