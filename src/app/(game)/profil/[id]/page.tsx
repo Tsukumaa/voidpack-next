@@ -186,7 +186,6 @@ export default function PlayerProfilePage() {
             <div className="absolute right-0 top-full mt-2 z-50 rounded-2xl border border-white/[0.1] p-4 w-52 shadow-2xl"
             style={{ background: 'rgba(10,6,18,0.97)', backdropFilter: 'blur(16px)' }}>
             <p className="text-white font-bold text-sm mb-1">Retirer cet ami ?</p>
-            <p className="text-white/40 text-xs mb-3">Cette action est réversible.</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmRemove(false)}
                 className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-white/[0.06] border border-white/[0.08] text-white/50 hover:bg-white/[0.1] transition-colors">
