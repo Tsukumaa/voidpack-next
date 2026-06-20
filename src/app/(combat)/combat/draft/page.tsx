@@ -82,6 +82,8 @@ function DraftContent() {
   const [cards, setCards]       = useState<DraftCard[]>([])
   const [families, setFamilies] = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected] = useState<SelectedEntry[]>([])
+  const defMapRef = useRef<Record<string, { metadata: Record<string, unknown> }>>({})
+
   const [loading, setLoading]   = useState(true)
   const [filter, setFilter]     = useState<string>('all')
   const [search, setSearch]     = useState('')
@@ -120,6 +122,7 @@ function DraftContent() {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
+    defMapRef.current = defMap
     const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
@@ -200,8 +203,11 @@ function DraftContent() {
   function buildPayload(entries: SelectedEntry[]) {
     const deck: unknown[] = []
     for (const { card, qty } of entries) {
+      // Effects fallback: card object first, then live card defs (for saved decks pre-dating effects)
+      const defCombat = (defMapRef.current[card.card_id]?.metadata?.combat ?? {}) as { effects?: string[] }
+      const effects = card.effects?.length ? card.effects : (defCombat.effects ?? [])
       for (let i = 0; i < qty; i++) {
-        deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects: card.effects ?? [] } } })
+        deck.push({ id: `${card.card_id}_${i}`, name: card.name, rarity: card.rarity, family: card.family, image_url: card.image_url, qty: 1, metadata: { combat: { atk: card.atk, hp: card.hp, cost: card.cost, effects } } })
       }
     }
     return deck
