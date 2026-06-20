@@ -46,7 +46,7 @@ interface CardFrameProps {
   cost?: number | null
   atk?: number | null
   def?: number | null
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   className?: string
   style?: React.CSSProperties
   glow?: boolean
@@ -54,9 +54,9 @@ interface CardFrameProps {
 }
 
 export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm', className = '', style = {}, glow = true, hideStats = false }: CardFrameProps) {
-  const statSize  = size === 'lg' ? 42 : size === 'md' ? 34 : 30
-  const statFont  = size === 'lg' ? 16 : size === 'md' ? 14 : 13
-  const statInset = size === 'lg' ? 6  : size === 'md' ? 5  : 4
+  const statSize  = size === 'lg' ? 42 : size === 'md' ? 34 : size === 'xs' ? 18 : 30
+  const statFont  = size === 'lg' ? 16 : size === 'md' ? 14 : size === 'xs' ? 9  : 13
+  const statInset = size === 'lg' ? 6  : size === 'md' ? 5  : size === 'xs' ? 2  : 4
   const r = RARITY[rarity] ?? RARITY.common
   const showStats = !hideStats && (cost != null || atk != null || def != null)
 

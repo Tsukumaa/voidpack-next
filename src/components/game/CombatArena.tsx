@@ -49,7 +49,7 @@ function myHpColor(pct: number) {
 // ── CombatCard ─────────────────────────────────────────────────────────────
 function CombatCard({
   card, isEnemy, canAttack, isSelected, isAttackable, isInHand, canPlay,
-  isShaking, onClick, dataUid, dataEnemy,
+  isShaking, onClick, dataUid, dataEnemy, frameSize,
 }: {
   card: ArenaCard
   isEnemy: boolean
@@ -59,6 +59,7 @@ function CombatCard({
   onClick: () => void
   dataUid?: string | number
   dataEnemy?: string
+  frameSize?: 'xs' | 'sm' | 'md' | 'lg'
 }) {
   const hpPct = card.currentHp / card.hp
 
@@ -85,7 +86,7 @@ function CombatCard({
         cost={card.cost}
         atk={card.atk}
         def={card.currentHp}
-        size="lg"
+        size={frameSize ?? 'lg'}
         glow={isSelected || !!canAttack || !!isAttackable}
         style={{ width: '100%', height: '100%' }}
       >
@@ -141,7 +142,16 @@ export function CombatArena({
   const [dmgPopups,  setDmgPopups]  = useState<DmgPopup[]>([])
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
+  const [isMobile,   setIsMobile]   = useState(false)
   const arenaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
 
@@ -311,6 +321,7 @@ export function CombatArena({
               isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="true"
+              frameSize={isMobile ? 'xs' : 'lg'}
               onClick={() => handleBoardClick(c, true)}
             />
           ))}
@@ -356,6 +367,7 @@ export function CombatArena({
               isSelected={selected?.uid === c.uid}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="false"
+              frameSize={isMobile ? 'xs' : 'lg'}
               onClick={() => handleBoardClick(c, false)}
             />
           ))}
@@ -403,6 +415,7 @@ export function CombatArena({
               key={String(card.uid)}
               card={card} isEnemy={false} isInHand
               canPlay={myTurn && !locked && card.cost <= myMana}
+              frameSize={isMobile ? 'sm' : 'lg'}
               onClick={() => {
                 if (!myTurn || locked || card.cost > myMana) return
                 onPlayCard(card)
