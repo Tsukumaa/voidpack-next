@@ -12,15 +12,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // Joindre les pseudos des deux joueurs
   const ids = [session.player1Id, session.player2Id].filter(Boolean) as string[]
   const profiles = ids.length
-    ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username })
+    ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
         .from(playerProfiles).where(inArray(playerProfiles.userId, ids))
     : []
-  const nameOf = (uid: string | null) => uid ? (profiles.find(p => p.userId === uid)?.username ?? null) : null
+  const profileOf = (uid: string | null) => uid ? profiles.find(p => p.userId === uid) : null
 
   return NextResponse.json({
     ...session,
-    player1Username: nameOf(session.player1Id),
-    player2Username: nameOf(session.player2Id),
+    player1Username: profileOf(session.player1Id)?.username ?? null,
+    player2Username: profileOf(session.player2Id)?.username ?? null,
+    player1Avatar:   profileOf(session.player1Id)?.avatarUrl ?? null,
+    player2Avatar:   profileOf(session.player2Id)?.avatarUrl ?? null,
   })
 }
 

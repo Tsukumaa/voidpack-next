@@ -27,6 +27,7 @@ export interface CombatArenaProps {
   myHand: ArenaCard[]
   myTurn: boolean; locked?: boolean
   myName?: string; oppName?: string
+  myAvatar?: string | null; oppAvatar?: string | null
   turnLabel?: string
   topLabel?: React.ReactNode
   arenaBg?: string | null
@@ -130,6 +131,7 @@ export function CombatArena({
   myBoard, oppBoard, myHand,
   myTurn, locked = false,
   myName = 'Toi', oppName = 'Bot',
+  myAvatar, oppAvatar,
   turnLabel, topLabel, arenaBg,
   onPlayCard, onAttack, onEndTurn, onSurrender,
   log = '',
@@ -267,7 +269,11 @@ export function CombatArena({
           onClick={handleFaceClick}
         >
           <div className="ca-hero-inner">
-            <div className="ca-hero-portrait ca-hero-portrait--opp" data-face-enemy>💀</div>
+            <div className="ca-hero-portrait ca-hero-portrait--opp" data-face-enemy>
+              {oppAvatar
+                ? <img src={oppAvatar} alt={oppName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                : '💀'}
+            </div>
             <div className="ca-hero-info">
               <span className="ca-hero-name">{oppName}</span>
               <div className="ca-hero-hpbar">
@@ -334,7 +340,11 @@ export function CombatArena({
           <button className="ca-quit-btn" onClick={onSurrender} title="Quitter">✕</button>
 
           <div className="ca-hero-inner">
-            <div className="ca-hero-portrait ca-hero-portrait--player" data-face-player>🔮</div>
+            <div className="ca-hero-portrait ca-hero-portrait--player" data-face-player>
+              {myAvatar
+                ? <img src={myAvatar} alt={myName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                : '🔮'}
+            </div>
             <div className="ca-hero-info">
               <span className="ca-hero-name">{myName}</span>
               <div className="ca-hero-hpbar">

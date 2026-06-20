@@ -55,6 +55,7 @@ export default function CombatPage() {
   const [gameOver, setGameOver]   = useState<{ winner: string } | null>(null)
   const [log, setLog]             = useState<string[]>([])
   const [oppName, setOppName]     = useState('Adversaire')
+  const [oppAvatar, setOppAvatar] = useState<string | null>(null)
 
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
 
@@ -82,9 +83,10 @@ export default function CombatPage() {
         // Init le module multiplayer avec la session (rôle + polling)
         initSession(data, user.id)
 
-        // Nom de l'adversaire
+        // Nom + avatar de l'adversaire
         const iAmP1 = data.player1Id === user.id
         setOppName((iAmP1 ? data.player2Username : data.player1Username) || 'Adversaire')
+        setOppAvatar(iAmP1 ? (data.player2Avatar ?? null) : (data.player1Avatar ?? null))
 
         // Distribuer les mains si elles sont vides (début de partie)
         const state = typeof data.state === 'string' ? JSON.parse(data.state) : data.state
@@ -229,6 +231,8 @@ export default function CombatPage() {
       myHand={myHand}
       myName={profile?.username ?? 'Moi'}
       oppName={oppName}
+      myAvatar={profile?.avatar_url ?? null}
+      oppAvatar={oppAvatar}
       arenaBg={arenaBg}
       myTurn={myTurn}
       onPlayCard={playCard}

@@ -347,6 +347,7 @@ function TrainingContent() {
       locked={gs.locked || botThinking}
       myName={profile?.username ?? 'Toi'}
       oppName="Bot"
+      myAvatar={profile?.avatar_url ?? null}
       arenaBg={arenaBg}
       turnLabel={`Tour ${gs.turn}`}
       topLabel={
