@@ -42,8 +42,8 @@ interface SavedDeck {
   id: string
   name: string
   cards: string
-  total_cards: number
-  total_mana: number
+  totalCards: number
+  totalMana: number
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -324,7 +324,7 @@ function DraftContent() {
               {/* Decks sauvegardés */}
               {savedDecks.map(deck => {
                 const entries = (() => { try { return JSON.parse(deck.cards) as SelectedEntry[] } catch { return [] } })()
-                const isFull = deck.total_cards >= DECK_SIZE
+                const isFull = deck.totalCards >= DECK_SIZE
                 return (
                   <div key={deck.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden hover:border-white/15 transition-all">
                     {/* Aperçu cartes */}
@@ -353,10 +353,10 @@ function DraftContent() {
                       </div>
                       <div className="flex items-center gap-2 mb-2.5">
                         <span className={cn('text-[10px] font-bold', isFull ? 'text-[#00c896]' : 'text-white/30')}>
-                          {deck.total_cards}/{DECK_SIZE} cartes
+                          {deck.totalCards}/{DECK_SIZE} cartes
                         </span>
                         <span className="text-white/20 text-[10px]">·</span>
-                        <span className="text-white/30 text-[10px]">{deck.total_mana} mana</span>
+                        <span className="text-white/30 text-[10px]">{deck.totalMana} mana</span>
                       </div>
                       <div className="flex gap-1.5">
                         <button onClick={() => selectAndPlay(deck, 'training')}
