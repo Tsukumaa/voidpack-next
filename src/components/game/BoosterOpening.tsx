@@ -84,6 +84,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
     setSaving(true)
     try {
       // Claim le booster maintenant (annuler avant cette étape ne retire rien)
+      let packsOpenedTotal = 1
       if (creditId) {
         const claimRes = await fetch('/api/booster/claim', {
           method: 'POST',
@@ -91,6 +92,8 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
           body: JSON.stringify({ id: Number(creditId) }),
         })
         if (!claimRes.ok) throw new Error('claim error')
+        const claimData = await claimRes.json()
+        packsOpenedTotal = claimData.packs_opened ?? 1
       }
 
       // Track missions
@@ -134,12 +137,9 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
       if (updated) setProfile({ ...profile!, ...updated })
 
       // Achievements
-      const [allCards, packData] = await Promise.all([
-        fetch('/api/collection').then(r => r.ok ? r.json() : []),
-        fetch('/api/profile').then(r => r.ok ? r.json() : null),
-      ])
+      const allCards = await fetch('/api/collection').then(r => r.ok ? r.json() : [])
       const uniqueCount = new Set(allCards.map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId)).size
-      await checkAfterPackOpen(cards, packData?.packs_opened ?? 1, uniqueCount, boosterType)
+      await checkAfterPackOpen(cards, packsOpenedTotal, uniqueCount, boosterType)
 
       setSaved(true); setShowXP(true)
       setTimeout(() => setShowXP(false), 2500)

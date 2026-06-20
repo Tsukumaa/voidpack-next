@@ -1,11 +1,14 @@
 'use client'
-import { BarChart2, Target, Trophy, Flame, Tv2, Lock, Link as LinkIcon } from 'lucide-react'
+import { Target, Tv2, Flame } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
-import { ACHIEVEMENTS, DAILY_MISSIONS, getTodayMissions } from '@/lib/game/achievements'
+import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
+import { getMissionProgress, getClaimedMissions, markMissionClaimed, trackMissionProgress } from '@/lib/game/mission-tracker'
+import { useSocialStore } from '@/store/social'
+import { Link as LinkIcon } from 'lucide-react'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
@@ -39,6 +42,7 @@ interface MissionProgress {
 
 export default function ProfilPage() {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
+  const addToast = useSocialStore(s => s.addToast)
   const [stats, setStats]               = useState<{ totalCards: number; uniqueCards: number; byRarity: Record<string, number> } | null>(null)
   const [daily, setDaily]               = useState<DailyReward | null>(null)
   const [achievements, setAchievements] = useState<string[]>([])
@@ -47,9 +51,30 @@ export default function ProfilPage() {
   const [claimMsg, setClaimMsg]         = useState('')
   const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
-  const [ownedIds, setOwnedIds] = useState<string[]>([])
+  const [ownedIds, setOwnedIds]         = useState<string[]>([])
+  const [now, setNow]                   = useState(() => Date.now())
 
   const todayMissions = getTodayMissions()
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+
+  const loadMissionsFromStorage = useCallback(() => {
+    if (!user) return
+    trackMissionProgress(user.id, 'daily_login', 1)
+    const claimed = getClaimedMissions(user.id)
+    setMissions(todayMissions.map(m => {
+      const prog = getMissionProgress(user.id, m.id)
+      return {
+        mission_id: m.id,
+        progress: Math.min(prog, m.goal),
+        completed: prog >= m.goal,
+        xp_claimed: claimed.includes(m.id),
+      }
+    }))
+  }, [user]) // eslint-disable-line
 
   const load = useCallback(async () => {
     if (!user) return
@@ -72,12 +97,24 @@ export default function ProfilPage() {
       setStats({ totalCards, uniqueCards: cards.length, byRarity })
     }
     setOwnedIds((cards ?? []).map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId ?? '').filter(Boolean))
-    if (dailyData) setDaily({ last_claim_at: null, current_streak: dailyData.currentStreak ?? 0, best_streak: 0 })
+
+    if (dailyData) setDaily({
+      last_claim_at: dailyData.lastClaimAt ?? null,
+      current_streak: dailyData.currentStreak ?? 0,
+      best_streak: dailyData.bestStreak ?? 0,
+    })
+
     setAchievements((achData ?? []).map((a: { achievementId?: string; achievement_id?: string }) => a.achievementId ?? a.achievement_id ?? ''))
-    setMissions([])
-  }, [user])
+
+    loadMissionsFromStorage()
+  }, [user, loadMissionsFromStorage])
 
   useEffect(() => { load() }, [load])
+
+  // Refresh missions depuis localStorage quand on bascule sur l'onglet
+  useEffect(() => {
+    if (activeTab === 'missions') loadMissionsFromStorage()
+  }, [activeTab, loadMissionsFromStorage])
 
   function linkTwitch() {
     const TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'
@@ -106,6 +143,7 @@ export default function ProfilPage() {
   }
 
   async function claimMission(missionId: string) {
+    if (!user) return
     setClaimingMission(missionId)
     try {
       const res = await fetch('/api/profile/mission', {
@@ -114,31 +152,36 @@ export default function ProfilPage() {
       })
       if (res.ok) {
         const data = await res.json()
+        markMissionClaimed(user.id, missionId)
         if (data?.xp_gained && profile) setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+        const mission = todayMissions.find(m => m.id === missionId)
+        addToast({ type: 'mission', title: 'Mission complétée !', body: mission ? `${mission.label} — +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP` })
+        loadMissionsFromStorage()
       }
-      load()
     } catch(e) { console.error(e) }
     finally { setClaimingMission(null) }
   }
 
-  const canClaim = daily?.last_claim_at
-    ? new Date().getTime() - new Date(daily.last_claim_at).getTime() > 20 * 3600 * 1000
-    : true
+  async function saveFavorites(ids: string[]) {
+    if (profile) setProfile({ ...profile, favorite_cards: ids })
+    await fetch('/api/profile', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ favoriteCards: ids }),
+    }).catch(() => {})
+  }
+
+  const lastClaimMs = daily?.last_claim_at ? new Date(daily.last_claim_at).getTime() : 0
+  const canClaim = now - lastClaimMs > 20 * 3600 * 1000
+  const msUntilClaim = Math.max(0, lastClaimMs + 20 * 3600 * 1000 - now)
+  const hUntil = Math.floor(msUntilClaim / 3600000)
+  const mUntil = Math.floor((msUntilClaim % 3600000) / 60000)
+  const nextClaimLabel = hUntil > 0 ? `${hUntil}h${mUntil.toString().padStart(2,'0')}` : `${mUntil}min`
 
   const level = profile?.level ?? 1
   const xp    = profile?.xp ?? 0
   const { current: xpCurrent, needed: xpNeeded, progress } = getLevelProgress(xp, level)
   const unlockedCount = achievements.length
-  const completedMissions = missions.filter(m => m.completed).length
-
-  async function saveFavorites(ids: string[]) {
-    if (profile) setProfile({ ...profile, favorite_cards: ids })
-    await fetch('/api/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ favoriteCards: ids }),
-    }).catch(() => {})
-  }
+  const completedMissions = missions.filter(m => m.completed || m.xp_claimed).length
 
   if (!user) return (
     <StatePanel icon={LinkIcon} title="Pas connecté">
@@ -193,7 +236,7 @@ export default function ProfilPage() {
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
         {([
           { id: 'overview',     label: 'Vue d\'ensemble' },
-          { id: 'missions',   icon: <Target size={13} />,     label: `Missions ${completedMissions > 0 ? `(${completedMissions}/${todayMissions.length})` : ''}` },
+          { id: 'missions',     label: completedMissions > 0 ? `Missions · ${completedMissions}/${todayMissions.length}` : 'Missions' },
           { id: 'achievements', label: `Succès (${unlockedCount})` },
         ] as const).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -212,21 +255,21 @@ export default function ProfilPage() {
             ownedIds={ownedIds}
             onSave={saveFavorites}
           />
-          {/* Twitch link */}
+
+          {/* Twitch */}
           <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: 'rgba(145,71,255,0.15)' }}>
-                  <Tv2 size={16} />
+                  <Tv2 size={16} className="text-white/60" />
                 </div>
                 <div>
                   <p className="text-white font-bold text-sm">Compte Twitch</p>
-                  {profile?.twitch_login ? (
-                    <p className="text-[#00c896] text-xs mt-0.5">Lié à {profile.twitch_login}</p>
-                  ) : (
-                    <p className="text-white/40 text-xs mt-0.5">Lie ton compte pour recevoir des boosters</p>
-                  )}
+                  {profile?.twitch_login
+                    ? <p className="text-[#00c896] text-xs mt-0.5">Lié à {profile.twitch_login}</p>
+                    : <p className="text-white/40 text-xs mt-0.5">Lie ton compte pour recevoir des boosters</p>
+                  }
                 </div>
               </div>
               {profile?.twitch_login ? (
@@ -236,7 +279,7 @@ export default function ProfilPage() {
                 </button>
               ) : (
                 <button onClick={linkTwitch}
-                  className="px-3 py-1.5 rounded-xl text-white text-xs font-bold transition-all"
+                  className="px-3 py-1.5 rounded-xl text-white text-xs font-bold"
                   style={{ background: 'linear-gradient(135deg,#9147ff,#5a1fb8)' }}>
                   Lier
                 </button>
@@ -244,32 +287,107 @@ export default function ProfilPage() {
             </div>
           </div>
 
-          {/* Daily reward */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-white font-bold text-sm">Récompense quotidienne</p>
-                <p className="text-white/40 text-xs mt-0.5">
-                  <Flame size={12} className="inline mr-1 text-[#ff9a3d]" />Streak : <span className="text-[#ff9a3d] font-bold">{daily?.current_streak ?? 0}j</span>
-                  {daily?.best_streak ? <span className="ml-2 text-white/30">· Record : {daily.best_streak}j</span> : null}
+          {/* Daily reward — redesign */}
+          <div className="rounded-2xl border border-white/[0.07] overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(255,154,61,0.07) 0%, rgba(123,43,255,0.05) 100%)' }}>
+
+            <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+                style={{ background: 'rgba(255,154,61,0.15)', border: '1px solid rgba(255,154,61,0.25)' }}>
+                🔥
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-white font-black text-2xl leading-none">{daily?.current_streak ?? 0}</span>
+                  <span className="text-[#ff9a3d] font-bold text-sm">jour{(daily?.current_streak ?? 0) > 1 ? 's' : ''} d&apos;affilée</span>
+                </div>
+                <p className="text-white/30 text-xs mt-0.5">
+                  {daily?.best_streak ? `Record : ${daily.best_streak}j` : 'Reviens chaque jour !'}
                 </p>
               </div>
-              <button onClick={claimDaily} disabled={!canClaim || claiming}
-                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                style={canClaim ? { background:'linear-gradient(135deg,#7b2bff,#4a1fa8)', color:'white' } : { background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.3)' }}>
-                {claiming ? '…' : canClaim ? 'Réclamer' : '✓ Fait'}
-              </button>
+              {!canClaim && (
+                <div className="text-right flex-shrink-0">
+                  <p className="text-white/30 text-[10px] uppercase tracking-wide">Prochain dans</p>
+                  <p className="text-[#ff9a3d] text-sm font-black">{nextClaimLabel}</p>
+                </div>
+              )}
             </div>
-            {claimMsg && <p className="text-xs text-[#00c896]">{claimMsg}</p>}
-            <div className="flex gap-1.5 mt-2">
-              {Array.from({ length: 7 }, (_, i) => (
-                <div key={i} className="flex-1 h-1.5 rounded-full"
-                  style={{ background: i < (daily?.current_streak ?? 0) ? '#ff9a3d' : 'rgba(255,255,255,0.08)' }} />
-              ))}
+
+            {/* 7 jours */}
+            <div className="px-4 pb-3 flex gap-1.5">
+              {Array.from({ length: 7 }, (_, i) => {
+                const streak = daily?.current_streak ?? 0
+                const mod = streak % 7
+                const filled = i < (mod === 0 && streak > 0 ? 7 : mod)
+                const isToday = streak > 0 && i === (mod === 0 ? 6 : mod - 1)
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full h-1.5 rounded-full transition-all duration-300"
+                      style={{
+                        background: filled ? '#ff9a3d' : 'rgba(255,255,255,0.07)',
+                        boxShadow: isToday ? '0 0 6px rgba(255,154,61,0.7)' : 'none',
+                      }} />
+                    <span className="text-[9px] font-bold"
+                      style={{ color: filled ? 'rgba(255,154,61,0.7)' : 'rgba(255,255,255,0.15)' }}>
+                      {['L','M','M','J','V','S','D'][i]}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="px-4 pb-4">
+              <button onClick={claimDaily} disabled={!canClaim || claiming}
+                className="w-full py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2"
+                style={canClaim
+                  ? { background: 'linear-gradient(135deg,#ff9a3d,#e07820)', color: 'white', boxShadow: '0 0 24px rgba(255,154,61,0.35)' }
+                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'default' }}>
+                {claiming ? '…' : canClaim ? '🎴 Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
+              </button>
+              {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Missions aperçu */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Missions du jour</p>
+              <button onClick={() => setActiveTab('missions')}
+                className="text-[#a78bfa] text-xs font-bold hover:text-white transition-colors">
+                Voir tout →
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {todayMissions.map(mission => {
+                const prog = missions.find(m => m.mission_id === mission.id)
+                const current = Math.min(prog?.progress ?? 0, mission.goal)
+                const completed = prog?.completed ?? false
+                const claimed = prog?.xp_claimed ?? false
+                const pct = Math.min(100, (current / mission.goal) * 100)
+                return (
+                  <div key={mission.id} className="flex items-center gap-3">
+                    <span className="text-base flex-shrink-0">{mission.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="text-white text-xs font-bold truncate">{mission.label}</span>
+                        <span className="text-[10px] flex-shrink-0 font-black"
+                          style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
+                          {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, background: claimed ? '#00c896' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-white/30 flex-shrink-0 w-8 text-right font-bold">{current}/{mission.goal}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Stats collection */}
           {stats && (
             <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
@@ -302,42 +420,81 @@ export default function ProfilPage() {
       {/* ── Missions ── */}
       {activeTab === 'missions' && (
         <div className="space-y-3">
-          <p className="text-white/40 text-xs">Missions du jour — reset à minuit</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white font-black text-sm">Missions du jour</p>
+              <p className="text-white/30 text-xs mt-0.5">Reset à minuit · {completedMissions}/{todayMissions.length} complétées</p>
+            </div>
+            <button onClick={loadMissionsFromStorage}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 text-xs font-bold hover:text-white/70 hover:bg-white/[0.08] transition-colors">
+              ↻ Actualiser
+            </button>
+          </div>
+
           {todayMissions.map(mission => {
             const prog = missions.find(m => m.mission_id === mission.id)
-            const current = prog?.progress ?? 0
-            const completed = prog?.completed ?? (current >= mission.goal)
+            const current = Math.min(prog?.progress ?? 0, mission.goal)
+            const completed = (prog?.progress ?? 0) >= mission.goal
             const claimed = prog?.xp_claimed ?? false
             const pct = Math.min(100, (current / mission.goal) * 100)
+
             return (
-              <div key={mission.id} className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{mission.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-white font-bold text-sm">{mission.label}</p>
-                      <span className="text-[#a78bfa] text-xs font-bold flex-shrink-0">+{mission.xp} XP</span>
+              <div key={mission.id}
+                className="rounded-2xl border overflow-hidden transition-all"
+                style={{
+                  background: claimed ? 'rgba(0,200,150,0.04)' : completed ? 'rgba(255,154,61,0.06)' : 'rgba(255,255,255,0.03)',
+                  borderColor: claimed ? 'rgba(0,200,150,0.2)' : completed ? 'rgba(255,154,61,0.25)' : 'rgba(255,255,255,0.07)',
+                }}>
+
+                <div className="p-4 flex items-center gap-4">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+                      style={{
+                        background: claimed ? 'rgba(0,200,150,0.15)' : completed ? 'rgba(255,154,61,0.15)' : 'rgba(255,255,255,0.06)',
+                      }}>
+                      {claimed ? '✅' : mission.icon}
                     </div>
-                    <p className="text-white/40 text-xs mt-0.5">{mission.desc}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width:`${pct}%`, background: completed ? '#00c896' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                    {completed && !claimed && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff9a3d] flex items-center justify-center animate-pulse">
+                        <span className="text-[8px] text-white font-black">!</span>
                       </div>
-                      <span className="text-white/40 text-xs flex-shrink-0">{Math.min(current, mission.goal)}/{mission.goal}</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-white font-black text-sm">{mission.label}</p>
+                      <span className="text-xs font-black flex-shrink-0"
+                        style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : '#a78bfa' }}>
+                        {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
+                      </span>
+                    </div>
+                    <p className="text-white/40 text-xs mb-2">{mission.desc}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: claimed ? '#00c896' : completed ? 'linear-gradient(90deg,#ff9a3d,#ffb347)' : 'linear-gradient(90deg,#7b2bff,#a855f7)',
+                          }} />
+                      </div>
+                      <span className="text-[11px] font-bold flex-shrink-0"
+                        style={{ color: completed ? (claimed ? '#00c896' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
+                        {current}/{mission.goal}
+                      </span>
                     </div>
                   </div>
                 </div>
+
                 {completed && !claimed && (
-                  <button onClick={() => claimMission(mission.id)}
-                    disabled={claimingMission === mission.id}
-                    className="mt-3 w-full py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
-                    style={{ background:'linear-gradient(135deg,#00c896,#00a878)' }}>
-                    {claimingMission === mission.id ? '…' : `Réclamer +${mission.xp} XP`}
-                  </button>
-                )}
-                {claimed && (
-                  <p className="mt-2 text-xs text-[#00c896] text-center">✅ Récompense réclamée</p>
+                  <div className="px-4 pb-4">
+                    <button onClick={() => claimMission(mission.id)}
+                      disabled={claimingMission === mission.id}
+                      className="w-full py-2.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      style={{ background: 'linear-gradient(135deg,#ff9a3d,#e07820)', boxShadow: '0 0 16px rgba(255,154,61,0.3)' }}>
+                      {claimingMission === mission.id ? '…' : `🎁 Réclamer +${mission.xp} XP`}
+                    </button>
+                  </div>
                 )}
               </div>
             )
