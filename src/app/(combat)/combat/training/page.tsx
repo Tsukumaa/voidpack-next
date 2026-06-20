@@ -319,8 +319,8 @@ function TrainingContent() {
 
   if (gs.gameOver) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 24, padding: '0 16px', background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #050210)' }}>
-      <Bot size={52} style={{ color: gs.winner === 'player' ? '#00c896' : '#ff4757' }} />
-      <div style={{ fontSize: 48, fontWeight: 900, color: gs.winner === 'player' ? '#00c896' : '#ff4757' }}>
+      <Bot size={52} style={{ color: gs.winner === 'player' ? '#4a9e6a' : '#ff4757' }} />
+      <div style={{ fontSize: 48, fontWeight: 900, color: gs.winner === 'player' ? '#4a9e6a' : '#ff4757' }}>
         {gs.winner === 'player' ? 'Victoire !' : 'Défaite'}
       </div>
       <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Entraînement · aucun point classé</p>

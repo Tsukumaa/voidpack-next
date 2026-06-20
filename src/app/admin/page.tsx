@@ -114,7 +114,7 @@ export default function AdminPage() {
         <h1 className="text-lg font-bold">⬡ Admin VOID Pack</h1>
         <div className="flex items-center gap-3">
           {msg && (
-            <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${msgOk ? 'bg-[#00c896]/15 text-[#00c896]' : 'bg-red-900/30 text-red-400'}`}>
+            <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${msgOk ? 'bg-[#4a9e6a]/15 text-[#4a9e6a]' : 'bg-red-900/30 text-red-400'}`}>
               {msg}
             </span>
           )}
@@ -303,7 +303,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               <tr key={p.user_id} className={`border-b border-white/5 hover:bg-white/3 ${i%2===0?'':'bg-white/[0.02]'}`}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#00c896] flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a9e6a] flex items-center justify-center text-xs font-bold flex-shrink-0"
                       style={p.avatar_url ? { backgroundImage: `url(${p.avatar_url})`, backgroundSize: 'cover' } : {}}>
                       {!p.avatar_url && (p.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
@@ -391,7 +391,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     <span className="text-sm text-white">{skin.name}</span>
                     {skin.id === 'default' && <span className="text-white/30 text-xs">(toujours débloqué)</span>}
                   </div>
-                  <span className={owned ? 'text-[#00c896] text-sm font-bold' : 'text-white/30 text-sm'}>
+                  <span className={owned ? 'text-[#4a9e6a] text-sm font-bold' : 'text-white/30 text-sm'}>
                     {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
                   </span>
                 </button>
@@ -420,7 +420,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     </div>
                     <span className="text-sm text-white">{arena.name}</span>
                   </div>
-                  <span className={owned ? 'text-[#00c896] text-sm font-bold' : 'text-white/30 text-sm'}>
+                  <span className={owned ? 'text-[#4a9e6a] text-sm font-bold' : 'text-white/30 text-sm'}>
                     {owned ? '✓ Débloqué' : '🔒 Verrouillé'}
                   </span>
                 </button>
@@ -1083,7 +1083,7 @@ function BoostersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
           ))}
         </div>
       )}
-      {saving && <p className="text-[#00c896] text-xs mt-3">Sauvegarde…</p>}
+      {saving && <p className="text-[#4a9e6a] text-xs mt-3">Sauvegarde…</p>}
     </div>
   )
 }

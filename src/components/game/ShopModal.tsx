@@ -93,7 +93,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
               <div>
                 <p className="text-white font-black text-base flex items-center gap-2">
                   Abonnement VOID Pack
-                  {isSubscriber && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00c896]/20 text-[#00c896] font-bold">Actif</span>}
+                  {isSubscriber && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4a9e6a]/20 text-[#4a9e6a] font-bold">Actif</span>}
                 </p>
                 <p className="text-white/50 text-xs mt-1">2,99€ / mois · Tous les dos débloqués + 3 boosters/mois</p>
                 <div className="flex flex-wrap gap-3 mt-2">
@@ -114,7 +114,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
 
           <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-4">
             Dos de carte — 1,00€ l&apos;unité
-            {isSubscriber && <span className="ml-2 text-[#00c896]">· Tous débloqués avec ton abonnement</span>}
+            {isSubscriber && <span className="ml-2 text-[#4a9e6a]">· Tous débloqués avec ton abonnement</span>}
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                       {isDefault ? (
                         <p className="text-white/30 text-[10px]">Gratuit</p>
                       ) : accessible ? (
-                        <p className="text-[#00c896] text-[10px]">{isSubscriber && !owned ? 'Via abonnement' : 'Débloqué'}</p>
+                        <p className="text-[#4a9e6a] text-[10px]">{isSubscriber && !owned ? 'Via abonnement' : 'Débloqué'}</p>
                       ) : (
                         <button onClick={() => checkout('payment', skin)} disabled={buying === skin.id}
                           className="w-full py-1 rounded-lg text-[10px] font-bold text-white transition-all disabled:opacity-50"
@@ -177,7 +177,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
           {/* ── Arènes de combat ── */}
           <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-7 mb-3">
             Fonds d&apos;arène — change le décor de tes combats
-            {isSubscriber && <span className="ml-2 text-[#00c896]">· Tous débloqués avec ton abonnement</span>}
+            {isSubscriber && <span className="ml-2 text-[#4a9e6a]">· Tous débloqués avec ton abonnement</span>}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {arenas.map(arena => {
@@ -203,7 +203,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                   <div className="p-2.5 bg-white/[0.03] flex items-center justify-between">
                     <p className="text-white text-xs font-bold">{arena.name}</p>
                     {isDefault ? <p className="text-white/30 text-[10px]">Gratuit</p>
-                      : accessible ? <p className="text-[#00c896] text-[10px]">Débloqué</p>
+                      : accessible ? <p className="text-[#4a9e6a] text-[10px]">Débloqué</p>
                       : <p className="text-white/40 text-[10px]">Via abonnement</p>}
                   </div>
                 </div>

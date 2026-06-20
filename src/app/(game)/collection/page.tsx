@@ -555,7 +555,7 @@ export default function CollectionPage() {
           style={{
             background: toast.ok ? 'rgba(0,200,150,0.15)' : 'rgba(255,60,60,0.15)',
             border: `1px solid ${toast.ok ? 'rgba(0,200,150,0.4)' : 'rgba(255,60,60,0.4)'}`,
-            color: toast.ok ? '#00c896' : '#ff6b6b',
+            color: toast.ok ? '#4a9e6a' : '#ff6b6b',
             backdropFilter: 'blur(12px)',
           }}>
           {toast.msg}

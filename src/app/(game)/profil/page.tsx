@@ -355,7 +355,7 @@ export default function ProfilPage() {
                 <div>
                   <p className="text-white font-bold text-sm">Compte Twitch</p>
                   {profile?.twitch_login
-                    ? <p className="text-[#00c896] text-xs mt-0.5">Lié à {profile.twitch_login}</p>
+                    ? <p className="text-[#4a9e6a] text-xs mt-0.5">Lié à {profile.twitch_login}</p>
                     : <p className="text-white/40 text-xs mt-0.5">Lie ton compte pour recevoir des boosters</p>
                   }
                 </div>
@@ -430,7 +430,7 @@ export default function ProfilPage() {
                   ? <><PackagePlus size={15} />Réclamer mon booster quotidien</>
                   : <><Check size={14} />Déjà réclamé aujourd&apos;hui</>}
               </button>
-              {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
+              {claimMsg && <p className="text-xs text-[#4a9e6a] text-center mt-2 font-bold">{claimMsg}</p>}
             </div>
           </div>
 
@@ -464,7 +464,7 @@ export default function ProfilPage() {
                         <span className="text-white text-xs font-bold truncate">{mission.label}</span>
                         {claimed
                           ? <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold flex-shrink-0"
-                              style={{ background: 'rgba(0,200,150,0.12)', color: '#00c896', border: '1px solid rgba(0,200,150,0.2)' }}>
+                              style={{ background: 'rgba(0,200,150,0.12)', color: '#4a9e6a', border: '1px solid rgba(0,200,150,0.2)' }}>
                               <Check size={9} />Réclamé
                             </span>
                           : <span className="text-[10px] flex-shrink-0 font-black"
@@ -475,7 +475,7 @@ export default function ProfilPage() {
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
                         <div className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: claimed ? '#00c896' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
+                          style={{ width: `${pct}%`, background: claimed ? '#4a9e6a' : completed ? '#ff9a3d' : 'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
                       </div>
                     </div>
                     <span className="text-[10px] text-white/30 flex-shrink-0 w-8 text-right font-bold">{current}/{mission.goal}</span>
@@ -549,7 +549,7 @@ export default function ProfilPage() {
                         background: claimed ? 'rgba(0,200,150,0.15)' : completed ? 'rgba(255,154,61,0.15)' : 'rgba(255,255,255,0.06)',
                       }}>
                       {claimed
-                        ? <CheckCircle2 size={20} style={{ color: '#00c896' }} />
+                        ? <CheckCircle2 size={20} style={{ color: '#4a9e6a' }} />
                         : <span style={{ color: completed ? '#ff9a3d' : 'rgba(255,255,255,0.4)', display:'flex' }}>
                             {ACHIEVEMENT_ICON[mission.id] ?? <Target size={18} />}
                           </span>}
@@ -565,7 +565,7 @@ export default function ProfilPage() {
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <p className="text-white font-black text-sm">{mission.label}</p>
                       <span className="flex items-center gap-1 text-xs font-black flex-shrink-0"
-                        style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : '#a78bfa' }}>
+                        style={{ color: claimed ? '#4a9e6a' : completed ? '#ff9a3d' : '#a78bfa' }}>
                         {claimed && <Check size={11} />}{claimed ? 'Réclamé' : `+${mission.xp} XP`}
                       </span>
                     </div>
@@ -575,11 +575,11 @@ export default function ProfilPage() {
                         <div className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${pct}%`,
-                            background: claimed ? '#00c896' : completed ? 'linear-gradient(90deg,#ff9a3d,#ffb347)' : 'linear-gradient(90deg,#7b2bff,#a855f7)',
+                            background: claimed ? '#4a9e6a' : completed ? 'linear-gradient(90deg,#ff9a3d,#ffb347)' : 'linear-gradient(90deg,#7b2bff,#a855f7)',
                           }} />
                       </div>
                       <span className="text-[11px] font-bold flex-shrink-0"
-                        style={{ color: completed ? (claimed ? '#00c896' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
+                        style={{ color: completed ? (claimed ? '#4a9e6a' : '#ff9a3d') : 'rgba(255,255,255,0.3)' }}>
                         {current}/{mission.goal}
                       </span>
                     </div>
@@ -632,7 +632,7 @@ export default function ProfilPage() {
                   </div>
                   <div className="flex-shrink-0 text-right">
                     {unlocked
-                      ? <Check size={14} style={{ color: '#00c896' }} />
+                      ? <Check size={14} style={{ color: '#4a9e6a' }} />
                       : <span className="text-[#a78bfa] text-xs">+{a.xp} XP</span>
                     }
                   </div>

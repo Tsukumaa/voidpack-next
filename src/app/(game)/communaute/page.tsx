@@ -585,7 +585,7 @@ export default function CommunautePage() {
                   {user && !isMe && (
                     friends.some(f => f.friend_id === entry.user_id) ? (
                       <button className="ml-1 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center" title="Déjà ami" disabled>
-                        <Check size={13} className="text-[#00c896]" />
+                        <Check size={13} className="text-[#4a9e6a]" />
                       </button>
                     ) : (sentPending.has(entry.user_id) || addedFromLadder.has(entry.user_id)) ? (
                       <button className="ml-1 flex-shrink-0 w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center" title="Demande en attente" disabled>
@@ -809,7 +809,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
                 <span className="flex-1 text-sm text-white">{r.username ?? 'Joueur'}</span>
                 <div className="flex gap-1.5">
                   <button onClick={() => acceptRequest(r.id)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#00c896]/20 hover:bg-[#00c896]/35 text-[#00c896] text-xs font-bold">
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#4a9e6a]/20 hover:bg-[#4a9e6a]/35 text-[#4a9e6a] text-xs font-bold">
                     <Check size={11} /> Accepter
                   </button>
                   <button onClick={() => declineRequest(r.id)}
@@ -845,7 +845,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
                 </div>
                 <span className="flex-1 text-sm text-white">{r.username}</span>
                 {friends.some(f => f.friend_id === r.user_id) ? (
-                  <span className="flex items-center gap-1 text-xs text-[#00c896]"><Check size={11} /> Ami</span>
+                  <span className="flex items-center gap-1 text-xs text-[#4a9e6a]"><Check size={11} /> Ami</span>
                 ) : sent.has(r.user_id) ? (
                   <span className="text-xs text-white/40">Demande envoyée</span>
                 ) : (
