@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 interface AvatarRingProps {
@@ -12,32 +12,47 @@ interface AvatarRingProps {
 }
 
 export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isComplete = false, className = '' }: AvatarRingProps) {
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [glowRect, setGlowRect] = useState<{ x: number; y: number } | null>(null)
   const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null)
 
-  const pad      = Math.max(3, Math.round(size * 0.07))
-  const ringW    = Math.max(2, Math.round(size * 0.06))   // ring thickness
+  // Track position for portal glow
+  useEffect(() => {
+    if (!isComplete) return
+    const update = () => {
+      if (!rootRef.current) return
+      const r = rootRef.current.getBoundingClientRect()
+      setGlowRect({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+    }
+    update()
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [isComplete])
+
+  const pad       = Math.max(3, Math.round(size * 0.07))
+  const glowExtra = Math.round(size * 0.28)
   const badgeSize = Math.max(14, Math.round(size * 0.34))
   const iconSize  = Math.max(8,  Math.round(badgeSize * 0.6))
 
   return (
-    <div className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
+    <div ref={rootRef} className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
 
+      {/* Ring (sharp, contained in size×size) */}
       {isComplete ? (
-        /* Rainbow ring — contained in size×size, glow via box-shadow inward */
-        <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none"
+        <div className="absolute inset-0 animate-spin-slow pointer-events-none"
           style={{
             borderRadius: '50%',
             background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-            /* inner mask — cover middle so only the ring edge is visible */
-            WebkitMask: `radial-gradient(circle, transparent ${50 - ringW * 2}%, black ${50 - ringW * 2 + 1}%)`,
-            mask:        `radial-gradient(circle, transparent ${50 - ringW * 2}%, black ${50 - ringW * 2 + 1}%)`,
-          }}
-        />
+          }} />
       ) : (
-        <div className="absolute inset-0 rounded-full pointer-events-none"
+        <div className="absolute inset-0 pointer-events-none"
           style={{
-            background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${xpProgress}%, rgba(255,255,255,0.08) ${xpProgress}%)`,
             borderRadius: '50%',
+            background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${xpProgress}%, rgba(255,255,255,0.08) ${xpProgress}%)`,
           }} />
       )}
 
@@ -85,6 +100,27 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
         </div>
       )}
 
+      {/* Glow via portal — échapper à tout overflow:hidden parent */}
+      {isComplete && glowRect && typeof document !== 'undefined' && createPortal(
+        <div
+          className="pointer-events-none animate-spin-slow"
+          style={{
+            position: 'fixed',
+            width: size + glowExtra * 2,
+            height: size + glowExtra * 2,
+            left: glowRect.x - size / 2 - glowExtra,
+            top:  glowRect.y - size / 2 - glowExtra,
+            borderRadius: '50%',
+            background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
+            filter: `blur(${Math.round(size * 0.22)}px)`,
+            opacity: 0.65,
+            zIndex: 0,
+          }}
+        />,
+        document.body
+      )}
+
+      {/* Tooltip via portal */}
       {tooltip && typeof document !== 'undefined' && createPortal(
         <div
           className="pointer-events-none whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-semibold"
