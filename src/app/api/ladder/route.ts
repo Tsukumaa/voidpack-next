@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { combatStats, playerCards, playerProfiles } from '@/lib/db/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { combatStats, playerCards, playerProfiles, customCards } from '@/lib/db/schema'
+import { eq, desc, sql, count } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   const type  = req.nextUrl.searchParams.get('type') ?? 'combat'
@@ -27,11 +27,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(rows)
   }
 
+  const [totalCardsRow] = await db.select({ total: count() }).from(customCards)
+  const totalAvailable = totalCardsRow?.total ?? 0
+
   // collection ladder: XP en premier, nombre de cartes en égalité
   const rows = await db
     .select({
       userId:        playerCards.userId,
       total:         sql<number>`SUM(${playerCards.count})`,
+      unique:        sql<number>`COUNT(DISTINCT ${playerCards.cardId})`,
       xp:            playerProfiles.xp,
       level:         playerProfiles.level,
       username:      playerProfiles.username,
@@ -47,7 +51,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(rows.map(r => ({
     ...r,
-    xp:    r.xp    ?? 0,
-    level: r.level ?? 1,
+    xp:              r.xp    ?? 0,
+    level:           r.level ?? 1,
+    collectionComplete: totalAvailable > 0 && (r.unique ?? 0) >= totalAvailable,
   })))
 }

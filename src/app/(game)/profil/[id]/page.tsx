@@ -239,20 +239,16 @@ export default function PlayerProfilePage() {
       <div className="sticky top-20 z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
-        {/* Ligne 1 : retour + ami */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          {/* Retour */}
           <button onClick={() => router.back()}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0"
+            className="flex items-center px-2.5 py-2 rounded-xl transition-all flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
             onMouseEnter={e => { const b = e.currentTarget; b.style.background='rgba(255,255,255,0.09)'; b.style.color='rgba(255,255,255,0.7)' }}
             onMouseLeave={e => { const b = e.currentTarget; b.style.background='rgba(255,255,255,0.05)'; b.style.color='rgba(255,255,255,0.4)' }}>
-            <ArrowLeft size={13} />
+            <ArrowLeft size={14} />
           </button>
-          <FriendButton />
-        </div>
 
-        {/* Ligne 2 : avatar + infos + XP */}
-        <div className="flex items-center gap-3">
           <AvatarRing
             avatarUrl={profile?.avatarUrl}
             username={profile?.username}
@@ -289,14 +285,15 @@ export default function PlayerProfilePage() {
           <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[80px]">
             <div className="flex items-baseline gap-1">
               <span className="text-white font-black text-sm leading-none">{xpCurrent.toLocaleString('fr-FR')}</span>
-              <span className="text-white/30 text-[10px]">XP</span>
+              <span className="text-white/30 text-[10px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
             </div>
             <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
               <div className="h-full rounded-full transition-all duration-700"
                 style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
             </div>
-            <span className="text-white/20 text-[9px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
           </div>
+
+          <FriendButton />
         </div>
       </div>
 

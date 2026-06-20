@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { AvatarRing } from '@/components/game/AvatarRing'
 import { useSocialStore } from '@/store/social'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +19,7 @@ interface LadderEntry {
   void_cards: number
   highest_rarity: string | null
   role: UserRole
+  collectionComplete?: boolean
 }
 
 interface Friend {
@@ -531,15 +533,12 @@ export default function CommunautePage() {
                     )}
                   </div>
 
-                  <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-white/10"
-                    style={entry.avatar_url ? { backgroundImage: `url(${entry.avatar_url})`, backgroundSize: 'cover' }
-                      : { background: 'linear-gradient(135deg, #7b2bff, #4a1fa8)' }}>
-                    {!entry.avatar_url && (
-                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-white">
-                        {entry.username?.[0]?.toUpperCase() ?? '?'}
-                      </div>
-                    )}
-                  </div>
+                  <AvatarRing
+                    avatarUrl={entry.avatar_url}
+                    username={entry.username}
+                    size={36}
+                    isComplete={entry.collectionComplete}
+                  />
 
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { window.location.href = `/profil/${entry.user_id}` }}>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -800,10 +799,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
             <p className="text-white/40 text-xs font-bold uppercase tracking-wider">Demandes reçues</p>
             {pendingRequests.map(r => (
               <div key={r.id} className="flex items-center gap-3 p-2 rounded-xl bg-[#7b2bff]/10 border border-[#7b2bff]/20">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex-shrink-0 flex items-center justify-center text-xs font-bold"
-                  style={r.avatar_url ? { backgroundImage: `url(${r.avatar_url})`, backgroundSize: 'cover' } : {}}>
-                  {!r.avatar_url && r.username?.[0]?.toUpperCase()}
-                </div>
+                <AvatarRing avatarUrl={r.avatar_url} username={r.username} size={32} />
                 <span className="flex-1 text-sm text-white">{r.username ?? 'Joueur'}</span>
                 <div className="flex gap-1.5">
                   <button onClick={() => acceptRequest(r.id)}
@@ -864,13 +860,10 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
             const unread = unreadBySender[f.friend_id] ?? 0
             return (
             <div key={f.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/3">
-              <div className="relative w-8 h-8 flex-shrink-0">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold"
-                  style={f.avatar_url ? { backgroundImage: `url(${f.avatar_url})`, backgroundSize: 'cover' } : {}}>
-                  {!f.avatar_url && f.username?.[0]?.toUpperCase()}
-                </div>
+              <div className="relative flex-shrink-0">
+                <AvatarRing avatarUrl={f.avatar_url} username={f.username} size={32} />
                 {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center z-10">
                     {unread > 9 ? '9+' : unread}
                   </span>
                 )}

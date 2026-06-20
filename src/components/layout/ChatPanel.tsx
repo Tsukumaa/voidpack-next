@@ -5,6 +5,7 @@ import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
 import { Send, X, Search, ArrowLeft, MessageSquare, Swords } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { AvatarRing } from '@/components/game/AvatarRing'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -48,22 +49,7 @@ function formatTime(raw: string | null) {
 }
 
 function Avatar({ src, name, size = 36 }: { src?: string | null; name?: string | null; size?: number }) {
-  if (src) return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" className="rounded-full object-cover flex-shrink-0"
-      style={{ width: size, height: size }} />
-  )
-  return (
-    <div className="rounded-full flex-shrink-0 flex items-center justify-center font-black flex-shrink-0"
-      style={{
-        width: size, height: size, fontSize: Math.round(size * 0.38),
-        background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)',
-        boxShadow: '0 0 10px rgba(123,43,255,.4)',
-        color: '#fff',
-      }}>
-      {name?.[0]?.toUpperCase() ?? '?'}
-    </div>
-  )
+  return <AvatarRing avatarUrl={src} username={name} size={size} />
 }
 
 // ── Friend Row ────────────────────────────────────────────────────────────────
