@@ -313,7 +313,7 @@ export function CombatArena({
         </div>
 
         {/* ── PLAYER BOARD ── */}
-        <div className="ca-board ca-board--player">
+        <div className={`ca-board ca-board--player${myTurn && !locked ? ' ca-board--myturn' : ''}`}>
           {myBoard.length === 0 ? (
             <span className="ca-board-empty">Joue des cartes ici</span>
           ) : myBoard.map(c => (
@@ -340,19 +340,18 @@ export function CombatArena({
               <div className="ca-hero-hpbar">
                 <div className="ca-hero-hpfill" style={{ width: `${myHpPct * 100}%`, background: myHpColor(myHpPct) }} />
               </div>
+              <div className="ca-mana-row">
+                {Array.from({ length: Math.min(myMaxMana, 10) }).map((_, i) => (
+                  <span key={i} className={`ca-mana-crystal${i < myMana ? ' active' : ''}`} />
+                ))}
+              </div>
             </div>
-            <div className="ca-hero-hp-num" style={{ color: myHpColor(myHpPct) }}>
-              {Math.max(0, myHp)}<span className="ca-hero-hp-max">/30</span>
+            <div className="ca-hero-right-col">
+              <div className="ca-hero-hp-num" style={{ color: myHpColor(myHpPct) }}>
+                {Math.max(0, myHp)}<span className="ca-hero-hp-max">/30</span>
+              </div>
+              <span className="ca-mana-lbl">✦ {myMana}/{myMaxMana}</span>
             </div>
-          </div>
-
-          <div className="ca-mana-block">
-            <div className="ca-mana-row">
-              {Array.from({ length: Math.min(myMaxMana, 10) }).map((_, i) => (
-                <span key={i} className={`ca-mana-crystal${i < myMana ? ' active' : ''}`} />
-              ))}
-            </div>
-            <span className="ca-mana-lbl">✦ {myMana}/{myMaxMana}</span>
           </div>
         </div>
 

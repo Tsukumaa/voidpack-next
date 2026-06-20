@@ -106,10 +106,9 @@
   width: 100%;
   max-width: 380px;
 }
-/* Player hero sits left-of-center to leave room for mana on the right */
+/* Player hero centered like opp */
 .ca-hero-bar--player .ca-hero-inner {
-  margin-right: auto;
-  margin-left: clamp(0px, 8vw, 140px);
+  margin: 0 auto;
 }
 
 .ca-hero-portrait {
@@ -190,26 +189,16 @@
   font-weight: 600;
 }
 
-/* Mana — dedicated block, far right of player hero bar */
-.ca-mana-block {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
-  z-index: 5;
-}
+/* Mana — inline inside hero-info */
 .ca-mana-row {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  margin-top: 2px;
 }
 .ca-mana-crystal {
-  width: 16px; height: 16px;
-  border-radius: 4px;
+  width: 13px; height: 13px;
+  border-radius: 3px;
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.08);
   transition: all .2s;
@@ -219,14 +208,24 @@
 .ca-mana-crystal.active {
   background: linear-gradient(135deg, #3a7bff, #6644ff);
   border-color: rgba(120,160,255,.6);
-  box-shadow: 0 0 8px rgba(68,102,255,.7);
+  box-shadow: 0 0 7px rgba(68,102,255,.7);
+}
+
+/* Right col: HP + mana label stacked */
+.ca-hero-right-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 .ca-mana-lbl {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #7da8ff;
   font-family: monospace;
-  text-shadow: 0 0 10px rgba(68,102,255,.6);
+  text-shadow: 0 0 8px rgba(68,102,255,.6);
+  white-space: nowrap;
 }
 
 /* Quit button in hero bar */
@@ -269,6 +268,11 @@
 .ca-board--player {
   background: radial-gradient(ellipse 60% 75% at 50% 45%, rgba(123,43,255,.06) 0%, transparent 72%);
   align-items: center;
+  transition: box-shadow .3s;
+}
+.ca-board--myturn {
+  box-shadow: inset 0 0 60px rgba(123,43,255,.12);
+  outline: 1px solid rgba(123,43,255,.2);
 }
 .ca-board-empty {
   font-size: 12px;
@@ -380,7 +384,11 @@
 }
 .ca-hand .ca-cw:first-child { margin-left: 0; }
 .ca-hand .ca-cw--playable {
-  filter: drop-shadow(0 0 7px rgba(123,43,255,.7));
+  filter: drop-shadow(0 0 9px rgba(123,43,255,.85));
+}
+.ca-hand .ca-cw--locked {
+  opacity: .25;
+  filter: grayscale(.6);
 }
 .ca-hand .ca-cw--playable:hover {
   transform: translateY(-40px) scale(1.16) !important;
