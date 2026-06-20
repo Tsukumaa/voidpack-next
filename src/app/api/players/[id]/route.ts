@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { playerProfiles, playerCards, friendships } from '@/lib/db/schema'
+import { playerProfiles, playerCards, friendships, playerDailyRewards } from '@/lib/db/schema'
 import { eq, and, or } from 'drizzle-orm'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,15 +9,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const session = await auth()
   const uid = session?.user?.id ?? null
 
-  const profile = await db.query.playerProfiles.findFirst({
-    where: eq(playerProfiles.userId, id),
-  })
+  const [profile, dailyRow, collection] = await Promise.all([
+    db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, id) }),
+    db.query.playerDailyRewards.findFirst({ where: eq(playerDailyRewards.userId, id) }),
+    db.select().from(playerCards).where(eq(playerCards.userId, id)),
+  ])
   if (!profile) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-
-  const collection = await db
-    .select()
-    .from(playerCards)
-    .where(eq(playerCards.userId, id))
 
   let friendship: { status: string; friendshipId: number | null } = { status: 'none', friendshipId: null }
   if (uid && uid !== id) {
@@ -52,7 +49,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       xp:            profile.xp,
       highestRarity: profile.highestRarity,
       favoriteCards: (profile.favoriteCards as string[] | null) ?? [],
-      currentStreak: profile.currentStreak ?? 0,
+      currentStreak: Math.max(profile.currentStreak ?? 0, dailyRow?.currentStreak ?? 0),
     },
     collection,
     friendship,
