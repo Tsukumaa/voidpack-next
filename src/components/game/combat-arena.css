@@ -596,20 +596,22 @@
 .ca-tooltip {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
-  min-width: 130px;
-  max-width: 180px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(10, 5, 25, 0.96);
-  border: 1px solid rgba(185, 124, 255, 0.25);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.7), 0 0 12px rgba(107,42,238,0.2);
+  z-index: 300;
+  min-width: 140px;
+  max-width: 200px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(8, 3, 20, 0.98);
+  border: 1px solid rgba(185, 124, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.9), 0 0 20px rgba(107,42,238,0.3);
   pointer-events: none;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
 }
+.ca-cw:hover { z-index: 200; }
 .ca-cw:hover .ca-tooltip { display: block; }
 
 /* ── Keyframes ──────────────────────────────────────────────────────── */
