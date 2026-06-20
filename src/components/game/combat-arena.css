@@ -392,7 +392,7 @@
 }
 .ca-hand .ca-cw--playable:hover {
   transform: translateY(-40px) scale(1.16) !important;
-  z-index: 20;
+  z-index: 50;
   filter: drop-shadow(0 0 14px rgba(185,124,255,1));
 }
 
@@ -479,31 +479,8 @@
   transform: translate(-50%, -50%);
 }
 
-/* ── Tooltip ────────────────────────────────────────────────────────── */
-.ca-cw:hover .ca-tooltip { opacity: 1; }
-.ca-tooltip {
-  position: absolute;
-  bottom: calc(100% + 14px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 200;
-  width: 152px;
-  background: rgba(6,2,20,.97);
-  border: 1px solid rgba(185,124,255,.28);
-  border-radius: 10px;
-  padding: 10px 12px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .15s;
-  box-shadow: 0 8px 32px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04);
-}
-.ca-tooltip-name  { font-size: 12px; font-weight: 700; color: #e8d8ff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
-.ca-tooltip-stats { display: flex; gap: 8px; margin-bottom: 4px; }
-.ca-tooltip-stat  { font-size: 11px; font-weight: 700; }
-.ca-tooltip-stat--atk  { color: #ff8860; }
-.ca-tooltip-stat--hp   { color: #50d080; }
-.ca-tooltip-stat--cost { color: #7090ff; }
-.ca-tooltip-rarity { font-size: 10px; color: rgba(185,124,255,.5); text-transform: uppercase; letter-spacing: .06em; }
+/* ── Tooltip — masqué (infos déjà visibles sur la carte) ───────────── */
+.ca-tooltip { display: none; }
 
 /* ── Keyframes ──────────────────────────────────────────────────────── */
 @keyframes ca-pulse-red-portrait {
