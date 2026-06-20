@@ -28,22 +28,26 @@ export async function POST() {
 
   const newBestStreak = Math.max(newStreak, existing?.bestStreak ?? 0)
 
+  const isStreakBonus = newStreak % 7 === 0
+
+  const inserts = [
+    db.insert(boosterCredits).values({ userId: uid, boosterType: 'void', source: 'daily_reward' }),
+  ]
+  if (isStreakBonus) {
+    inserts.push(db.insert(boosterCredits).values({ userId: uid, boosterType: 'void', source: 'streak_bonus' }))
+  }
+
   await Promise.all([
-    // Mettre à jour playerDailyRewards
     db.insert(playerDailyRewards)
       .values({ userId: uid, lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: newBestStreak })
       .onConflictDoUpdate({
         target: playerDailyRewards.userId,
         set: { lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: newBestStreak, updatedAt: now.toISOString() },
       }),
-
-    // Sauvegarder streak dans player_profiles
     db.update(playerProfiles)
       .set({ currentStreak: newStreak, bestStreak: newBestStreak, updatedAt: now.toISOString() })
       .where(eq(playerProfiles.userId, uid)),
-
-    // Donner le booster
-    db.insert(boosterCredits).values({ userId: uid, boosterType: 'void', source: 'daily_reward' }),
+    ...inserts,
   ])
 
   // Débloquer les succès de streak
@@ -58,5 +62,5 @@ export async function POST() {
       .onConflictDoNothing()
   }
 
-  return NextResponse.json({ ok: true, streak: newStreak })
+  return NextResponse.json({ ok: true, streak: newStreak, streakBonus: isStreakBonus })
 }

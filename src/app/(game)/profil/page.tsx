@@ -215,10 +215,16 @@ export default function ProfilPage() {
     try {
       const res = await fetch('/api/profile/daily', { method: 'POST' })
       if (!res.ok) throw new Error('already_claimed')
-      setClaimMsg('Booster crédité !')
+      const data = await res.json()
+      if (data.streakBonus) {
+        setClaimMsg(`🔥 Streak x${data.streak} ! +2 boosters offerts !`)
+        addToast({ type: 'streak', title: `Bonus streak ${data.streak} jours !`, body: '+2 boosters crédités sur ton compte.' })
+      } else {
+        setClaimMsg('Booster crédité !')
+      }
       load()
     } catch { setClaimMsg('Déjà réclamé aujourd\'hui.') }
-    finally { setClaiming(false); setTimeout(() => setClaimMsg(''), 3000) }
+    finally { setClaiming(false); setTimeout(() => setClaimMsg(''), 4000) }
   }
 
   async function claimMission(missionId: string) {
@@ -402,22 +408,28 @@ export default function ProfilPage() {
             </div>
 
             {/* 7 jours */}
-            <div className="px-4 pb-3 flex gap-1.5">
-              {Array.from({ length: 7 }, (_, i) => {
-                const streak = daily?.current_streak ?? 0
-                const mod = streak % 7
-                const filled = i < (mod === 0 && streak > 0 ? 7 : mod)
-                const isToday = streak > 0 && i === (mod === 0 ? 6 : mod - 1)
-                return (
-                  <div key={i} className="flex-1">
-                    <div className="w-full h-1.5 rounded-full transition-all duration-300"
-                      style={{
-                        background: filled ? '#ff9a3d' : 'rgba(255,255,255,0.07)',
-                        boxShadow: isToday ? '0 0 6px rgba(255,154,61,0.7)' : 'none',
-                      }} />
-                  </div>
-                )
-              })}
+            <div className="px-4 pb-1">
+              <div className="flex gap-1.5 mb-1.5">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const streak = daily?.current_streak ?? 0
+                  const mod = streak % 7
+                  const filled = i < (mod === 0 && streak > 0 ? 7 : mod)
+                  const isToday = streak > 0 && i === (mod === 0 ? 6 : mod - 1)
+                  const isLast = i === 6
+                  return (
+                    <div key={i} className="flex-1">
+                      <div className="w-full h-1.5 rounded-full transition-all duration-300"
+                        style={{
+                          background: filled ? (isLast ? '#ffe600' : '#ff9a3d') : 'rgba(255,255,255,0.07)',
+                          boxShadow: isToday ? `0 0 6px ${isLast ? 'rgba(255,230,0,0.8)' : 'rgba(255,154,61,0.7)'}` : 'none',
+                        }} />
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] text-right font-bold flex items-center justify-end gap-1" style={{ color: 'rgba(255,230,0,0.6)' }}>
+                <Gift size={10} /> Jour 7 = +2 boosters
+              </p>
             </div>
 
             <div className="px-4 pb-4">
