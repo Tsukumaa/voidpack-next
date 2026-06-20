@@ -14,6 +14,8 @@ export interface ArenaCard {
   currentHp: number
   cost: number
   exhausted: boolean
+  effects?: string[]
+  shieldUsed?: boolean
   image_url?: string | null
 }
 
@@ -113,6 +115,18 @@ function CombatCard({
         </div>
       )}
 
+      {/* Badges effets */}
+      {card.effects && card.effects.length > 0 && (
+        <div className="ca-effects">
+          {card.effects.includes('taunt')      && <span className="ca-fx ca-fx--taunt">PROVOC</span>}
+          {card.effects.includes('shield')     && <span className={`ca-fx ca-fx--shield${card.shieldUsed ? ' ca-fx--used' : ''}`}>⬡</span>}
+          {card.effects.includes('charge')     && <span className="ca-fx ca-fx--charge">⚡</span>}
+          {card.effects.includes('lifesteal')  && <span className="ca-fx ca-fx--lifesteal">♥</span>}
+          {card.effects.includes('void_surge') && <span className="ca-fx ca-fx--void">VOID</span>}
+          {card.effects.includes('stealth')    && <span className="ca-fx ca-fx--stealth">👁</span>}
+        </div>
+      )}
+
       {/* Tooltip */}
       <div className="ca-tooltip">
         <div className="ca-tooltip-name">{card.name}</div>
@@ -122,6 +136,17 @@ function CombatCard({
           <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
         </div>
         <div className="ca-tooltip-rarity">{card.rarity}</div>
+        {card.effects && card.effects.length > 0 && (
+          <div className="ca-tooltip-effects">
+            {card.effects.map(e => {
+              const labels: Record<string, string> = {
+                taunt: 'Provocation', charge: 'Charge', shield: 'Bouclier',
+                lifesteal: 'Vol de vie', void_surge: 'VOID Surge', stealth: 'Furtivité'
+              }
+              return <span key={e} className="ca-tooltip-effect">{labels[e] ?? e}</span>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -144,6 +169,54 @@ export function CombatArena({
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
   const arenaRef = useRef<HTMLDivElement>(null)
+
+  // Refs pour détecter les diffs de board (animations adversaire + spectateur)
+  const prevOppBoard = useRef<ArenaCard[]>([])
+  const prevMyBoard  = useRef<ArenaCard[]>([])
+  const prevOppHp    = useRef<number>(oppHp)
+  const prevMyHp     = useRef<number>(myHp)
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      prevOppBoard.current = oppBoard
+      prevMyBoard.current  = myBoard
+      prevOppHp.current    = oppHp
+      prevMyHp.current     = myHp
+      return
+    }
+    // Laisser le DOM se mettre à jour avant de chercher les éléments
+    requestAnimationFrame(() => {
+      // Dégâts sur cartes adversaire
+      for (const card of oppBoard) {
+        const prev = prevOppBoard.current.find(c => c.uid === card.uid)
+        if (prev && card.currentHp < prev.currentHp) {
+          shake(card.uid)
+          spawnDmg(getCardEl(card.uid, true), prev.currentHp - card.currentHp)
+          spawnImpact(getCardEl(card.uid, true))
+        }
+      }
+      // Dégâts sur mes cartes
+      for (const card of myBoard) {
+        const prev = prevMyBoard.current.find(c => c.uid === card.uid)
+        if (prev && card.currentHp < prev.currentHp) {
+          shake(card.uid)
+          spawnDmg(getCardEl(card.uid, false), prev.currentHp - card.currentHp)
+          spawnImpact(getCardEl(card.uid, false))
+        }
+      }
+      // Dégâts sur le visage adversaire
+      if (oppHp < prevOppHp.current) spawnDmg(getFaceEl(true), prevOppHp.current - oppHp)
+      // Dégâts sur mon visage
+      if (myHp < prevMyHp.current) spawnDmg(getFaceEl(false), prevMyHp.current - myHp)
+
+      prevOppBoard.current = oppBoard
+      prevMyBoard.current  = myBoard
+      prevOppHp.current    = oppHp
+      prevMyHp.current     = myHp
+    })
+  }) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
 
@@ -239,7 +312,12 @@ export function CombatArena({
   function handleBoardClick(card: ArenaCard, isEnemy: boolean) {
     if (locked || !myTurn) return
     if (isEnemy) {
-      if (selected && !selected.exhausted) handlePlayerAttack(selected, card)
+      if (selected && !selected.exhausted) {
+        // Stealth : ne peut pas être ciblé sauf si c'est la seule carte
+        const targetable = oppBoard.filter(c => !c.effects?.includes('stealth'))
+        if (card.effects?.includes('stealth') && targetable.length > 0) return
+        handlePlayerAttack(selected, card)
+      }
     } else {
       if (!card.exhausted) setSelected(s => s?.uid === card.uid ? null : card)
     }
@@ -310,7 +388,7 @@ export function CombatArena({
             <CombatCard
               key={String(c.uid)}
               card={c} isEnemy
-              isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
+              isAttackable={!!selected && !selected.exhausted && !locked && myTurn && (!c.effects?.includes('stealth') || oppBoard.every(c2 => c2.effects?.includes('stealth')))}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="true"
               onClick={() => handleBoardClick(c, true)}

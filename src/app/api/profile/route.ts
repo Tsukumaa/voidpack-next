@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { playerProfiles, adminUsers, playerCards, customCards } from '@/lib/db/schema'
+import { playerProfiles, adminUsers, playerCards, customCards, settings } from '@/lib/db/schema'
 import { eq, count, sql } from 'drizzle-orm'
 
 function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
@@ -37,16 +37,18 @@ export async function GET() {
 
   const uid = session.user.id
 
-  const [profile, admin, [totalRow], [uniqueRow]] = await Promise.all([
+  const [profile, admin, [totalRow], [uniqueRow], ownedArenasRow] = await Promise.all([
     db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, uid) }),
     db.query.adminUsers.findFirst({ where: eq(adminUsers.discordId, uid) }),
     db.select({ total: count() }).from(customCards),
     db.select({ unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
       .from(playerCards).where(eq(playerCards.userId, uid)),
+    db.select({ value: settings.value }).from(settings).where(eq(settings.key, `owned_arenas:${uid}`)).limit(1),
   ])
   const collectionComplete = (totalRow?.total ?? 0) > 0 && (uniqueRow?.unique ?? 0) >= (totalRow?.total ?? 0)
+  const ownedArenas: string[] = ownedArenasRow[0]?.value ? JSON.parse(ownedArenasRow[0].value) : []
 
-  return NextResponse.json({ ...toSnake(profile as unknown as Record<string, unknown>, !!admin), collection_complete: collectionComplete })
+  return NextResponse.json({ ...toSnake(profile as unknown as Record<string, unknown>, !!admin), collection_complete: collectionComplete, owned_arenas: ownedArenas })
 }
 
 export async function PATCH(req: NextRequest) {

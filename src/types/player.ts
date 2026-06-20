@@ -14,6 +14,7 @@ export interface PlayerProfile {
   twitch_login: string | null
   selected_card_back: string | null
   unlocked_card_backs: string[] | null
+  owned_arenas?: string[]
   auto_reveal?: boolean
   favorite_cards?: string[] | null
   collection_complete?: boolean

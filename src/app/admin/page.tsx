@@ -42,7 +42,7 @@ interface Card {
   combat_atk: number
   combat_hp: number
   combat_cost: number
-  combat_effects: string
+  combat_effects: string[]
   artist: string
   artistUrl: string
 }
@@ -964,6 +964,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
   const [filterRarity, setFilterRarity] = useState('')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [artists, setArtists]   = useState<{ id: number; name: string; url: string | null }[]>([])
   const [newArtistOpen, setNewArtistOpen] = useState(false)
   const [newArtist, setNewArtist] = useState({ name: '', url: '' })
@@ -978,7 +979,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: '', artist: '', artistUrl: '' }
+  const empty: Card = { name: '', family: '', rarity: 'common', image_url: '', combat_atk: 1, combat_hp: 2, combat_cost: 1, combat_effects: [], artist: '', artistUrl: '' }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1025,7 +1026,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         artist: form.artist.trim(),
         artist_url: form.artistUrl?.trim() || null,
         description: (form.description ?? '').trim(),
-        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects.split(',').map(e => e.trim()).filter(Boolean) } })
+        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } })
       }
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
@@ -1081,44 +1082,116 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{filtered.length} carte(s)</span>
-        <button onClick={() => setForm({ ...empty })} className={primaryBtnCls + ' ml-auto'}>+ Nouvelle carte</button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Toggle vue */}
+          <div className="flex rounded-xl overflow-hidden border border-white/10">
+            <button onClick={() => setViewMode('grid')}
+              className="px-3 py-1.5 text-xs font-bold transition-colors"
+              style={{ background: viewMode === 'grid' ? 'rgba(123,43,255,0.35)' : 'transparent', color: viewMode === 'grid' ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}>
+              ⊞ Cartes
+            </button>
+            <button onClick={() => setViewMode('list')}
+              className="px-3 py-1.5 text-xs font-bold transition-colors border-l border-white/10"
+              style={{ background: viewMode === 'list' ? 'rgba(123,43,255,0.35)' : 'transparent', color: viewMode === 'list' ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}>
+              ☰ Liste
+            </button>
+          </div>
+          <button onClick={() => setForm({ ...empty })} className={primaryBtnCls}>+ Nouvelle carte</button>
+        </div>
       </div>
 
       {loading ? <LoadingText /> : (
         filtered.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>Aucune carte.</p>
+        ) : viewMode === 'list' ? (
+          /* ── Vue liste ── */
+          <div className="rounded-xl overflow-hidden border border-white/[0.07]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40 w-8"></th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Nom</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Famille</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Rareté</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">⚔</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">♥</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">◆</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Effets</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c, i) => (
+                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                    <td className="px-3 py-1.5">
+                      <div className="w-6 h-8 rounded overflow-hidden bg-[#0a0612] flex-shrink-0">
+                        {c.image_url
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-white/10 text-[8px]">?</div>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-1.5 font-semibold text-white">{c.name}</td>
+                    <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '—'}</td>
+                    <td className="px-3 py-1.5">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>{c.rarity}</span>
+                    </td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#f87171' }}>{c.metadata?.combat?.atk ?? '?'}</td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#60a5fa' }}>{c.metadata?.combat?.hp ?? '?'}</td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#a78bfa' }}>{c.metadata?.combat?.cost ?? '?'}</td>
+                    <td className="px-3 py-1.5">
+                      <div className="flex gap-1 flex-wrap">
+                        {(c.metadata?.combat?.effects ?? []).map((e: string) => (
+                          <span key={e} className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-white/10 text-white/60">{e}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-1.5 text-right">
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
+                          className={iconBtnCls}><Pencil size={11} /></button>
+                        <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          /* ── Vue grille (12 par row) ── */
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
             {filtered.map(c => (
               <div
                 key={c.id}
-                className="rounded-2xl overflow-hidden flex flex-col"
+                className="rounded-xl overflow-hidden flex flex-col"
                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${RARITY_COLOR[c.rarity]}44` }}
               >
                 <div className="aspect-[0.714] relative overflow-hidden bg-[#0a0612]">
                   {c.image_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={c.image_url} alt={c.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-                    : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-2xl">?</div>
+                    : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-lg">?</div>
                   }
                   <span
-                    className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                    className="absolute top-1 left-1 text-[7px] font-bold px-1 py-0.5 rounded-full uppercase tracking-wider"
                     style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '33', backdropFilter: 'blur(8px)', border: `1px solid ${RARITY_COLOR[c.rarity]}55` }}
                   >
-                    {c.rarity}
+                    {c.rarity.slice(0, 3)}
                   </span>
-                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 flex justify-between text-[10px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
+                  <div className="absolute bottom-0 left-0 right-0 px-1 py-1 flex justify-between text-[8px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
                     <span style={{ color: '#f87171' }}>⚔{c.metadata?.combat?.atk ?? '?'}</span>
                     <span style={{ color: '#60a5fa' }}>♥{c.metadata?.combat?.hp ?? '?'}</span>
                     <span style={{ color: '#a78bfa' }}>◆{c.metadata?.combat?.cost ?? '?'}</span>
                   </div>
                 </div>
-                <div className="px-2 py-1.5 flex items-center justify-between gap-1">
-                  <span className="text-xs text-white truncate font-semibold">{c.name}</span>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: (c.metadata?.combat?.effects ?? []).join(', ') }) }}
-                      className={iconBtnCls}><Pencil size={11} /></button>
-                    <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
+                <div className="px-1 py-1 flex items-center justify-between gap-0.5">
+                  <span className="text-[9px] text-white truncate font-semibold leading-tight">{c.name}</span>
+                  <div className="flex gap-0.5 flex-shrink-0">
+                    <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-white/5 hover:bg-white/10"><Pencil size={8} /></button>
+                    <button onClick={() => del(c)}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-red-500/10 hover:bg-red-500/25 text-red-400"><X size={8} /></button>
                   </div>
                 </div>
               </div>
@@ -1146,7 +1219,37 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
             <Field label="ATK"><input type="number" min={0} value={form.combat_atk} onChange={e => setForm(f => f && ({ ...f, combat_atk: +e.target.value }))} className={inputCls} /></Field>
             <Field label="HP"><input type="number" min={1} value={form.combat_hp} onChange={e => setForm(f => f && ({ ...f, combat_hp: +e.target.value }))} className={inputCls} /></Field>
             <Field label="Coût mana"><input type="number" min={0} max={10} value={form.combat_cost} onChange={e => setForm(f => f && ({ ...f, combat_cost: +e.target.value }))} className={inputCls} /></Field>
-            <Field label="Effets (taunt, shield, charge…)"><input value={form.combat_effects} onChange={e => setForm(f => f && ({ ...f, combat_effects: e.target.value }))} className={inputCls} placeholder="taunt, shield" /></Field>
+            <div className="col-span-1 sm:col-span-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/30 mb-2">Effets</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {([
+                  { key: 'taunt',      label: 'Provocation',  desc: 'Doit être attaqué en premier', color: '#ff7820' },
+                  { key: 'charge',     label: 'Charge',        desc: 'Peut attaquer immédiatement', color: '#50c850' },
+                  { key: 'shield',     label: 'Bouclier',      desc: 'Absorbe la première attaque',  color: '#2090ff' },
+                  { key: 'lifesteal',  label: 'Vol de vie',    desc: "Soigne le héros à l'attaque", color: '#e02850' },
+                  { key: 'void_surge', label: 'VOID Surge',    desc: '1 dégât à tous les ennemis',   color: '#8200ff' },
+                  { key: 'stealth',    label: 'Furtivité',     desc: 'Ne peut pas être ciblé',       color: '#6060a0' },
+                ] as const).map(({ key, label, desc, color }) => {
+                  const checked = (form.combat_effects ?? []).includes(key)
+                  return (
+                    <label key={key} className={`flex items-start gap-2 p-2 rounded-xl border cursor-pointer transition-all ${checked ? 'border-opacity-60 bg-opacity-10' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/20'}`}
+                      style={checked ? { borderColor: color + '60', background: color + '15' } : {}}>
+                      <input type="checkbox" className="mt-0.5 accent-[#7b2bff]"
+                        checked={checked}
+                        onChange={e => setForm(f => {
+                          if (!f) return f
+                          const effects = f.combat_effects ?? []
+                          return { ...f, combat_effects: e.target.checked ? [...effects, key] : effects.filter(x => x !== key) }
+                        })} />
+                      <div>
+                        <div className="text-xs font-bold text-white" style={{ color: checked ? color : undefined }}>{label}</div>
+                        <div className="text-[10px] text-white/30 leading-tight mt-0.5">{desc}</div>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             <div className="col-span-1 sm:col-span-2">
               <Field label="URL artwork"><input value={form.image_url} onChange={e => setForm(f => f && ({ ...f, image_url: e.target.value }))} className={inputCls} placeholder="https://…" /></Field>
             </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 import { useArenaBg } from '@/lib/game/useArenaBg'
 import { Eye } from 'lucide-react'
@@ -32,7 +32,9 @@ interface SessionData {
 
 export default function SpectatePage() {
   const { id } = useParams<{ id: string }>()
-  const router  = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const focusedId    = searchParams.get('p') // l'ami qu'on suit
   const arenaBg = useArenaBg()
 
   const [session, setSession]   = useState<SessionData | null>(null)
@@ -75,13 +77,25 @@ export default function SpectatePage() {
   }, [id, gameOver, parseSession])
 
   const s = gameState as Record<string, unknown> | null
-  const p1Hp    = (s?.p1_hp as number) ?? 30
-  const p2Hp    = (s?.p2_hp as number) ?? 30
-  const p1Mana  = (s?.p1_mana as number) ?? 0
-  const p1Max   = (s?.p1_max_mana as number) ?? 0
-  const p1Board = (s?.p1_board as ArenaCard[]) ?? []
-  const p2Board = (s?.p2_board as ArenaCard[]) ?? []
-  const p1Hand  = (s?.p1_hand as ArenaCard[]) ?? []
+
+  // Orientation : l'ami suivi est "my" (bas), l'autre est "opp" (haut)
+  // Si pas de ?p= ou introuvable → p1 en bas par défaut
+  const focusIsP2 = session && focusedId === session.player2Id
+  const me  = focusIsP2 ? 'p2' : 'p1'
+  const opp = focusIsP2 ? 'p1' : 'p2'
+
+  const myHp    = (s?.[`${me}_hp`]  as number) ?? 30
+  const oppHp   = (s?.[`${opp}_hp`] as number) ?? 30
+  const myMana  = (s?.[`${me}_mana`]     as number) ?? 0
+  const myMax   = (s?.[`${me}_max_mana`] as number) ?? 0
+  const myBoard  = (s?.[`${me}_board`]  as ArenaCard[]) ?? []
+  const oppBoard = (s?.[`${opp}_board`] as ArenaCard[]) ?? []
+  const myHand   = (s?.[`${me}_hand`]   as ArenaCard[]) ?? []
+
+  const myName   = (focusIsP2 ? session?.player2Username : session?.player1Username) ?? 'Joueur'
+  const oppName  = (focusIsP2 ? session?.player1Username : session?.player2Username) ?? 'Adversaire'
+  const myAvatar  = (focusIsP2 ? session?.player2Avatar : session?.player1Avatar) ?? null
+  const oppAvatar = (focusIsP2 ? session?.player1Avatar : session?.player2Avatar) ?? null
 
   const isP1Turn = session?.currentTurn === session?.player1Id
 
@@ -125,17 +139,17 @@ export default function SpectatePage() {
       </div>
 
       <CombatArena
-        myHp={p2Hp}
-        oppHp={p1Hp}
-        myMana={p1Mana}
-        myMaxMana={p1Max}
-        myBoard={p2Board}
-        oppBoard={p1Board}
-        myHand={p1Hand}
-        myName={session.player2Username ?? 'Joueur 2'}
-        oppName={session.player1Username ?? 'Joueur 1'}
-        myAvatar={session.player2Avatar}
-        oppAvatar={session.player1Avatar}
+        myHp={myHp}
+        oppHp={oppHp}
+        myMana={myMana}
+        myMaxMana={myMax}
+        myBoard={myBoard}
+        oppBoard={oppBoard}
+        myHand={myHand}
+        myName={myName}
+        oppName={oppName}
+        myAvatar={myAvatar}
+        oppAvatar={oppAvatar}
         arenaBg={arenaBg}
         myTurn={false}
         locked={true}
