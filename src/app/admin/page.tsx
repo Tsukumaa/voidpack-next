@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -143,12 +144,12 @@ export default function AdminPage() {
           >
             ↓ Exporter seed
           </button>
-          <a href="/admin/board" className="px-4 py-2 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-sm text-[#f59e0b] hover:bg-[#f59e0b]/20 transition-colors">
+          <Link href="/admin/board" className="px-4 py-2 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-sm text-[#f59e0b] hover:bg-[#f59e0b]/20 transition-colors">
             📌 Board
-          </a>
-          <a href="/pack" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
+          </Link>
+          <Link href="/pack" className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors">
             ← Jeu
-          </a>
+          </Link>
         </div>
       </div>
 

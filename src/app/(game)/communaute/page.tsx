@@ -1,6 +1,8 @@
 'use client'
 import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
@@ -311,6 +313,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function CommunautePage() {
   const { user } = useGameStore(s => ({ user: s.user }))
+  const router = useRouter()
   const setChatFriend = useSocialStore(s => s.setChatFriend)
   const unreadMessageCount = useSocialStore(s => s.unreadMessageCount)
   const unreadBySender = useSocialStore(s => s.unreadBySender)
@@ -508,10 +511,10 @@ export default function CommunautePage() {
 
       {/* Bouton entrer dans l'arène */}
       {ladder === 'combat' && user && (
-        <a href="/combat/draft"
+        <Link href="/combat/draft"
           className="flex items-center justify-center gap-2 w-full py-3 mb-4 rounded-2xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] font-bold text-sm hover:bg-[#7b2bff]/25 transition-colors">
           <Swords size={16} /> Entrer dans l&apos;Arène
-        </a>
+        </Link>
       )}
 
       {/* Ladder XP / Combat */}
@@ -543,7 +546,7 @@ export default function CommunautePage() {
                     isComplete={entry.collectionComplete}
                   />
 
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { window.location.href = `/profil/${entry.user_id}` }}>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/profil/${entry.user_id}`)}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className={cn('font-bold text-sm truncate', isMe ? 'text-[#a78bfa]' : 'text-white')}>
                         {entry.username ?? 'Joueur'}
@@ -712,7 +715,7 @@ export default function CommunautePage() {
           onChallenge={(f) => {
             sessionStorage.setItem('challenge_friend', JSON.stringify({ id: f.friend_id, username: f.username }))
             setShowFriends(false)
-            window.location.href = '/combat/draft?mode=friendly'
+            router.push('/combat/draft?mode=friendly')
           }}
           onRefresh={() => { loadFriends(); loadPendingRequests() }}
         />
