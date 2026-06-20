@@ -67,6 +67,7 @@ export default function PlayerProfilePage() {
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [busy, setBusy]           = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const toggleSection = (r: string) => setCollapsed(prev => ({ ...prev, [r]: !prev[r] }))
 
@@ -174,10 +175,35 @@ export default function PlayerProfilePage() {
     if (isSelf || !profile) return null
     const s = friendship.status
     if (s === 'accepted') return (
-      <button onClick={removeFriend} disabled={busy}
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#00c896]/15 border border-[#00c896]/40 text-[#00c896] hover:bg-[#00c896]/25 transition-colors disabled:opacity-50 flex-shrink-0">
-        <Check size={12} /> Amis
-      </button>
+      <div className="relative flex-shrink-0">
+        <button onClick={() => setConfirmRemove(true)} disabled={busy}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#00c896]/15 border border-[#00c896]/40 text-[#00c896] hover:bg-[#00c896]/25 transition-colors disabled:opacity-50">
+          <Check size={12} /> Amis
+        </button>
+        {confirmRemove && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setConfirmRemove(false)} />
+            <div className="absolute right-0 top-full mt-2 z-50 rounded-2xl border border-white/[0.1] p-4 w-52 shadow-2xl"
+            style={{ background: 'rgba(10,6,18,0.97)', backdropFilter: 'blur(16px)' }}>
+            <p className="text-white font-bold text-sm mb-1">Retirer cet ami ?</p>
+            <p className="text-white/40 text-xs mb-3">Cette action est réversible.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmRemove(false)}
+                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-white/[0.06] border border-white/[0.08] text-white/50 hover:bg-white/[0.1] transition-colors">
+                Annuler
+              </button>
+              <button onClick={async () => { setConfirmRemove(false); await removeFriend() }}
+                className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white transition-colors"
+                style={{ background: 'rgba(220,38,38,0.2)', border: '1px solid rgba(220,38,38,0.35)', color: '#f87171' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(220,38,38,0.3)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(220,38,38,0.2)')}>
+                Retirer
+              </button>
+            </div>
+          </div>
+          </>
+        )}
+      </div>
     )
     if (s === 'pending_sent') return (
       <button disabled
