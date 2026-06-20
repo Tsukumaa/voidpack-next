@@ -963,6 +963,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [saving, setSaving]     = useState(false)
   const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
+  const [filterRarity, setFilterRarity] = useState('')
   const [artists, setArtists]   = useState<{ id: number; name: string; url: string | null }[]>([])
   const [newArtistOpen, setNewArtistOpen] = useState(false)
   const [newArtist, setNewArtist] = useState({ name: '', url: '' })
@@ -1058,7 +1059,8 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
 
   const filtered = cards.filter(c =>
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&
-    (!filterFam || c.family === filterFam)
+    (!filterFam || c.family === filterFam) &&
+    (!filterRarity || c.rarity === filterRarity)
   )
 
   return (
@@ -1073,6 +1075,10 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         <select value={filterFam} onChange={e => setFilterFam(e.target.value)} className={selectCls + ' w-44'}>
           <option value="">Toutes les familles</option>
           {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+        </select>
+        <select value={filterRarity} onChange={e => setFilterRarity(e.target.value)} className={selectCls + ' w-36'}>
+          <option value="">Toutes raretés</option>
+          {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{filtered.length} carte(s)</span>
         <button onClick={() => setForm({ ...empty })} className={primaryBtnCls + ' ml-auto'}>+ Nouvelle carte</button>
