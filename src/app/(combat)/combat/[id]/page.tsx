@@ -149,6 +149,7 @@ export default function CombatPage() {
   async function playCard(card: ArenaCard) {
     if (!myTurn || !gameState) return
     if (card.cost > myMana) { addLog('Pas assez de mana'); return }
+    if (myBoard.length >= 5) { addLog('Plateau plein !'); return }
     const newHand  = myHand.filter(c => c.uid !== card.uid)
     const newBoard = [...myBoard, { ...card, exhausted: true }]
     const newState = { ...gameState, [`${me}_hand`]: newHand, [`${me}_board`]: newBoard, [`${me}_mana`]: myMana - card.cost }

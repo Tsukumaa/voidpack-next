@@ -314,6 +314,18 @@ export const gameChallenges = sqliteTable('game_challenges', {
   index('game_challenges_challenger_idx').on(t.challengerId),
 ])
 
+// ── saved_decks ───────────────────────────────────────────────────────────────
+export const savedDecks = sqliteTable('saved_decks', {
+  id:        text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId:    text('user_id').notNull(),
+  name:      text('name').notNull(),
+  cards:     text('cards').notNull().default('[]'), // JSON SelectedEntry[]
+  totalCards: integer('total_cards').notNull().default(0),
+  totalMana:  integer('total_mana').notNull().default(0),
+  createdAt: text('created_at').notNull().default(now),
+  updatedAt: text('updated_at').notNull().default(now),
+})
+
 // ── settings ──────────────────────────────────────────────────────────────────
 export const settings = sqliteTable('settings', {
   key:   text('key').primaryKey(),
