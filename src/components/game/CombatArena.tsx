@@ -59,7 +59,6 @@ function CombatCard({
   onClick: () => void
   dataUid?: string | number
   dataEnemy?: string
-  frameSize?: 'xs' | 'sm' | 'md' | 'lg'
 }) {
   const hpPct = card.currentHp / card.hp
 
@@ -83,10 +82,7 @@ function CombatCard({
       <CardFrame
         rarity={card.rarity}
         name={card.name}
-        cost={card.cost}
-        atk={card.atk}
-        def={card.currentHp}
-        size={frameSize ?? 'lg'}
+        hideStats
         glow={isSelected || !!canAttack || !!isAttackable}
         style={{ width: '100%', height: '100%' }}
       >
@@ -98,6 +94,11 @@ function CombatCard({
           />
         ) : null}
       </CardFrame>
+
+      {/* Badges stats — taille fixe, indépendants du CardFrame */}
+      <div className="ca-badge ca-badge--cost">{card.cost}</div>
+      <div className="ca-badge ca-badge--atk">{card.atk}</div>
+      <div className="ca-badge ca-badge--def">{card.currentHp}</div>
 
       {/* HP bar below card (only on board) */}
       {!isInHand && (
@@ -142,16 +143,7 @@ export function CombatArena({
   const [dmgPopups,  setDmgPopups]  = useState<DmgPopup[]>([])
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
-  const [isMobile,   setIsMobile]   = useState(false)
   const arenaRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)')
-    setIsMobile(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
 
   useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
 
@@ -321,7 +313,6 @@ export function CombatArena({
               isAttackable={!!selected && !selected.exhausted && !locked && myTurn}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="true"
-              frameSize={isMobile ? 'xs' : 'lg'}
               onClick={() => handleBoardClick(c, true)}
             />
           ))}
@@ -367,7 +358,6 @@ export function CombatArena({
               isSelected={selected?.uid === c.uid}
               isShaking={shakingUids.has(c.uid)}
               dataUid={c.uid} dataEnemy="false"
-              frameSize={isMobile ? 'xs' : 'lg'}
               onClick={() => handleBoardClick(c, false)}
             />
           ))}
@@ -415,7 +405,6 @@ export function CombatArena({
               key={String(card.uid)}
               card={card} isEnemy={false} isInHand
               canPlay={myTurn && !locked && card.cost <= myMana}
-              frameSize={isMobile ? 'sm' : 'lg'}
               onClick={() => {
                 if (!myTurn || locked || card.cost > myMana) return
                 onPlayCard(card)
