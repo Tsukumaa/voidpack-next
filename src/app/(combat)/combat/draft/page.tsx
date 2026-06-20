@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle, Plus, Pencil, Trash2, Save, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle, Plus, Pencil, Trash2, Save, ChevronLeft, Gem, Shield } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
@@ -561,7 +561,7 @@ function DraftContent() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-white/20 text-sm">Aucune carte trouvée.</div>
       ) : (
-        <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11 gap-2 px-2 pb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 px-3 pb-8">
           {filtered.map(card => {
             const qty = getQty(card.card_id)
             const max = Math.min(MAX_COPIES[card.rarity] ?? 1, card.ownedCount)
@@ -571,7 +571,7 @@ function DraftContent() {
                 <CardHover rarity={card.rarity}
                   className={cn('relative cursor-pointer active:scale-95 transition-opacity', !ok && 'opacity-40 cursor-not-allowed')}
                   style={{ aspectRatio: '0.714', overflow: 'visible' }}>
-                  <CardFrame rarity={card.rarity} name={card.name} cost={card.cost} atk={card.atk} def={card.hp} glow={qty > 0} style={{ position: 'absolute', inset: 0 }}>
+                  <CardFrame rarity={card.rarity} name={card.name} hideStats glow={qty > 0} style={{ position: 'absolute', inset: 0 }}>
                     <button onClick={() => add(card)} disabled={!ok} title={!ok ? reason : undefined} className="absolute inset-0 w-full h-full">
                       {card.image_url ? <CardMedia src={card.image_url} alt={card.name} /> : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -580,35 +580,26 @@ function DraftContent() {
                       )}
                     </button>
                   </CardFrame>
-                  {/* Effets au hover — en dehors de CardFrame pour échapper overflow:hidden */}
-                  {card.effects && card.effects.length > 0 && (
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex flex-col justify-end pointer-events-none rounded-xl overflow-hidden">
-                      <div className="flex flex-wrap gap-1 p-1.5" style={{ background: 'linear-gradient(to top, rgba(5,2,18,0.92) 60%, transparent)' }}>
-                        {(() => {
-                          const EFFECT_LABELS: Record<string, { label: string; color: string; border: string }> = {
-                            taunt:      { label: 'Provocation', color: '#ffaa55', border: 'rgba(255,120,0,.4)' },
-                            charge:     { label: 'Charge',      color: '#7edc7e', border: 'rgba(80,200,80,.4)' },
-                            shield:     { label: 'Bouclier',    color: '#7ec4ff', border: 'rgba(60,160,255,.4)' },
-                            lifesteal:  { label: 'Vol de vie',  color: '#ff7090', border: 'rgba(220,40,80,.4)' },
-                            void_surge: { label: 'VOID Surge',  color: '#c070ff', border: 'rgba(130,0,255,.4)' },
-                            stealth:    { label: 'Furtivité',   color: '#aaaacc', border: 'rgba(100,100,140,.4)' },
-                          }
-                          return card.effects.map(e => {
-                            const def = EFFECT_LABELS[e]
-                            if (!def) return null
-                            return <span key={e} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(10,5,25,0.85)', color: def.color, border: `1px solid ${def.border}`, lineHeight: 1.3 }}>{def.label}</span>
-                          })
-                        })()}
-                      </div>
-                    </div>
-                  )}
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
                   )}
-                  <div className="absolute -bottom-5 left-0 right-0 text-center">
-                    <span className="text-[9px] text-white/30">{qty}/{max} · {card.ownedCount}×</span>
+                  {/* Stats sous la carte — même style que collection */}
+                  <div className="absolute left-0 right-0 flex items-center justify-center gap-1" style={{ top: '100%', marginTop: 6 }}>
+                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border text-white/80"
+                      style={{ borderColor: RARITY_COLOR[card.rarity] + '55' }} title="Coût">
+                      <Gem size={11} style={{ color: RARITY_COLOR[card.rarity] }} />{card.cost}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="Attaque">
+                      <Sword size={11} className="text-rose-300/90" />{card.atk}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold font-mono bg-white/[0.05] border border-white/10 text-white/80" title="HP">
+                      <Shield size={11} className="text-sky-300/90" />{card.hp}
+                    </span>
                   </div>
                 </CardHover>
+                <div className="mt-1 text-center">
+                  <span className="text-[9px] text-white/25">{qty}/{max}</span>
+                </div>
                 {qty > 0 && (
                   <button onClick={() => remove(card.card_id)}
                     className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center hover:bg-red-500 transition-colors z-30">
