@@ -15,6 +15,7 @@ export const playerProfiles = sqliteTable('player_profiles', {
   voidPulls:     integer('void_pulls').notNull().default(0),
   currentStreak: integer('current_streak').notNull().default(0),
   bestStreak:    integer('best_streak').notNull().default(0),
+  mana:          integer('mana').notNull().default(0),
   twitchId:      text('twitch_id').unique(),
   twitchLogin:   text('twitch_login'),
   autoReveal:    integer('auto_reveal', { mode: 'boolean' }).notNull().default(false),

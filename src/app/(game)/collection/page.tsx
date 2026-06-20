@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon } from 'lucide-react'
+import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, Plus, Minus, X, ShoppingBag } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
@@ -56,6 +56,13 @@ interface GroupedCard {
   artistUrl: string | null
 }
 
+const MANA_PER_RARITY: Record<string, number> = {
+  common: 5, rare: 20, epic: 80, legendary: 200, void: 500,
+}
+const BOOSTER_COST = 200
+
+interface TradeModal { card: GroupedCard; qty: number }
+
 export default function CollectionPage() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const [cards, setCards]         = useState<GroupedCard[]>([])
@@ -67,7 +74,17 @@ export default function CollectionPage() {
   const [ovVisible, setOvVisible] = useState<Record<string, boolean>>({})
   const [famOpen, setFamOpen]     = useState(false)
   const [showRates, setShowRates] = useState(false)
+  const [mana, setMana]           = useState(0)
+  const [trade, setTrade]         = useState<TradeModal | null>(null)
+  const [trading, setTrading]     = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
+  const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null)
   const famRef                    = useRef<HTMLDivElement>(null)
+
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -87,11 +104,13 @@ export default function CollectionPage() {
     if (!user) return
     setLoading(true)
 
-    const [rawCards, cardDefs, famData] = await Promise.all([
+    const [rawCards, cardDefs, famData, profileData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
+      fetch('/api/profile').then(r => r.ok ? r.json() : null),
     ])
+    if (profileData?.mana != null) setMana(profileData.mana)
 
     const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
     for (const d of cardDefs ?? []) {
@@ -164,6 +183,36 @@ export default function CollectionPage() {
 
   useEffect(() => { load() }, [load])
 
+  const handleTrade = async () => {
+    if (!trade || trading) return
+    setTrading(true)
+    const res = await fetch('/api/mana/trade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId: trade.card.card_id, quantity: trade.qty }),
+    })
+    const data = await res.json()
+    setTrading(false)
+    if (!res.ok) { showToast(data.error ?? 'Erreur', false); return }
+    setMana(data.manaTotal)
+    setCards(prev => prev.map(c =>
+      c.card_id === trade.card.card_id ? { ...c, count: c.count - trade.qty } : c
+    ))
+    showToast(`+${data.manaGain} mana !`)
+    setTrade(null)
+  }
+
+  const handleRedeem = async () => {
+    if (redeeming || mana < BOOSTER_COST) return
+    setRedeeming(true)
+    const res = await fetch('/api/mana/redeem', { method: 'POST' })
+    const data = await res.json()
+    setRedeeming(false)
+    if (!res.ok) { showToast(data.error ?? 'Erreur', false); return }
+    setMana(data.manaRemaining)
+    showToast('Booster ajouté à tes crédits !')
+  }
+
   const filtered = filter === 'all' ? cards : cards.filter(c => c.rarity === filter || c.family === filter)
 
   const rarityGroups = RARITY_ORDER.filter(r => filtered.some(c => c.rarity === r))
@@ -178,9 +227,32 @@ export default function CollectionPage() {
     <div className="pb-4 max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="sticky top-20 z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <h2 className="font-bold text-white text-base">Ma collection</h2>
-          <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} cartes · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
+        <div className="flex items-center justify-between gap-3 mb-3 px-4">
+          <div className="flex items-center gap-3">
+            <h2 className="font-bold text-white text-base">Ma collection</h2>
+            <span className="text-white/40 text-xs">{cards.filter(c => c.owned).length} / {cards.length} · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
+          </div>
+          {/* Mana bar */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              style={{ background: 'rgba(123,43,255,0.12)', border: '1px solid rgba(123,43,255,0.25)' }}>
+              <Flame size={13} className="text-[#a78bfa]" />
+              <span className="text-[#a78bfa] font-black text-sm">{mana.toLocaleString('fr-FR')}</span>
+              <span className="text-white/30 text-xs">mana</span>
+            </div>
+            <button
+              onClick={handleRedeem}
+              disabled={mana < BOOSTER_COST || redeeming}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={mana >= BOOSTER_COST
+                ? { background: 'linear-gradient(135deg,#7b2bff,#a855f7)', color: '#fff', boxShadow: '0 0 12px rgba(123,43,255,0.4)' }
+                : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
+              title={`Obtenir 1 booster pour ${BOOSTER_COST} mana`}
+            >
+              <ShoppingBag size={12} />
+              Booster — {BOOSTER_COST}
+            </button>
+          </div>
         </div>
 
         {/* Filtres */}
@@ -313,6 +385,16 @@ export default function CollectionPage() {
                       </div>
                     ) : (
                     <div key={card.card_id} className="flex flex-col">
+                    {card.count > 1 && (
+                      <button
+                        onClick={() => setTrade({ card, qty: 1 })}
+                        className="mb-1.5 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold transition-all hover:opacity-90 active:scale-95"
+                        style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
+                      >
+                        <Flame size={10} />
+                        Recycler · +{MANA_PER_RARITY[card.rarity] ?? 5} mana
+                      </button>
+                    )}
                     <CardHover
                       rarity={card.rarity}
                       className="relative cursor-pointer active:scale-95"
@@ -393,6 +475,82 @@ export default function CollectionPage() {
           artistUrl={selected.artistUrl}
           onClose={() => setSelected(null)}
         />
+      )}
+
+      {/* Modal recyclage */}
+      {trade && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setTrade(null) }}>
+          <div className="w-full max-w-sm rounded-2xl p-5 flex flex-col gap-4"
+            style={{ background: '#0e0a1f', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.8)' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-black text-base">{trade.card.name}</p>
+                <p className="text-white/40 text-xs capitalize mt-0.5">{trade.card.rarity} · {trade.card.count - 1} exemplaire{trade.card.count - 1 > 1 ? 's' : ''} recyclable{trade.card.count - 1 > 1 ? 's' : ''}</p>
+              </div>
+              <button onClick={() => setTrade(null)} className="text-white/30 hover:text-white/70 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Sélecteur quantité */}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-xl"
+              style={{ background: 'rgba(123,43,255,0.08)', border: '1px solid rgba(123,43,255,0.18)' }}>
+              <button
+                onClick={() => setTrade(t => t && t.qty > 1 ? { ...t, qty: t.qty - 1 } : t)}
+                disabled={trade.qty <= 1}
+                className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10">
+                <Minus size={14} className="text-white" />
+              </button>
+              <div className="flex flex-col items-center">
+                <span className="text-white font-black text-xl">{trade.qty}</span>
+                <span className="text-white/30 text-[10px]">exemplaire{trade.qty > 1 ? 's' : ''}</span>
+              </div>
+              <button
+                onClick={() => setTrade(t => t && t.qty < t.card.count - 1 ? { ...t, qty: t.qty + 1 } : t)}
+                disabled={trade.qty >= trade.card.count - 1}
+                className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10">
+                <Plus size={14} className="text-white" />
+              </button>
+            </div>
+
+            {/* Résumé gain */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-white/50 text-sm">Tu gardes</span>
+              <span className="text-white font-bold text-sm">{trade.card.count - trade.qty} exemplaire{trade.card.count - trade.qty > 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center justify-between px-1">
+              <span className="text-white/50 text-sm">Tu gagnes</span>
+              <div className="flex items-center gap-1.5">
+                <Flame size={14} className="text-[#a78bfa]" />
+                <span className="text-[#a78bfa] font-black text-lg">{(MANA_PER_RARITY[trade.card.rarity] ?? 5) * trade.qty}</span>
+                <span className="text-white/40 text-sm">mana</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleTrade}
+              disabled={trading}
+              className="w-full py-3 rounded-xl font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#7b2bff,#a855f7)', color: '#fff', boxShadow: '0 0 20px rgba(123,43,255,0.4)' }}>
+              {trading ? 'Recyclage…' : `Recycler ${trade.qty} carte${trade.qty > 1 ? 's' : ''}`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl text-sm font-bold shadow-xl pointer-events-none transition-all"
+          style={{
+            background: toast.ok ? 'rgba(0,200,150,0.15)' : 'rgba(255,60,60,0.15)',
+            border: `1px solid ${toast.ok ? 'rgba(0,200,150,0.4)' : 'rgba(255,60,60,0.4)'}`,
+            color: toast.ok ? '#00c896' : '#ff6b6b',
+            backdropFilter: 'blur(12px)',
+          }}>
+          {toast.msg}
+        </div>
       )}
     </div>
   )

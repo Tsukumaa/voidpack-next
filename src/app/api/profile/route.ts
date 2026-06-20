@@ -15,6 +15,7 @@ function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
     packs_opened:        p.packsOpened,
     highest_rarity:      p.highestRarity,
     void_pulls:          p.voidPulls,
+    mana:                p.mana ?? 0,
     current_streak:      p.currentStreak,
     best_streak:         p.bestStreak,
     twitch_id:           p.twitchId,
