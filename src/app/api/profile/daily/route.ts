@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { playerDailyRewards, boosterCredits } from '@/lib/db/schema'
+import { playerDailyRewards, boosterCredits, playerProfiles, playerAchievements } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 export async function POST() {
@@ -26,19 +26,37 @@ export async function POST() {
 
   const newStreak = lastWasYesterday ? (existing?.currentStreak ?? 0) + 1 : 1
 
-  await db.insert(playerDailyRewards)
-    .values({ userId: uid, lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: Math.max(newStreak, existing?.bestStreak ?? 0) })
-    .onConflictDoUpdate({
-      target: playerDailyRewards.userId,
-      set: { lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: Math.max(newStreak, existing?.bestStreak ?? 0), updatedAt: now.toISOString() },
-    })
+  const newBestStreak = Math.max(newStreak, existing?.bestStreak ?? 0)
 
-  // Give a booster credit
-  await db.insert(boosterCredits).values({
-    userId:      uid,
-    boosterType: 'void',
-    source:      'daily_reward',
-  })
+  await Promise.all([
+    // Mettre à jour playerDailyRewards
+    db.insert(playerDailyRewards)
+      .values({ userId: uid, lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: newBestStreak })
+      .onConflictDoUpdate({
+        target: playerDailyRewards.userId,
+        set: { lastClaimAt: now.toISOString(), currentStreak: newStreak, bestStreak: newBestStreak, updatedAt: now.toISOString() },
+      }),
+
+    // Sauvegarder streak dans player_profiles
+    db.update(playerProfiles)
+      .set({ currentStreak: newStreak, bestStreak: newBestStreak, updatedAt: now.toISOString() })
+      .where(eq(playerProfiles.userId, uid)),
+
+    // Donner le booster
+    db.insert(boosterCredits).values({ userId: uid, boosterType: 'void', source: 'daily_reward' }),
+  ])
+
+  // Débloquer les succès de streak
+  const streakAchievements: string[] = []
+  if (newStreak >= 3)  streakAchievements.push('streak_3')
+  if (newStreak >= 7)  streakAchievements.push('streak_7')
+  if (newStreak >= 30) streakAchievements.push('streak_30')
+
+  if (streakAchievements.length) {
+    await db.insert(playerAchievements)
+      .values(streakAchievements.map(id => ({ userId: uid, achievementId: id })))
+      .onConflictDoNothing()
+  }
 
   return NextResponse.json({ ok: true, streak: newStreak })
 }

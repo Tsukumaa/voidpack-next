@@ -321,16 +321,12 @@ export default function ProfilPage() {
                 const filled = i < (mod === 0 && streak > 0 ? 7 : mod)
                 const isToday = streak > 0 && i === (mod === 0 ? 6 : mod - 1)
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div key={i} className="flex-1">
                     <div className="w-full h-1.5 rounded-full transition-all duration-300"
                       style={{
                         background: filled ? '#ff9a3d' : 'rgba(255,255,255,0.07)',
                         boxShadow: isToday ? '0 0 6px rgba(255,154,61,0.7)' : 'none',
                       }} />
-                    <span className="text-[9px] font-bold"
-                      style={{ color: filled ? 'rgba(255,154,61,0.7)' : 'rgba(255,255,255,0.15)' }}>
-                      {['L','M','M','J','V','S','D'][i]}
-                    </span>
                   </div>
                 )
               })}
