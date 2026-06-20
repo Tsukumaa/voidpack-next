@@ -12,5 +12,9 @@ export async function GET() {
     where: eq(playerDailyRewards.userId, session.user.id),
   })
 
-  return NextResponse.json({ currentStreak: row?.currentStreak ?? 0 })
+  return NextResponse.json({
+    currentStreak: row?.currentStreak ?? 0,
+    bestStreak:    row?.bestStreak ?? 0,
+    lastClaimAt:   row?.lastClaimAt ?? null,
+  })
 }

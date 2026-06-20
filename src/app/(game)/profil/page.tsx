@@ -1,5 +1,5 @@
 'use client'
-import { Target, Tv2, Flame } from 'lucide-react'
+import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
@@ -136,7 +136,7 @@ export default function ProfilPage() {
     try {
       const res = await fetch('/api/profile/daily', { method: 'POST' })
       if (!res.ok) throw new Error('already_claimed')
-      setClaimMsg('✅ Booster crédité !')
+      setClaimMsg('Booster crédité !')
       load()
     } catch { setClaimMsg('Déjà réclamé aujourd\'hui.') }
     finally { setClaiming(false); setTimeout(() => setClaimMsg(''), 3000) }
@@ -292,9 +292,9 @@ export default function ProfilPage() {
             style={{ background: 'linear-gradient(135deg, rgba(255,154,61,0.07) 0%, rgba(123,43,255,0.05) 100%)' }}>
 
             <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl"
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(255,154,61,0.15)', border: '1px solid rgba(255,154,61,0.25)' }}>
-                🔥
+                <Flame size={22} style={{ color: '#ff9a3d' }} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5">
@@ -338,7 +338,9 @@ export default function ProfilPage() {
                 style={canClaim
                   ? { background: 'rgba(255,154,61,0.15)', color: '#ff9a3d', border: '1px solid rgba(255,154,61,0.3)' }
                   : { background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'not-allowed' }}>
-                {claiming ? '…' : canClaim ? 'Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
+                {claiming ? '…' : canClaim
+                  ? <><PackagePlus size={15} />Réclamer mon booster quotidien</>
+                  : <><Check size={14} />Déjà réclamé aujourd&apos;hui</>}
               </button>
               {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
             </div>
@@ -366,9 +368,9 @@ export default function ProfilPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="text-white text-xs font-bold truncate">{mission.label}</span>
-                        <span className="text-[10px] flex-shrink-0 font-black"
+                        <span className="flex items-center gap-0.5 text-[10px] flex-shrink-0 font-black"
                           style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : 'rgba(167,139,250,0.7)' }}>
-                          {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
+                          {claimed && <Check size={10} />}{claimed ? 'Réclamé' : `+${mission.xp} XP`}
                         </span>
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
@@ -444,15 +446,17 @@ export default function ProfilPage() {
 
                 <div className="p-4 flex items-center gap-4">
                   <div className="relative flex-shrink-0">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center"
                       style={{
                         background: claimed ? 'rgba(0,200,150,0.15)' : completed ? 'rgba(255,154,61,0.15)' : 'rgba(255,255,255,0.06)',
                       }}>
-                      {claimed ? '✅' : mission.icon}
+                      {claimed
+                        ? <CheckCircle2 size={20} style={{ color: '#00c896' }} />
+                        : <Target size={18} style={{ color: completed ? '#ff9a3d' : 'rgba(255,255,255,0.4)' }} />}
                     </div>
                     {completed && !claimed && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff9a3d] flex items-center justify-center animate-pulse">
-                        <span className="text-[8px] text-white font-black">!</span>
+                        <span className="text-[8px] text-white font-black leading-none">!</span>
                       </div>
                     )}
                   </div>
@@ -460,9 +464,9 @@ export default function ProfilPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <p className="text-white font-black text-sm">{mission.label}</p>
-                      <span className="text-xs font-black flex-shrink-0"
+                      <span className="flex items-center gap-1 text-xs font-black flex-shrink-0"
                         style={{ color: claimed ? '#00c896' : completed ? '#ff9a3d' : '#a78bfa' }}>
-                        {claimed ? '✓ Réclamé' : `+${mission.xp} XP`}
+                        {claimed && <Check size={11} />}{claimed ? 'Réclamé' : `+${mission.xp} XP`}
                       </span>
                     </div>
                     <p className="text-white/40 text-xs mb-2">{mission.desc}</p>
@@ -488,7 +492,7 @@ export default function ProfilPage() {
                       disabled={claimingMission === mission.id}
                       className="w-full py-2.5 rounded-xl text-sm font-black text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       style={{ background: 'linear-gradient(135deg,#ff9a3d,#e07820)', boxShadow: '0 0 16px rgba(255,154,61,0.3)' }}>
-                      {claimingMission === mission.id ? '…' : `🎁 Réclamer +${mission.xp} XP`}
+                      {claimingMission === mission.id ? '…' : <><Gift size={14} />Réclamer +{mission.xp} XP</>}
                     </button>
                   </div>
                 )}
@@ -520,7 +524,7 @@ export default function ProfilPage() {
                   </div>
                   <div className="flex-shrink-0 text-right">
                     {unlocked
-                      ? <span className="text-[#00c896] text-xs font-bold">✓</span>
+                      ? <Check size={14} style={{ color: '#00c896' }} />
                       : <span className="text-[#a78bfa] text-xs">+{a.xp} XP</span>
                     }
                   </div>
