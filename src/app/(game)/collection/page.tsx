@@ -250,7 +250,7 @@ export default function CollectionPage() {
               title={`Obtenir 1 booster pour ${BOOSTER_COST} mana`}
             >
               <ShoppingBag size={12} />
-              <span className="hidden sm:inline">Booster —</span> {BOOSTER_COST}
+              <span className="hidden sm:inline">Booster</span> ({BOOSTER_COST} mana)
             </button>
           </div>
         </div>
