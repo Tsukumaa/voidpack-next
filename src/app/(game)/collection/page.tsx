@@ -59,7 +59,7 @@ interface GroupedCard {
 const MANA_PER_RARITY: Record<string, number> = {
   common: 1, rare: 2, epic: 3, legendary: 4, void: 5,
 }
-const BOOSTER_COST = 500
+const BOOSTER_COST = 300
 
 interface TradeModal { card: GroupedCard; qty: number }
 
@@ -385,15 +385,20 @@ export default function CollectionPage() {
                       </div>
                     ) : (
                     <div key={card.card_id} className="flex flex-col">
-                    {card.count > 1 && (
+                    {card.count > 1 ? (
                       <button
                         onClick={() => setTrade({ card, qty: 1 })}
                         className="mb-1.5 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold transition-all hover:opacity-90 active:scale-95"
                         style={{ background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.3)', color: '#a78bfa' }}
                       >
                         <Flame size={10} />
-                        Recycler (+{MANA_PER_RARITY[card.rarity] ?? 5} mana)
+                        Recycler · +{MANA_PER_RARITY[card.rarity] ?? 1} mana
                       </button>
+                    ) : (
+                      <div className="mb-1.5 flex items-center justify-center py-1 rounded-lg text-[10px] font-bold"
+                        style={{ background: 'rgba(255,60,60,0.08)', border: '1px solid rgba(255,60,60,0.25)', color: 'rgba(255,100,100,0.55)' }}>
+                        Pas assez d&apos;exemplaires
+                      </div>
                     )}
                     <CardHover
                       rarity={card.rarity}
