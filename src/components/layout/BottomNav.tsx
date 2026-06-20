@@ -31,13 +31,17 @@ export function BottomNav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                'relative flex flex-col items-center justify-center gap-0.5 min-h-[54px] rounded-[18px] transition-all',
-                isActive
-                  ? 'bg-white/7 text-white shadow-[inset_0_0_22px_rgba(123,43,255,0.12)]'
-                  : 'text-white/45 hover:text-white/70'
+                'relative flex flex-col items-center justify-center gap-1 min-h-[54px] rounded-[18px] transition-all duration-200',
+                isActive ? 'text-white' : 'text-white/35 hover:text-white/60'
               )}
             >
-              <div className="relative">
+              {/* Indicateur actif */}
+              {isActive && (
+                <span className="absolute top-2 w-5 h-0.5 rounded-full bg-[#7b2bff]"
+                  style={{ boxShadow: '0 0 8px rgba(123,43,255,0.8)' }} />
+              )}
+
+              <div className="relative mt-2">
                 {tab.icon}
                 {tab.badge > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center">
@@ -45,7 +49,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className="text-[11px] font-semibold">{tab.label}</span>
+              <span className={cn('text-[11px] transition-all', isActive ? 'font-bold' : 'font-medium')}>{tab.label}</span>
             </Link>
           )
         })}
