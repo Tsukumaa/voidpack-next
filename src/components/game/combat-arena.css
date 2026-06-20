@@ -253,7 +253,6 @@
 /* ── Boards ──────────────────────────────────────────────────────────── */
 .ca-board {
   flex: 1 1 0;
-  max-height: clamp(200px, 28vh, 310px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,11 +264,11 @@
 }
 .ca-board--enemy {
   background: radial-gradient(ellipse 60% 75% at 50% 55%, rgba(255,40,40,.05) 0%, transparent 72%);
-  align-items: flex-end;
+  align-items: center;
 }
 .ca-board--player {
   background: radial-gradient(ellipse 60% 75% at 50% 45%, rgba(123,43,255,.06) 0%, transparent 72%);
-  align-items: flex-start;
+  align-items: center;
 }
 .ca-board-empty {
   font-size: 12px;
@@ -440,10 +439,9 @@
 .ca-log {
   font-size: 11px;
   color: rgba(200,175,255,.65);
-  padding: 5px 14px;
+  padding: 8px 14px;
   text-align: center;
   background: rgba(0,0,0,.5);
-  min-height: 26px;
   letter-spacing: .03em;
   border-top: 1px solid rgba(123,43,255,.06);
   text-shadow: 0 0 20px rgba(185,124,255,.3);
