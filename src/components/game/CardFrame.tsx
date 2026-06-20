@@ -8,33 +8,33 @@ const RARITY: Record<string, {
   fullart: boolean
 }> = {
   common: {
-    b1:'#8a8f9e', b2:'#b0b5c2', b3:'#6a6f7e',
-    glow:'#9ca3af', bg1:'#0e0f14', bg2:'#0a0b10',
-    orb1:'#1e2030', orb2:'#2a2d3a', orb3:'#1e2030',
+    b1:'#6a7060', b2:'#9aaa88', b3:'#4a5040',
+    glow:'#8a9a78', bg1:'#0a0e08', bg2:'#080c06',
+    orb1:'#141a10', orb2:'#1c2418', orb3:'#141a10',
     fullart: false,
   },
   rare: {
-    b1:'#1a4a9e', b2:'#60a5fa', b3:'#0f2d7a',
-    glow:'#3b82f6', bg1:'#080c1a', bg2:'#060a14',
-    orb1:'#0a1a40', orb2:'#0f2255', orb3:'#200a30',
+    b1:'#2a6a8a', b2:'#5ab0d8', b3:'#1a4a6a',
+    glow:'#4a9ac8', bg1:'#060c10', bg2:'#040a0e',
+    orb1:'#081828', orb2:'#0a2035', orb3:'#101828',
     fullart: false,
   },
   epic: {
-    b1:'#8a1a4a', b2:'#ec4899', b3:'#5a0f2e',
-    glow:'#ec4899', bg1:'#0f0608', bg2:'#0a0406',
-    orb1:'#2a0a18', orb2:'#3a1228', orb3:'#300a20',
+    b1:'#6a2a8a', b2:'#b06adc', b3:'#4a1a6a',
+    glow:'#9050cc', bg1:'#0a0610', bg2:'#08040e',
+    orb1:'#180a28', orb2:'#221038', orb3:'#1a0830',
     fullart: true,
   },
   legendary: {
-    b1:'#c8a84b', b2:'#f5d97a', b3:'#8b6914',
-    glow:'#f59e0b', bg1:'#0f0c06', bg2:'#0a0804',
-    orb1:'#2a1a00', orb2:'#1a2060', orb3:'#3d0a0a',
+    b1:'#c8a84b', b2:'#f0d070', b3:'#8b6914',
+    glow:'#d4a843', bg1:'#0e0c04', bg2:'#0a0802',
+    orb1:'#221800', orb2:'#2a1e00', orb3:'#1e1000',
     fullart: true,
   },
   void: {
-    b1:'#5a1aee', b2:'#c084fc', b3:'#3a0acc',
-    glow:'#7b2bff', bg1:'#06020f', bg2:'#04010c',
-    orb1:'#1a0050', orb2:'#0a003a', orb3:'#2a0060',
+    b1:'#1a5a30', b2:'#5ecf8a', b3:'#0e3a1e',
+    glow:'#2d7a4f', bg1:'#020e06', bg2:'#010a04',
+    orb1:'#051408', orb2:'#081c0c', orb3:'#061008',
     fullart: true,
   },
 }
