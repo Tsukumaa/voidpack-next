@@ -11,43 +11,35 @@ interface AvatarRingProps {
   className?: string
 }
 
+const RAINBOW = 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)'
+
 export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isComplete = false, className = '' }: AvatarRingProps) {
-  const rootRef = useRef<HTMLDivElement>(null)
-  const [glowRect, setGlowRect] = useState<{ x: number; y: number } | null>(null)
+  const badgeRef = useRef<HTMLDivElement>(null)
   const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null)
 
-  // Track position for portal glow
-  useEffect(() => {
-    if (!isComplete) return
-    const update = () => {
-      if (!rootRef.current) return
-      const r = rootRef.current.getBoundingClientRect()
-      setGlowRect({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
-    }
-    update()
-    window.addEventListener('scroll', update, true)
-    window.addEventListener('resize', update)
-    return () => {
-      window.removeEventListener('scroll', update, true)
-      window.removeEventListener('resize', update)
-    }
-  }, [isComplete])
-
   const pad       = Math.max(3, Math.round(size * 0.07))
-  const glowExtra = Math.round(size * 0.28)
+  const blurPx    = Math.max(4, Math.round(size * 0.13))
   const badgeSize = Math.max(14, Math.round(size * 0.34))
   const iconSize  = Math.max(8,  Math.round(badgeSize * 0.6))
 
   return (
-    <div ref={rootRef} className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
+    <div className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
 
-      {/* Ring (sharp, contained in size×size) */}
       {isComplete ? (
-        <div className="absolute inset-0 animate-spin-slow pointer-events-none"
-          style={{
-            borderRadius: '50%',
-            background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-          }} />
+        <>
+          {/* Glow ring — flou, contenu dans la boîte */}
+          <div className="absolute animate-spin-slow pointer-events-none"
+            style={{
+              inset: -blurPx * 0.3,
+              borderRadius: '50%',
+              background: RAINBOW,
+              filter: `blur(${blurPx}px)`,
+              opacity: 0.85,
+            }} />
+          {/* Sharp ring par-dessus */}
+          <div className="absolute inset-0 animate-spin-slow pointer-events-none"
+            style={{ borderRadius: '50%', background: RAINBOW }} />
+        </>
       ) : (
         <div className="absolute inset-0 pointer-events-none"
           style={{
@@ -56,7 +48,7 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
           }} />
       )}
 
-      {/* Separator */}
+      {/* Séparateur */}
       <div className="absolute rounded-full bg-[#0a0612] pointer-events-none"
         style={{ inset: pad - 1, borderRadius: '50%' }} />
 
@@ -79,6 +71,7 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
       {/* Badge ★ */}
       {isComplete && (
         <div
+          ref={badgeRef}
           className="absolute flex items-center justify-center rounded-full cursor-default"
           style={{
             width: badgeSize, height: badgeSize,
@@ -100,27 +93,7 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
         </div>
       )}
 
-      {/* Glow via portal — échapper à tout overflow:hidden parent */}
-      {isComplete && glowRect && typeof document !== 'undefined' && createPortal(
-        <div
-          className="pointer-events-none animate-spin-slow"
-          style={{
-            position: 'fixed',
-            width: size + glowExtra * 2,
-            height: size + glowExtra * 2,
-            left: glowRect.x - size / 2 - glowExtra,
-            top:  glowRect.y - size / 2 - glowExtra,
-            borderRadius: '50%',
-            background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-            filter: `blur(${Math.round(size * 0.22)}px)`,
-            opacity: 0.65,
-            zIndex: 0,
-          }}
-        />,
-        document.body
-      )}
-
-      {/* Tooltip via portal */}
+      {/* Tooltip portal */}
       {tooltip && typeof document !== 'undefined' && createPortal(
         <div
           className="pointer-events-none whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-semibold"
