@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface AvatarRingProps {
   avatarUrl?: string | null
@@ -11,7 +12,7 @@ interface AvatarRingProps {
 }
 
 export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isComplete = false, className = '' }: AvatarRingProps) {
-  const [showTooltip, setShowTooltip] = useState(false)
+  const [tooltip, setTooltip] = useState<{ x: number; y: number } | null>(null)
   const pad = Math.max(3, Math.round(size * 0.07))
   const badgeSize = Math.max(14, Math.round(size * 0.34))
   const iconSize  = Math.max(8, Math.round(badgeSize * 0.6))
@@ -21,7 +22,6 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
 
       {isComplete ? (
         <>
-          {/* Glow */}
           <div className="absolute rounded-full animate-spin-slow pointer-events-none"
             style={{
               inset: -pad,
@@ -30,7 +30,6 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
               opacity: 0.75,
               borderRadius: '50%',
             }} />
-          {/* Anneau net */}
           <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none"
             style={{
               background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
@@ -45,11 +44,9 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
           }} />
       )}
 
-      {/* Séparateur */}
       <div className="absolute rounded-full bg-[#0a0612] pointer-events-none"
         style={{ inset: pad - 1, borderRadius: '50%' }} />
 
-      {/* Avatar */}
       <div className="absolute rounded-full overflow-hidden flex items-center justify-center bg-[#0a0612]"
         style={{
           inset: pad,
@@ -65,7 +62,6 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
         )}
       </div>
 
-      {/* Badge collection complète */}
       {isComplete && (
         <div
           className="absolute flex items-center justify-center rounded-full cursor-default"
@@ -77,35 +73,38 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
             border: `${Math.max(1, Math.round(size * 0.04))}px solid #0a0612`,
             zIndex: 10,
           }}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            setTooltip({ x: r.left + r.width / 2, y: r.top })
+          }}
+          onMouseLeave={() => setTooltip(null)}
         >
-          {/* Icône étoile SVG */}
           <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="#0a0612">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-
-          {/* Tooltip */}
-          {showTooltip && (
-            <div
-              className="absolute pointer-events-none whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-semibold tracking-wide"
-              style={{
-                bottom: 'calc(100% + 10px)',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'linear-gradient(135deg, rgba(255,230,0,0.12), rgba(255,154,61,0.08))',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,210,0,0.25)',
-                color: '#ffd966',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,200,0,0.08)',
-                zIndex: 50,
-                letterSpacing: '0.02em',
-              }}
-            >
-              Possède toutes les cartes de VOID Pack
-            </div>
-          )}
         </div>
+      )}
+
+      {tooltip && typeof document !== 'undefined' && createPortal(
+        <div
+          className="pointer-events-none whitespace-nowrap rounded-xl px-3 py-2 text-[11px] font-semibold"
+          style={{
+            position: 'fixed',
+            left: tooltip.x,
+            top: tooltip.y - 8,
+            transform: 'translateX(-50%) translateY(-100%)',
+            background: 'rgba(12,8,24,0.92)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,210,0,0.2)',
+            color: '#ffd966',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+            zIndex: 99999,
+            letterSpacing: '0.02em',
+          }}
+        >
+          Possède toutes les cartes de VOID Pack
+        </div>,
+        document.body
       )}
     </div>
   )
