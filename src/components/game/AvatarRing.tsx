@@ -21,21 +21,12 @@ export function AvatarRing({ avatarUrl, username, size = 44, xpProgress = 0, isC
     <div className={`relative flex-shrink-0 ${className}`} style={{ width: size, height: size }}>
 
       {isComplete ? (
-        <>
-          <div className="absolute rounded-full animate-spin-slow pointer-events-none"
-            style={{
-              inset: -pad,
-              background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-              filter: `blur(${Math.round(size * 0.14)}px)`,
-              opacity: 0.75,
-              borderRadius: '50%',
-            }} />
-          <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none"
-            style={{
-              background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
-              borderRadius: '50%',
-            }} />
-        </>
+        <div className="absolute inset-0 rounded-full animate-spin-slow pointer-events-none"
+          style={{
+            background: 'conic-gradient(from 0deg, #ff0080, #ff9a3d, #ffe600, #00e5a0, #00b4ff, #a855f7, #ff0080)',
+            borderRadius: '50%',
+            filter: `drop-shadow(0 0 ${Math.round(size * 0.1)}px rgba(255,100,200,0.8)) drop-shadow(0 0 ${Math.round(size * 0.18)}px rgba(100,200,255,0.5))`,
+          }} />
       ) : (
         <div className="absolute inset-0 rounded-full pointer-events-none"
           style={{
