@@ -526,14 +526,13 @@ export default function CommunautePage() {
             {entries.map((entry, i) => {
               const isMe = user?.id === entry.user_id
               const rank = i + 1
-              const rankTitle = rank === 1 ? { label: 'VOID', color: '#a855f7' } : rank === 2 ? { label: 'Légendaire', color: '#ff9a3d' } : rank === 3 ? { label: 'Épique', color: '#ec4899' } : null
               return (
                 <div key={entry.user_id}
                   className={cn('flex items-center gap-3 p-3 rounded-2xl border transition-all',
                     isMe ? 'bg-[#7b2bff]/10 border-[#7b2bff]/30' : 'bg-white/[0.03] border-white/[0.06]')}>
                   <div className="w-8 text-center flex-shrink-0">
                     {rank <= 3 ? (
-                      <Medal size={18} style={{ color: rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : '#cd7f32' }} />
+                      <Medal size={18} style={{ color: rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic, filter: `drop-shadow(0 0 5px ${rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic}99)` }} />
                     ) : (
                       <span className="text-white/30 text-xs font-bold">#{rank}</span>
                     )}
@@ -553,18 +552,6 @@ export default function CommunautePage() {
                         {isMe && <span className="text-xs text-white/40 font-normal ml-1">(toi)</span>}
                       </p>
                       <RoleBadge role={entry.role} />
-                      {rankTitle && (
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex-shrink-0 tracking-wide"
-                          style={{ color: rankTitle.color, background: rankTitle.color + '22', border: `1px solid ${rankTitle.color}55` }}>
-                          {rankTitle.label}
-                        </span>
-                      )}
-                      {!rankTitle && entry.highest_rarity && (
-                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={{ color: RARITY_COLOR[entry.highest_rarity], background: RARITY_COLOR[entry.highest_rarity] + '20' }}>
-                          {entry.highest_rarity}
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
