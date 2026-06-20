@@ -8,7 +8,7 @@ import { ChallengePopup, type PendingChallenge } from '@/components/layout/Chall
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
-  const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast } = useSocialStore()
+  const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, addToast } = useSocialStore()
   const prevCountRef   = useRef<number>(-1)
   const prevUnreadRef  = useRef<number>(0)
   const prevTradeRef   = useRef<number>(0)
@@ -66,6 +66,17 @@ export function GlobalOverlay() {
       }
     }
 
+    async function checkProfilBadge() {
+      const [missionsData, streakData] = await Promise.all([
+        fetch('/api/profile/missions').then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/profile/streak').then(r => r.ok ? r.json() : null).catch(() => null),
+      ])
+      const unclaimed = (missionsData as { progress: number; claimed: boolean }[]).filter(m => !m.claimed && m.progress > 0).length
+      const lastMs = streakData?.lastClaimAt ? new Date(streakData.lastClaimAt).getTime() : 0
+      const dailyAvail = Date.now() - lastMs > 20 * 3600 * 1000 ? 1 : 0
+      setProfilBadge(unclaimed + dailyAvail)
+    }
+
     function pingPresence() {
       fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
     }
@@ -74,14 +85,16 @@ export function GlobalOverlay() {
     checkPending()
     checkUnread()
     checkTrades()
+    checkProfilBadge()
     pingPresence()
     const i1 = setInterval(checkPending, 30_000)
     const i2 = setInterval(checkUnread, 10_000)
     const i3 = setInterval(checkTrades, 30_000)
     const i4 = setInterval(pingPresence, 60_000)
     const i5 = setInterval(checkChallenges, 5_000)
-    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4); clearInterval(i5) }
-  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, addToast])
+    const i6 = setInterval(checkProfilBadge, 60_000)
+    return () => { clearInterval(i1); clearInterval(i2); clearInterval(i3); clearInterval(i4); clearInterval(i5); clearInterval(i6) }
+  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, addToast])
 
   return (
     <>

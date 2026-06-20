@@ -74,7 +74,8 @@ interface MissionProgress {
 
 export default function ProfilPage() {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
-  const addToast = useSocialStore(s => s.addToast)
+  const addToast      = useSocialStore(s => s.addToast)
+  const setProfilBadge = useSocialStore(s => s.setProfilBadge)
   const [stats, setStats]               = useState<{ totalCards: number; uniqueCards: number; byRarity: Record<string, number> } | null>(null)
   const [daily, setDaily]               = useState<DailyReward | null>(null)
   const [achievements, setAchievements] = useState<string[]>([])
@@ -182,6 +183,14 @@ export default function ProfilPage() {
   useEffect(() => {
     if (activeTab === 'missions') loadMissions()
   }, [activeTab, loadMissions])
+
+  // Synchronise le badge BottomNav avec l'état réel
+  useEffect(() => {
+    const lastMs = daily?.last_claim_at ? new Date(daily.last_claim_at).getTime() : 0
+    const dailyAvail = Date.now() - lastMs > 20 * 3600 * 1000
+    const unclaimed  = missions.filter(m => m.completed && !m.xp_claimed).length
+    setProfilBadge((dailyAvail ? 1 : 0) + unclaimed)
+  }, [missions, daily, setProfilBadge])
 
   function linkTwitch() {
     const TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'

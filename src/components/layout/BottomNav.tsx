@@ -12,13 +12,14 @@ export function BottomNav() {
   const user               = useGameStore(s => s.user)
   const pendingFriendCount = useSocialStore(s => s.pendingFriendCount)
   const pendingTradeCount  = useSocialStore(s => s.pendingTradeCount)
+  const profilBadge        = useSocialStore(s => s.profilBadge)
   const communauteBadge    = user ? pendingFriendCount + pendingTradeCount : 0
 
   const TABS = [
     { href: '/pack',       label: 'Pack',      icon: <PackageOpen size={20} />, badge: 0 },
     { href: '/collection', label: 'Cartes',    icon: <Library size={20} />,     badge: 0 },
     { href: '/communaute', label: 'Communauté',icon: <Users size={20} />,       badge: communauteBadge },
-    { href: '/profil',     label: 'Profil',    icon: <User size={20} />,        badge: 0 },
+    { href: '/profil',     label: 'Profil',    icon: <User size={20} />,        badge: user ? profilBadge : 0 },
   ]
 
   return (
