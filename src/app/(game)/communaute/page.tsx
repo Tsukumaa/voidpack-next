@@ -534,7 +534,9 @@ export default function CommunautePage() {
                     isMe ? 'bg-[#7b2bff]/10 border-[#7b2bff]/30' : 'bg-white/[0.03] border-white/[0.06]')}>
                   <div className="w-8 text-center flex-shrink-0">
                     {rank <= 3 ? (
-                      <Medal size={18} title={rank === 1 ? '🥇 1ère place' : rank === 2 ? '🥈 2ème place' : '🥉 3ème place'} style={{ color: rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic, filter: `drop-shadow(0 0 5px ${rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic}99)` }} />
+                      <span title={rank === 1 ? '1ère place' : rank === 2 ? '2ème place' : '3ème place'} className="inline-flex">
+                        <Medal size={18} style={{ color: rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic, filter: `drop-shadow(0 0 5px ${rank === 1 ? RARITY_COLOR.void : rank === 2 ? RARITY_COLOR.legendary : RARITY_COLOR.epic}99)` }} />
+                      </span>
                     ) : (
                       <span className="text-white/30 text-xs font-bold">#{rank}</span>
                     )}
