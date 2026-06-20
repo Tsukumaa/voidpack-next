@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { friendships, playerProfiles } from '@/lib/db/schema'
+import { friendships, playerProfiles, gameSessions } from '@/lib/db/schema'
 import { eq, or, and, sql, count } from 'drizzle-orm'
 import { playerCards, customCards } from '@/lib/db/schema'
 
@@ -21,16 +21,23 @@ export async function GET() {
   const friendIds = rows.map(r => r.senderId === uid ? r.receiverId : r.senderId)
   if (!friendIds.length) return NextResponse.json([])
 
-  const [profiles, [totalRow], uniqueRows] = await Promise.all([
+  const [profiles, [totalRow], uniqueRows, activeSessions] = await Promise.all([
     db.query.playerProfiles.findMany({ where: (t, { inArray }) => inArray(t.userId, friendIds) }),
     db.select({ total: count() }).from(customCards),
     db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
       .from(playerCards)
       .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
       .groupBy(playerCards.userId),
+    db.select({ id: gameSessions.id, player1Id: gameSessions.player1Id, player2Id: gameSessions.player2Id })
+      .from(gameSessions)
+      .where(and(
+        eq(gameSessions.status, 'active'),
+        sql`(${gameSessions.player1Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}) OR ${gameSessions.player2Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}))`
+      )),
   ])
   const totalAvailable = totalRow?.total ?? 0
   const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
+  const sessionOf = (uid: string) => activeSessions.find(s => s.player1Id === uid || s.player2Id === uid)?.id ?? null
 
   const result = rows.map(r => {
     const friendId = r.senderId === uid ? r.receiverId : r.senderId
@@ -43,6 +50,7 @@ export async function GET() {
       avatarUrl: profile?.avatarUrl,
       status: r.status,
       collectionComplete: totalAvailable > 0 && unique >= totalAvailable,
+      activeSessionId: sessionOf(friendId),
     }
   })
 

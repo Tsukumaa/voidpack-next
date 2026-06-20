@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon } from 'lucide-react'
+import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon, Eye } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -31,6 +31,7 @@ interface Friend {
   avatar_url: string | null
   status: string
   collectionComplete?: boolean
+  activeSessionId?: string | null
 }
 
 interface Trade {
@@ -363,6 +364,7 @@ export default function CommunautePage() {
       avatar_url:         f.avatarUrl ?? f.avatar_url ?? null,
       status:             f.status ?? 'accepted',
       collectionComplete: f.collectionComplete ?? false,
+      activeSessionId: f.activeSessionId ?? null,
     })))
   }, [user])
 
@@ -704,6 +706,10 @@ export default function CommunautePage() {
             setShowFriends(false)
             router.push('/combat/draft?mode=friendly')
           }}
+          onSpectate={(f) => {
+            setShowFriends(false)
+            router.push(`/combat/spectate/${f.activeSessionId}`)
+          }}
           onRefresh={() => { loadFriends(); loadPendingRequests() }}
         />
       )}
@@ -718,7 +724,7 @@ export default function CommunautePage() {
 }
 
 // ─── Modal Amis ───────────────────────────────────────────────────────────────
-function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose, onChat, onChallenge, onRefresh }: {
+function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose, onChat, onChallenge, onSpectate, onRefresh }: {
   user: { id: string } | null
   friends: Friend[]
   pendingRequests: Friend[]
@@ -726,6 +732,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
   onClose: () => void
   onChat: (f: Friend) => void
   onChallenge: (f: Friend) => void
+  onSpectate: (f: Friend) => void
   onRefresh: () => void
 }) {
   const [search, setSearch]   = useState('')
@@ -863,6 +870,13 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
               </div>
               <span className={cn('flex-1 text-sm', unread > 0 ? 'text-white font-bold' : 'text-white')}>{f.username ?? 'Joueur'}</span>
               <div className="flex gap-1.5">
+                {f.activeSessionId && (
+                  <button onClick={() => onSpectate(f)}
+                    className="px-2 py-1 rounded-lg bg-[#4a9e6a]/15 hover:bg-[#4a9e6a]/30 text-[#4a9e6a] text-xs animate-pulse"
+                    title="Regarder la partie en cours">
+                    <Eye size={13} />
+                  </button>
+                )}
                 <button onClick={() => onChallenge(f)}
                   className="px-2 py-1 rounded-lg bg-[#7b2bff]/15 hover:bg-[#7b2bff]/30 text-[#a78bfa] text-xs"
                   title="Défier en partie amicale">
