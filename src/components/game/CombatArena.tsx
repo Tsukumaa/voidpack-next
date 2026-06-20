@@ -181,7 +181,8 @@ export function CombatArena({
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
   const [flashUids,  setFlashUids]  = useState<Map<string | number, string>>(new Map())
-  const [healFlash,  setHealFlash]  = useState(false)
+  const [healFlash,     setHealFlash]     = useState(false)
+  const [oppHealFlash,  setOppHealFlash]  = useState(false)
   const arenaRef = useRef<HTMLDivElement>(null)
 
   // Refs pour détecter les diffs de board (animations adversaire + spectateur)
@@ -202,28 +203,52 @@ export function CombatArena({
     }
     // Laisser le DOM se mettre à jour avant de chercher les éléments
     requestAnimationFrame(() => {
-      // Dégâts sur cartes adversaire
+      // ── Cartes adversaire ──────────────────────────────────────
       for (const card of oppBoard) {
         const prev = prevOppBoard.current.find(c => c.uid === card.uid)
-        if (prev && card.currentHp < prev.currentHp) {
-          shake(card.uid)
-          spawnDmg(getCardEl(card.uid, true), prev.currentHp - card.currentHp)
-          spawnImpact(getCardEl(card.uid, true))
+        if (prev) {
+          // Dégâts
+          if (card.currentHp < prev.currentHp) {
+            shake(card.uid)
+            spawnDmg(getCardEl(card.uid, true), prev.currentHp - card.currentHp)
+            spawnImpact(getCardEl(card.uid, true))
+          }
+          // Shield consommé → flash absorb
+          if (!prev.shieldUsed && card.shieldUsed) {
+            flashCard(card.uid, 'ca-cw--shield-absorb', 550)
+          }
+        } else {
+          // Nouvelle carte jouée par l'adversaire
+          if (card.effects?.includes('charge')) flashCard(card.uid, 'ca-cw--charge-flash', 650)
+          if (card.effects?.includes('void_surge')) {
+            // Onde void sur toutes mes cartes
+            myBoard.forEach(c => flashCard(c.uid, 'ca-cw--void-hit', 600))
+          }
         }
       }
-      // Dégâts sur mes cartes
+      // ── Mes cartes ─────────────────────────────────────────────
       for (const card of myBoard) {
         const prev = prevMyBoard.current.find(c => c.uid === card.uid)
-        if (prev && card.currentHp < prev.currentHp) {
-          shake(card.uid)
-          spawnDmg(getCardEl(card.uid, false), prev.currentHp - card.currentHp)
-          spawnImpact(getCardEl(card.uid, false))
+        if (prev) {
+          // Dégâts
+          if (card.currentHp < prev.currentHp) {
+            shake(card.uid)
+            spawnDmg(getCardEl(card.uid, false), prev.currentHp - card.currentHp)
+            spawnImpact(getCardEl(card.uid, false))
+          }
+          // Shield consommé par attaque adverse
+          if (!prev.shieldUsed && card.shieldUsed) {
+            flashCard(card.uid, 'ca-cw--shield-absorb', 550)
+          }
         }
       }
-      // Dégâts sur le visage adversaire
+      // ── Visages ────────────────────────────────────────────────
       if (oppHp < prevOppHp.current) spawnDmg(getFaceEl(true), prevOppHp.current - oppHp)
-      // Dégâts sur mon visage
-      if (myHp < prevMyHp.current) spawnDmg(getFaceEl(false), prevMyHp.current - myHp)
+      if (myHp  < prevMyHp.current)  spawnDmg(getFaceEl(false), prevMyHp.current - myHp)
+      // Lifesteal adversaire : son HP monte
+      if (oppHp > prevOppHp.current) { setOppHealFlash(true); setTimeout(() => setOppHealFlash(false), 700) }
+      // Lifesteal moi : mon HP monte (côté spectateur / adversaire)
+      if (myHp  > prevMyHp.current)  triggerHealFlash()
 
       prevOppBoard.current = oppBoard
       prevMyBoard.current  = myBoard
@@ -395,7 +420,7 @@ export function CombatArena({
           onClick={handleFaceClick}
         >
           <div className="ca-hero-inner">
-            <div className="ca-hero-portrait ca-hero-portrait--opp" data-face-enemy>
+            <div className={`ca-hero-portrait ca-hero-portrait--opp${oppHealFlash ? ' ca-heal-flash' : ''}`} data-face-enemy>
               {oppAvatar
                 ? <img src={oppAvatar} alt={oppName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                 : '💀'}
