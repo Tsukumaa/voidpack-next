@@ -1,6 +1,7 @@
 'use client'
 import './combat-arena.css'
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CardFrame } from './CardFrame'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -63,6 +64,14 @@ function CombatCard({
   dataUid?: string | number
   dataEnemy?: string
 }) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [tip, setTip] = useState<{ x: number; y: number } | null>(null)
+
+  function showTip() {
+    if (!cardRef.current) return
+    const r = cardRef.current.getBoundingClientRect()
+    setTip({ x: r.left + r.width / 2, y: r.top - 8 })
+  }
   const hpPct = card.currentHp / card.hp
   const fx = card.effects ?? []
   const hasShield   = fx.includes('shield')
@@ -86,12 +95,17 @@ function CombatCard({
   }
   if (flashClass) cls += ` ${flashClass}`
 
+  const hasEffects = card.effects && card.effects.length > 0
+
   return (
     <div
+      ref={cardRef}
       className={cls}
       onClick={onClick}
       data-uid={dataUid}
       data-enemy={dataEnemy}
+      onMouseEnter={hasEffects ? showTip : undefined}
+      onMouseLeave={hasEffects ? () => setTip(null) : undefined}
     >
       <CardFrame
         rarity={card.rarity}
@@ -127,25 +141,26 @@ function CombatCard({
         </div>
       )}
 
-      {/* Tooltip au hover */}
-      <div className="ca-tooltip">
-        <div className="ca-tooltip-name">{card.name}</div>
-        <div className="ca-tooltip-stats">
-          <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {card.atk}</span>
-          <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>
-          <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
-        </div>
-        {card.effects && card.effects.length > 0 && (
-          <div className="ca-tooltip-effects">
-            {card.effects.includes('taunt')      && <span className="ca-tooltip-effect ca-tooltip-effect--taunt">Provocation</span>}
-            {card.effects.includes('charge')     && <span className="ca-tooltip-effect ca-tooltip-effect--charge">Charge</span>}
-            {card.effects.includes('shield')     && <span className={`ca-tooltip-effect ca-tooltip-effect--shield${card.shieldUsed ? ' ca-tooltip-effect--used' : ''}`}>{card.shieldUsed ? 'Bouclier (utilisé)' : 'Bouclier'}</span>}
-            {card.effects.includes('lifesteal')  && <span className="ca-tooltip-effect ca-tooltip-effect--lifesteal">Vol de vie</span>}
-            {card.effects.includes('void_surge') && <span className="ca-tooltip-effect ca-tooltip-effect--void">VOID Surge</span>}
-            {card.effects.includes('stealth')    && <span className="ca-tooltip-effect ca-tooltip-effect--stealth">Furtivité</span>}
+      {/* Tooltip portalé en position fixed — échappe au overflow:hidden de .ca-arena */}
+      {tip && hasEffects && typeof document !== 'undefined' && createPortal(
+        <div className="ca-tooltip ca-tooltip--portal" style={{ left: tip.x, top: tip.y }}>
+          <div className="ca-tooltip-name">{card.name}</div>
+          <div className="ca-tooltip-stats">
+            <span className="ca-tooltip-stat ca-tooltip-stat--atk">⚔ {card.atk}</span>
+            <span className="ca-tooltip-stat ca-tooltip-stat--hp">♥ {card.currentHp}/{card.hp}</span>
+            <span className="ca-tooltip-stat ca-tooltip-stat--cost">✦ {card.cost}</span>
           </div>
-        )}
-      </div>
+          <div className="ca-tooltip-effects">
+            {card.effects!.includes('taunt')      && <span className="ca-tooltip-effect ca-tooltip-effect--taunt">Provocation</span>}
+            {card.effects!.includes('charge')     && <span className="ca-tooltip-effect ca-tooltip-effect--charge">Charge</span>}
+            {card.effects!.includes('shield')     && <span className={`ca-tooltip-effect ca-tooltip-effect--shield${card.shieldUsed ? ' ca-tooltip-effect--used' : ''}`}>{card.shieldUsed ? 'Bouclier (utilisé)' : 'Bouclier'}</span>}
+            {card.effects!.includes('lifesteal')  && <span className="ca-tooltip-effect ca-tooltip-effect--lifesteal">Vol de vie</span>}
+            {card.effects!.includes('void_surge') && <span className="ca-tooltip-effect ca-tooltip-effect--void">VOID Surge</span>}
+            {card.effects!.includes('stealth')    && <span className="ca-tooltip-effect ca-tooltip-effect--stealth">Furtivité</span>}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

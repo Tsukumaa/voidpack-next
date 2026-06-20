@@ -593,15 +593,14 @@
 }
 
 /* ── Tooltip au hover ───────────────────────────────────────────────── */
-.ca-tooltip {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 300;
+.ca-tooltip { display: none; }
+.ca-tooltip--portal {
+  display: block;
+  position: fixed;
+  transform: translateX(-50%) translateY(-100%);
+  z-index: 9999;
   min-width: 140px;
-  max-width: 200px;
+  max-width: 220px;
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(8, 3, 20, 0.98);
@@ -611,8 +610,6 @@
   backdrop-filter: blur(12px);
   white-space: nowrap;
 }
-.ca-cw:hover { z-index: 200; }
-.ca-cw:hover .ca-tooltip { display: block; }
 
 /* ── Keyframes ──────────────────────────────────────────────────────── */
 @keyframes ca-pulse-red-portrait {
