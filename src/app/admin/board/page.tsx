@@ -272,7 +272,7 @@ function Column({
 
   return (
     <div
-      className="flex flex-col w-72 flex-shrink-0 rounded-2xl transition-all"
+      className="flex flex-col flex-1 min-w-0 rounded-2xl transition-all"
       style={{
         background: over ? `${col.color}08` : 'rgba(255,255,255,.02)',
         border: `1px solid ${over ? col.color + '50' : 'rgba(255,255,255,.06)'}`,
@@ -298,7 +298,7 @@ function Column({
       </div>
 
       {/* Cards */}
-      <div className="flex flex-col gap-2 p-3 flex-1 min-h-[200px]">
+      <div className="flex flex-col gap-2 p-3 overflow-y-auto min-h-[200px]" style={{ maxHeight: 'calc(100vh - 130px)' }}>
         {cards.map(card => (
           <Card
             key={card.id}
@@ -464,7 +464,7 @@ export default function BoardPage() {
           <div className="w-8 h-8 border-2 border-[#7b2bff]/20 border-t-[#7b2bff] rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="flex gap-4 p-6 overflow-x-auto pb-10 min-h-[calc(100vh-73px)]">
+        <div className="flex gap-4 p-6 h-[calc(100vh-73px)] overflow-hidden">
           {COLUMNS.map(col => (
             <Column
               key={col.id}
