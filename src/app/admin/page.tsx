@@ -963,6 +963,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [saving, setSaving]     = useState(false)
   const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [artists, setArtists]   = useState<{ id: number; name: string; url: string | null }[]>([])
   const [newArtistOpen, setNewArtistOpen] = useState(false)
   const [newArtist, setNewArtist] = useState({ name: '', url: '' })
@@ -1075,44 +1076,116 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
         </select>
         <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{filtered.length} carte(s)</span>
-        <button onClick={() => setForm({ ...empty })} className={primaryBtnCls + ' ml-auto'}>+ Nouvelle carte</button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Toggle vue */}
+          <div className="flex rounded-xl overflow-hidden border border-white/10">
+            <button onClick={() => setViewMode('grid')}
+              className="px-3 py-1.5 text-xs font-bold transition-colors"
+              style={{ background: viewMode === 'grid' ? 'rgba(123,43,255,0.35)' : 'transparent', color: viewMode === 'grid' ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}>
+              ⊞ Cartes
+            </button>
+            <button onClick={() => setViewMode('list')}
+              className="px-3 py-1.5 text-xs font-bold transition-colors border-l border-white/10"
+              style={{ background: viewMode === 'list' ? 'rgba(123,43,255,0.35)' : 'transparent', color: viewMode === 'list' ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}>
+              ☰ Liste
+            </button>
+          </div>
+          <button onClick={() => setForm({ ...empty })} className={primaryBtnCls}>+ Nouvelle carte</button>
+        </div>
       </div>
 
       {loading ? <LoadingText /> : (
         filtered.length === 0 ? (
           <p className="text-center py-12" style={{ color: 'rgba(255,255,255,0.25)' }}>Aucune carte.</p>
+        ) : viewMode === 'list' ? (
+          /* ── Vue liste ── */
+          <div className="rounded-xl overflow-hidden border border-white/[0.07]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40 w-8"></th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Nom</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Famille</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Rareté</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">⚔</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">♥</th>
+                  <th className="text-center px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">◆</th>
+                  <th className="text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40">Effets</th>
+                  <th className="text-right px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white/40"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c, i) => (
+                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                    <td className="px-3 py-1.5">
+                      <div className="w-6 h-8 rounded overflow-hidden bg-[#0a0612] flex-shrink-0">
+                        {c.image_url
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center text-white/10 text-[8px]">?</div>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-1.5 font-semibold text-white">{c.name}</td>
+                    <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '—'}</td>
+                    <td className="px-3 py-1.5">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>{c.rarity}</span>
+                    </td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#f87171' }}>{c.metadata?.combat?.atk ?? '?'}</td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#60a5fa' }}>{c.metadata?.combat?.hp ?? '?'}</td>
+                    <td className="px-3 py-1.5 text-center text-xs font-bold" style={{ color: '#a78bfa' }}>{c.metadata?.combat?.cost ?? '?'}</td>
+                    <td className="px-3 py-1.5">
+                      <div className="flex gap-1 flex-wrap">
+                        {(c.metadata?.combat?.effects ?? []).map((e: string) => (
+                          <span key={e} className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-white/10 text-white/60">{e}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-1.5 text-right">
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
+                          className={iconBtnCls}><Pencil size={11} /></button>
+                        <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          /* ── Vue grille (12 par row) ── */
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
             {filtered.map(c => (
               <div
                 key={c.id}
-                className="rounded-2xl overflow-hidden flex flex-col"
+                className="rounded-xl overflow-hidden flex flex-col"
                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${RARITY_COLOR[c.rarity]}44` }}
               >
                 <div className="aspect-[0.714] relative overflow-hidden bg-[#0a0612]">
                   {c.image_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={c.image_url} alt={c.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-                    : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-2xl">?</div>
+                    : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-lg">?</div>
                   }
                   <span
-                    className="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                    className="absolute top-1 left-1 text-[7px] font-bold px-1 py-0.5 rounded-full uppercase tracking-wider"
                     style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '33', backdropFilter: 'blur(8px)', border: `1px solid ${RARITY_COLOR[c.rarity]}55` }}
                   >
-                    {c.rarity}
+                    {c.rarity.slice(0, 3)}
                   </span>
-                  <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 flex justify-between text-[10px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
+                  <div className="absolute bottom-0 left-0 right-0 px-1 py-1 flex justify-between text-[8px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
                     <span style={{ color: '#f87171' }}>⚔{c.metadata?.combat?.atk ?? '?'}</span>
                     <span style={{ color: '#60a5fa' }}>♥{c.metadata?.combat?.hp ?? '?'}</span>
                     <span style={{ color: '#a78bfa' }}>◆{c.metadata?.combat?.cost ?? '?'}</span>
                   </div>
                 </div>
-                <div className="px-2 py-1.5 flex items-center justify-between gap-1">
-                  <span className="text-xs text-white truncate font-semibold">{c.name}</span>
-                  <div className="flex gap-1 flex-shrink-0">
+                <div className="px-1 py-1 flex items-center justify-between gap-0.5">
+                  <span className="text-[9px] text-white truncate font-semibold leading-tight">{c.name}</span>
+                  <div className="flex gap-0.5 flex-shrink-0">
                     <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
-                      className={iconBtnCls}><Pencil size={11} /></button>
-                    <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
+                      className="w-5 h-5 rounded flex items-center justify-center bg-white/5 hover:bg-white/10"><Pencil size={8} /></button>
+                    <button onClick={() => del(c)}
+                      className="w-5 h-5 rounded flex items-center justify-center bg-red-500/10 hover:bg-red-500/25 text-red-400"><X size={8} /></button>
                   </div>
                 </div>
               </div>
