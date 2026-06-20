@@ -211,35 +211,31 @@ export default function PlayerProfilePage() {
       <div className="sticky top-20 z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
-        {/* Retour + bouton ami */}
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={() => router.back()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
-            onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.09)'; b.style.color = 'rgba(255,255,255,0.7)' }}
-            onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.05)'; b.style.color = 'rgba(255,255,255,0.4)' }}>
-            <ArrowLeft size={13} /> Retour
-          </button>
-          <FriendButton />
-        </div>
-
-        {/* Ligne principale */}
         <div className="flex items-center gap-3">
+          {/* Retour */}
+          <button onClick={() => router.back()}
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => { const b = e.currentTarget; b.style.background='rgba(255,255,255,0.09)'; b.style.color='rgba(255,255,255,0.7)' }}
+            onMouseLeave={e => { const b = e.currentTarget; b.style.background='rgba(255,255,255,0.05)'; b.style.color='rgba(255,255,255,0.4)' }}>
+            <ArrowLeft size={14} />
+          </button>
+
           {/* Avatar + anneau XP */}
           <div className="relative rounded-full p-[3px] flex-shrink-0"
             style={{ background: `conic-gradient(from -90deg, #7b2bff, #a855f7 ${progress}%, rgba(255,255,255,0.08) ${progress}%)` }}>
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
+            <div className="w-11 h-11 rounded-full overflow-hidden bg-[#0a0612] flex items-center justify-center"
               style={profile?.avatarUrl ? { backgroundImage:`url(${profile.avatarUrl})`, backgroundSize:'cover' } : {}}>
               {!profile?.avatarUrl && (
-                <span className="text-base font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
+                <span className="text-sm font-black text-white">{profile?.username?.[0]?.toUpperCase() ?? '?'}</span>
               )}
             </div>
           </div>
 
-          {/* Infos */}
+          {/* Nom + niveau */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <p className="text-white font-black text-base truncate leading-tight">{profile?.username ?? '…'}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-white font-black text-sm truncate leading-tight">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
               {profile?.highestRarity && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
@@ -248,11 +244,20 @@ export default function PlayerProfilePage() {
                 </span>
               )}
             </div>
-            <p className="text-[#a78bfa] text-xs font-bold mt-0.5">Niveau {level}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[#a78bfa] text-xs font-bold">Niv. {level}</p>
+              {(profile?.currentStreak ?? 0) > 0 && (
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(255,154,61,0.12)', border: '1px solid rgba(255,154,61,0.22)' }}>
+                  <Flame size={9} style={{ color: '#ff9a3d' }} />
+                  <span className="text-[9px] font-black" style={{ color: '#ff9a3d' }}>{profile!.currentStreak}j</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* XP + streak — droite */}
-          <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[100px]">
+          {/* XP droite */}
+          <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[90px]">
             <div className="flex items-baseline gap-1">
               <span className="text-white font-black text-sm leading-none">{xpCurrent.toLocaleString('fr-FR')}</span>
               <span className="text-white/30 text-[10px]">/ {xpNeeded.toLocaleString('fr-FR')} XP</span>
@@ -261,14 +266,10 @@ export default function PlayerProfilePage() {
               <div className="h-full rounded-full transition-all duration-700"
                 style={{ width:`${progress}%`, background:'linear-gradient(90deg,#7b2bff,#a855f7)' }} />
             </div>
-            {(profile?.currentStreak ?? 0) > 0 && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full self-end"
-                style={{ background: 'rgba(255,154,61,0.12)', border: '1px solid rgba(255,154,61,0.25)' }}>
-                <Flame size={10} style={{ color: '#ff9a3d' }} />
-                <span className="text-[10px] font-black" style={{ color: '#ff9a3d' }}>{profile!.currentStreak}j</span>
-              </div>
-            )}
           </div>
+
+          {/* Ami */}
+          <FriendButton />
         </div>
       </div>
 
