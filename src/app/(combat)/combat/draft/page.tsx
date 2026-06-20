@@ -411,7 +411,7 @@ function DraftContent() {
   // ── Vue builder ────────────────────────────────────────────────────────
   return (
     <div className="pb-4 min-h-screen" style={{ background: '#06010e', color: '#f6f1ff' }}>
-      <div className="sticky top-0 z-20 bg-[#06010e]/95 backdrop-blur-md pt-3 pb-3 mb-4 px-4">
+      <div className="sticky top-0 z-[60] bg-[#06010e]/95 backdrop-blur-md pt-3 pb-3 mb-4 px-4">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => { setView('select'); setSelected([]); setEditingDeck(null) }}
             className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors">
