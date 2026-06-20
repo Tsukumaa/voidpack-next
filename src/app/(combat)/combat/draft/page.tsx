@@ -579,29 +579,29 @@ function DraftContent() {
                         </div>
                       )}
                     </button>
-                    {/* Effets au hover — tooltip */}
-                    {card.effects && card.effects.length > 0 && (
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex flex-col justify-end pointer-events-none">
-                        <div className="flex flex-wrap gap-1 p-1.5" style={{ background: 'linear-gradient(to top, rgba(5,2,18,0.92) 60%, transparent)' }}>
-                          {(() => {
-                            const EFFECT_LABELS: Record<string, { label: string; color: string; border: string }> = {
-                              taunt:      { label: 'Provocation', color: '#ffaa55', border: 'rgba(255,120,0,.4)' },
-                              charge:     { label: 'Charge',      color: '#7edc7e', border: 'rgba(80,200,80,.4)' },
-                              shield:     { label: 'Bouclier',    color: '#7ec4ff', border: 'rgba(60,160,255,.4)' },
-                              lifesteal:  { label: 'Vol de vie',  color: '#ff7090', border: 'rgba(220,40,80,.4)' },
-                              void_surge: { label: 'VOID Surge',  color: '#c070ff', border: 'rgba(130,0,255,.4)' },
-                              stealth:    { label: 'Furtivité',   color: '#aaaacc', border: 'rgba(100,100,140,.4)' },
-                            }
-                            return card.effects.map(e => {
-                              const def = EFFECT_LABELS[e]
-                              if (!def) return null
-                              return <span key={e} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(10,5,25,0.85)', color: def.color, border: `1px solid ${def.border}`, lineHeight: 1.3 }}>{def.label}</span>
-                            })
-                          })()}
-                        </div>
-                      </div>
-                    )}
                   </CardFrame>
+                  {/* Effets au hover — en dehors de CardFrame pour échapper overflow:hidden */}
+                  {card.effects && card.effects.length > 0 && (
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex flex-col justify-end pointer-events-none rounded-xl overflow-hidden">
+                      <div className="flex flex-wrap gap-1 p-1.5" style={{ background: 'linear-gradient(to top, rgba(5,2,18,0.92) 60%, transparent)' }}>
+                        {(() => {
+                          const EFFECT_LABELS: Record<string, { label: string; color: string; border: string }> = {
+                            taunt:      { label: 'Provocation', color: '#ffaa55', border: 'rgba(255,120,0,.4)' },
+                            charge:     { label: 'Charge',      color: '#7edc7e', border: 'rgba(80,200,80,.4)' },
+                            shield:     { label: 'Bouclier',    color: '#7ec4ff', border: 'rgba(60,160,255,.4)' },
+                            lifesteal:  { label: 'Vol de vie',  color: '#ff7090', border: 'rgba(220,40,80,.4)' },
+                            void_surge: { label: 'VOID Surge',  color: '#c070ff', border: 'rgba(130,0,255,.4)' },
+                            stealth:    { label: 'Furtivité',   color: '#aaaacc', border: 'rgba(100,100,140,.4)' },
+                          }
+                          return card.effects.map(e => {
+                            const def = EFFECT_LABELS[e]
+                            if (!def) return null
+                            return <span key={e} style={{ fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(10,5,25,0.85)', color: def.color, border: `1px solid ${def.border}`, lineHeight: 1.3 }}>{def.label}</span>
+                          })
+                        })()}
+                      </div>
+                    </div>
+                  )}
                   {qty > 0 && (
                     <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-[#7b2bff] border-2 border-black flex items-center justify-center text-[10px] font-black text-white shadow-lg">{qty}</div>
                   )}
