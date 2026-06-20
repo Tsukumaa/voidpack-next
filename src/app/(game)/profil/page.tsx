@@ -334,11 +334,11 @@ export default function ProfilPage() {
 
             <div className="px-4 pb-4">
               <button onClick={claimDaily} disabled={!canClaim || claiming}
-                className="w-full py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
                 style={canClaim
-                  ? { background: 'linear-gradient(135deg,#ff9a3d,#e07820)', color: 'white', boxShadow: '0 0 24px rgba(255,154,61,0.35)' }
-                  : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.25)', cursor: 'default' }}>
-                {claiming ? '…' : canClaim ? '🎴 Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
+                  ? { background: 'rgba(255,154,61,0.15)', color: '#ff9a3d', border: '1px solid rgba(255,154,61,0.3)' }
+                  : { background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'not-allowed' }}>
+                {claiming ? '…' : canClaim ? 'Réclamer mon booster quotidien' : '✓ Déjà réclamé aujourd\'hui'}
               </button>
               {claimMsg && <p className="text-xs text-[#00c896] text-center mt-2 font-bold">{claimMsg}</p>}
             </div>
