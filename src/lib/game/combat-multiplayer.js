@@ -99,14 +99,19 @@ function _startPolling(sessionId) {
   _pollInterval = setInterval(async () => {
     try {
       const [sessRes, actRes] = await Promise.all([
-        fetch(`/api/combat/session/${sessionId}`),
+        fetch(`/api/combat/session/${sessionId}?poll=1`),
         fetch(`/api/combat/session/${sessionId}/actions?after=${_lastActionSeq}`),
       ]);
 
       if (sessRes.ok) {
         const newSession = await sessRes.json();
+        // Arrêt automatique si la session est terminée
+        if (newSession.status !== 'active') {
+          clearInterval(_pollInterval);
+          _pollInterval = null;
+        }
         if (JSON.stringify(newSession) !== JSON.stringify(_session)) {
-          _session = newSession;
+          _session = { ..._session, ...newSession };
           _onUpdate?.(_session);
         }
       }

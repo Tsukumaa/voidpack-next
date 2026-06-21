@@ -4,12 +4,37 @@ import { db } from '@/lib/db'
 import { gameSessions, playerProfiles } from '@/lib/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const session = await db.query.gameSessions.findFirst({ where: eq(gameSessions.id, id) })
   if (!session) return NextResponse.json(null, { status: 404 })
 
-  // Joindre les pseudos des deux joueurs
+  // Auto-expire : session active sans activité depuis 8 minutes → finished
+  if (session.status === 'active' && session.updatedAt) {
+    const updatedAt = new Date(session.updatedAt).getTime()
+    if (Date.now() - updatedAt > 8 * 60 * 1000) {
+      const now = new Date().toISOString()
+      await db.update(gameSessions)
+        .set({ status: 'finished', finishedAt: now, updatedAt: now })
+        .where(eq(gameSessions.id, id))
+      session.status = 'finished'
+    }
+  }
+
+  // ?poll=1 : retourne uniquement les champs nécessaires au polling (sans jointure profils)
+  const isPoll = req.nextUrl.searchParams.get('poll') === '1'
+  if (isPoll) {
+    return NextResponse.json({
+      id: session.id,
+      status: session.status,
+      currentTurn: session.currentTurn,
+      state: session.state,
+      updatedAt: session.updatedAt,
+      winnerId: session.winnerId,
+    })
+  }
+
+  // Chargement initial : joindre les pseudos/avatars des deux joueurs
   const ids = [session.player1Id, session.player2Id].filter(Boolean) as string[]
   const profiles = ids.length
     ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
