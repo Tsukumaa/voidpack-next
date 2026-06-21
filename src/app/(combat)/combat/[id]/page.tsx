@@ -9,6 +9,7 @@ import {
   endTurn, surrender, finishGame, cleanupSession,
   initSession,
 } from '@/lib/game/combat-multiplayer'
+import type { OppAction } from '@/components/game/CombatArena'
 
 interface GameState {
   p1_hp: number; p2_hp: number
@@ -59,6 +60,7 @@ export default function CombatPage() {
   const [log, setLog]             = useState<string[]>([])
   const [oppName, setOppName]     = useState('Adversaire')
   const [oppAvatar, setOppAvatar] = useState<string | null>(null)
+  const [oppAction, setOppAction] = useState<OppAction | null>(null)
 
   useEffect(() => { myTurnRef.current = myTurn }, [myTurn])
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
@@ -89,7 +91,10 @@ export default function CombatPage() {
   useEffect(() => {
     if (!user) return
     onSessionUpdate((sess: Record<string, unknown>) => syncState(sess))
-    onOpponentAction((action: { actionType: string }) => addLog(`Adversaire : ${action.actionType}`))
+    onOpponentAction((action: OppAction) => {
+      addLog(`Adversaire : ${action.actionType}`)
+      setOppAction(action)
+    })
 
     fetch(`/api/combat/session/${id}`)
       .then(r => r.ok ? r.json() : null)
@@ -292,6 +297,7 @@ export default function CombatPage() {
       oppAvatar={oppAvatar}
       arenaBg={arenaBg}
       myTurn={myTurn}
+      oppAction={oppAction}
       onPlayCard={playCard}
       onAttack={handleAttack}
       onEndTurn={handleEndTurn}

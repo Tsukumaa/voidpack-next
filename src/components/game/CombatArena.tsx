@@ -28,6 +28,12 @@ interface DmgPopup  { id: string; x: number; y: number; value: number }
 interface ImpactPop { id: string; x: number; y: number }
 interface CardTip   { card: ArenaCard; x: number; y: number }
 
+export interface OppAction {
+  actionType: string
+  payload: Record<string, unknown>
+  seq: number
+}
+
 export interface CombatArenaProps {
   myHp: number; oppHp: number
   myMana: number; myMaxMana: number
@@ -39,6 +45,7 @@ export interface CombatArenaProps {
   turnLabel?: string
   topLabel?: React.ReactNode
   arenaBg?: string | null
+  oppAction?: OppAction | null
   onPlayCard:  (card: ArenaCard) => void
   onAttack:    (attacker: ArenaCard, target: ArenaCard | 'face') => void
   onEndTurn:   () => void
@@ -176,6 +183,7 @@ export function CombatArena({
   myName = 'Toi', oppName = 'Bot',
   myAvatar, oppAvatar,
   turnLabel, topLabel, arenaBg,
+  oppAction,
   onPlayCard, onAttack, onEndTurn, onSurrender,
   log = '',
 }: CombatArenaProps) {
@@ -199,6 +207,13 @@ export function CombatArena({
   const prevOppHp    = useRef<number>(oppHp)
   const prevMyHp     = useRef<number>(myHp)
   const isFirstRender = useRef(true)
+
+  // Refs live des boards pour les anims d'actions adversaire
+  const myBoardRef  = useRef<ArenaCard[]>(myBoard)
+  const oppBoardRef = useRef<ArenaCard[]>(oppBoard)
+  useEffect(() => { myBoardRef.current  = myBoard  }, [myBoard])
+  useEffect(() => { oppBoardRef.current = oppBoard }, [oppBoard])
+  const lastOppActionSeq = useRef<number>(-1)
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -264,6 +279,40 @@ export function CombatArena({
       prevMyHp.current     = myHp
     })
   }) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Animations actions adversaire (lunge, shake, impacts) ──────────────────
+  useEffect(() => {
+    if (!oppAction || oppAction.seq === lastOppActionSeq.current) return
+    lastOppActionSeq.current = oppAction.seq
+
+    const { actionType, payload } = oppAction
+
+    if (actionType === 'attack') {
+      const atkUid = payload.attacker as string | number
+      const tgtUid = payload.target  as string | number | 'face'
+
+      // Sur mon écran : l'attaquant adverse = data-enemy="true", ma carte = data-enemy="false"
+      const atkEl = getCardEl(atkUid, true)
+      const tgtEl = tgtUid === 'face' ? getFaceEl(false) : getCardEl(tgtUid as string | number, false)
+
+      const atkCard = oppBoardRef.current.find(c => String(c.uid) === String(atkUid))
+      const tgtCard = tgtUid !== 'face' ? myBoardRef.current.find(c => String(c.uid) === String(tgtUid)) : null
+
+      requestAnimationFrame(() => {
+        lunge(atkEl, tgtEl, () => {
+          shake(atkUid)
+          if (tgtCard) shake(tgtCard.uid)
+          spawnImpact(tgtEl)
+          if (atkCard) spawnDmg(tgtEl, atkCard.atk)
+          if (tgtCard) spawnDmg(atkEl, tgtCard.atk)
+          if (tgtCard?.effects?.includes('shield') && !tgtCard.shieldUsed)
+            flashCard(tgtCard.uid, 'ca-cw--shield-absorb', 550)
+          if (atkCard?.effects?.includes('lifesteal'))
+            { setOppHealFlash(true); setTimeout(() => setOppHealFlash(false), 700) }
+        })
+      })
+    }
+  }, [oppAction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setSelected(null); setTimeLeft(60) }, [myTurn])
 
