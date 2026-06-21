@@ -156,7 +156,7 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   onBack: () => void
 }) {
   const router = useRouter()
-  const setChatPanelOpen = useSocialStore(s => s.setChatPanelOpen)
+  const { setChatPanelOpen, chatPanelOpen } = useSocialStore(s => ({ setChatPanelOpen: s.setChatPanelOpen, chatPanelOpen: s.chatPanelOpen }))
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [sending, setSending]   = useState(false)
@@ -195,9 +195,10 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   useEffect(() => {
     load(true)
     inputRef.current?.focus()
+    if (!chatPanelOpen) return
     const iv = setInterval(() => load(false), 5000)
     return () => clearInterval(iv)
-  }, [load])
+  }, [load, chatPanelOpen])
 
   async function send() {
     const content = input.trim()

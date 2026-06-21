@@ -58,7 +58,7 @@ export function GlobalOverlay() {
 
     poll()
     pingPresence()
-    const i1 = setInterval(poll, 15_000)
+    const i1 = setInterval(poll, 30_000)
     const i2 = setInterval(pingPresence, 60_000)
     return () => { clearInterval(i1); clearInterval(i2) }
   }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast])
