@@ -2,6 +2,11 @@
 import './combat-arena.css'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { CardFrame } from './CardFrame'
+import { Gem, Sword, Shield as ShieldIcon } from 'lucide-react'
+
+const RARITY_COLOR: Record<string, string> = {
+  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 export interface ArenaCard {
@@ -121,10 +126,18 @@ function CombatCard({
         ) : null}
       </CardFrame>
 
-      {/* Badges stats — taille fixe, indépendants du CardFrame */}
-      <div className="ca-badge ca-badge--cost">{card.cost}</div>
-      <div className="ca-badge ca-badge--atk">{card.atk}</div>
-      <div className="ca-badge ca-badge--def">{card.currentHp}</div>
+      {/* Stats en cadres — en bas de la carte */}
+      <div className="ca-stat-badges">
+        <span className="ca-stat-badge ca-stat-badge--cost" style={{ borderColor: `${RARITY_COLOR[card.rarity] ?? '#9ca3af'}55` }}>
+          <Gem size={8} style={{ color: RARITY_COLOR[card.rarity] ?? '#9ca3af' }} />{card.cost}
+        </span>
+        <span className="ca-stat-badge ca-stat-badge--atk">
+          <Sword size={8} style={{ color: '#fca5a5' }} />{card.atk}
+        </span>
+        <span className="ca-stat-badge ca-stat-badge--def">
+          <ShieldIcon size={8} style={{ color: '#93c5fd' }} />{card.currentHp}
+        </span>
+      </div>
 
       {/* Badges effets — sous le nom, toujours visibles */}
       {card.effects && card.effects.length > 0 && (

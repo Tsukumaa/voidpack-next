@@ -505,6 +505,34 @@
   background: radial-gradient(circle at 35% 35%, #4aee7acc, #1a6a3aee);
 }
 
+.ca-stat-badges {
+  position: absolute;
+  bottom: 8px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 20;
+}
+.ca-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  color: rgba(255,255,255,0.85);
+  background: rgba(10,5,25,0.75);
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: border-color .2s, box-shadow .2s;
+}
+.ca-cw:hover .ca-stat-badge--cost { border-color: var(--cost-color, rgba(255,255,255,0.4)); box-shadow: 0 0 6px var(--cost-color, rgba(255,255,255,0.2)); }
+.ca-cw:hover .ca-stat-badge--atk  { border-color: rgba(252,165,165,0.7); box-shadow: 0 0 6px rgba(252,165,165,0.3); }
+.ca-cw:hover .ca-stat-badge--def  { border-color: rgba(147,197,253,0.7); box-shadow: 0 0 6px rgba(147,197,253,0.3); }
+
 .ca-cw-hpbar {
   position: absolute;
   bottom: -5px;
