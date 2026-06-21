@@ -126,6 +126,18 @@ function CombatCard({
       <div className="ca-badge ca-badge--atk">{card.atk}</div>
       <div className="ca-badge ca-badge--def">{card.currentHp}</div>
 
+      {/* Badges effets — sous le nom, toujours visibles */}
+      {card.effects && card.effects.length > 0 && (
+        <div style={{ position: 'absolute', top: '9%', left: 0, right: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2, padding: '0 4px', zIndex: 40, pointerEvents: 'none' }}>
+          {card.effects.includes('taunt')      && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(200,80,0,.25)', color: '#ffb580', lineHeight: 1.3, border: '1px solid rgba(200,80,0,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>Provocation</span>}
+          {card.effects.includes('shield')     && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(0,110,220,.25)', color: '#7ec4ff', lineHeight: 1.3, border: '1px solid rgba(0,110,220,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>{card.shieldUsed ? 'Bouclier ✓' : 'Bouclier'}</span>}
+          {card.effects.includes('charge')     && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(40,160,40,.25)', color: '#7edc7e', lineHeight: 1.3, border: '1px solid rgba(40,160,40,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>Charge</span>}
+          {card.effects.includes('lifesteal')  && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(180,20,60,.25)', color: '#ff7090', lineHeight: 1.3, border: '1px solid rgba(180,20,60,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>Vol de vie</span>}
+          {card.effects.includes('void_surge') && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(100,0,220,.25)', color: '#c070ff', lineHeight: 1.3, border: '1px solid rgba(100,0,220,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>VOID Surge</span>}
+          {card.effects.includes('stealth')    && <span style={{ fontSize: '7px', fontWeight: 600, padding: '2px 4px', borderRadius: 4, background: 'rgba(100,100,140,.25)', color: '#c0c0e0', lineHeight: 1.3, border: '1px solid rgba(100,100,140,.9)', boxShadow: '0 1px 4px rgba(0,0,0,.6)' }}>Furtivité</span>}
+        </div>
+      )}
+
       {/* HP bar below card (only on board) */}
       {!isInHand && (
         <div className="ca-cw-hpbar">
