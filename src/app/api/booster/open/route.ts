@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { customCards } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { checkFeature } from '@/lib/features'
 
 const RARITY_WEIGHTS: Record<string, number> = {
   common:    60,
@@ -24,6 +25,8 @@ function weightedRoll(pool: { rarity: string }[]): number {
 }
 
 export async function POST(req: NextRequest) {
+  const blocked = await checkFeature('feature_pack_opening')
+  if (blocked) return blocked
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

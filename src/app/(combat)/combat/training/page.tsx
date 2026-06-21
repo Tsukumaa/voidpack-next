@@ -5,6 +5,7 @@ import { Bot } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { useArenaBg } from '@/lib/game/useArenaBg'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
+import { FeatureGate } from '@/components/FeatureGate'
 
 // ── Constants (matches old site) ───────────────────────────────────────────
 const DECK_SIZE      = 24
@@ -86,7 +87,13 @@ function buildBotDeck(defs: CardDef[]): ArenaCard[] {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
-export default function TrainingPage() { return <Suspense><TrainingContent /></Suspense> }
+export default function TrainingPage() {
+  return (
+    <FeatureGate featureKey="feature_combat_training" label="L'entraînement">
+      <Suspense><TrainingContent /></Suspense>
+    </FeatureGate>
+  )
+}
 
 function TrainingContent() {
   const router  = useRouter()

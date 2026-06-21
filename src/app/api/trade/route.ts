@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { tradeOffers, playerCards } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
+import { checkFeature } from '@/lib/features'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const blocked = await checkFeature('feature_trading')
+  if (blocked) return blocked
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -4,9 +4,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Swords, Sword, Copy, Check } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { joinMatchmaking, leaveMatchmaking } from '@/lib/game/combat-multiplayer'
+import { FeatureGate } from '@/components/FeatureGate'
 
 export default function MatchmakingPage() {
-  return <Suspense><MatchmakingContent /></Suspense>
+  return (
+    <FeatureGate featureKey="feature_combat_multiplayer" label="Le combat multijoueur">
+      <Suspense><MatchmakingContent /></Suspense>
+    </FeatureGate>
+  )
 }
 
 function MatchmakingContent() {

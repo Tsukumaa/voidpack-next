@@ -8,6 +8,7 @@ import { StatePanel } from '@/components/game/StatePanel'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { useSocialStore } from '@/store/social'
+import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -312,7 +313,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────────
-export default function CommunautePage() {
+function CommunauteContent() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const router = useRouter()
   const setChatFriend = useSocialStore(s => s.setChatFriend)
@@ -898,5 +899,13 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CommunautePage() {
+  return (
+    <FeatureGate featureKey="feature_social" label="La section sociale">
+      <CommunauteContent />
+    </FeatureGate>
   )
 }

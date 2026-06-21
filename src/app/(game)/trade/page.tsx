@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ArrowLeftRight, Plus, X, Check, Clock, ChevronDown, Search } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
 
 const RARITY_COLOR: Record<string, string> = {
@@ -285,7 +286,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 }
 
 // ── Page principale ───────────────────────────────────────────────────────────
-export default function TradePage() {
+function TradeContent() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const [trades, setTrades]     = useState<Trade[]>([])
   const [tab, setTab]           = useState<'incoming' | 'outgoing'>('incoming')
@@ -431,5 +432,13 @@ export default function TradePage() {
         <CreateTradeModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load() }} />
       )}
     </div>
+  )
+}
+
+export default function TradePage() {
+  return (
+    <FeatureGate featureKey="feature_trading" label="Les échanges de cartes">
+      <TradeContent />
+    </FeatureGate>
   )
 }
