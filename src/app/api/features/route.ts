@@ -12,7 +12,7 @@ const FEATURE_KEYS = [
   'feature_shop',
 ]
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const rows = await db.select().from(settings).where(inArray(settings.key, FEATURE_KEYS))
