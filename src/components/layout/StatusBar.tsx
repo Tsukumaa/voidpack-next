@@ -10,9 +10,10 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useGameStore } from '@/store/game'
+import { useSocialStore } from '@/store/social'
 import { signIn, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { ShopModal } from '@/components/game/ShopModal'
@@ -43,16 +44,8 @@ export function StatusBar() {
     profile: s.profile,
   }))
 
-  const [streak, setStreak] = useState<number | null>(null)
+  const streak = useSocialStore(s => s.streak)
   const [showShop, setShowShop] = useState(false)
-
-  useEffect(() => {
-    if (!user) return
-
-    fetch('/api/profile/streak')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setStreak(data?.currentStreak ?? 0))
-  }, [user?.id])
 
   async function handleAuth() {
     if (user) {

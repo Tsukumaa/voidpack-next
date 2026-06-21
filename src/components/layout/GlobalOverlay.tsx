@@ -9,7 +9,7 @@ import { ChallengePopup, type PendingChallenge } from '@/components/layout/Chall
 
 export function GlobalOverlay() {
   const user    = useGameStore(s => s.user)
-  const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, addToast } = useSocialStore()
+  const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast } = useSocialStore()
   const prevFriendsRef   = useRef<number>(-1)
   const prevTradeRef     = useRef<number>(0)
   const seenChallenges   = useRef<Set<string>>(new Set())
@@ -47,8 +47,9 @@ export function GlobalOverlay() {
         setActiveChallenge({ id: c.id, challengerId: c.challengerId, challengerUsername: c.challengerUsername ?? null })
       }
 
-      // Badge profil
+      // Badge profil + streak
       setProfilBadge(data.profilBadge)
+      if (data.streak) setStreak(data.streak.currentStreak)
     }
 
     function pingPresence() {
@@ -60,7 +61,7 @@ export function GlobalOverlay() {
     const i1 = setInterval(poll, 15_000)
     const i2 = setInterval(pingPresence, 60_000)
     return () => { clearInterval(i1); clearInterval(i2) }
-  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, addToast])
+  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast])
 
   return (
     <>

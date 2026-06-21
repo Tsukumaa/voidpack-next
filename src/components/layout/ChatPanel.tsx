@@ -195,7 +195,7 @@ function Conversation({ friend, myId, myProfile, onBack }: {
   useEffect(() => {
     load(true)
     inputRef.current?.focus()
-    const iv = setInterval(() => load(false), 3000)
+    const iv = setInterval(() => load(false), 5000)
     return () => clearInterval(iv)
   }, [load])
 
@@ -355,9 +355,9 @@ export function ChatPanel() {
   }, [user, setUnreadBySender, setUnreadMessageCount])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !chatPanelOpen) return
     loadPreviews()
-    const iv = setInterval(loadPreviews, chatPanelOpen ? 8000 : 30_000)
+    const iv = setInterval(loadPreviews, 20_000)
     return () => clearInterval(iv)
   }, [chatPanelOpen, user, loadPreviews])
 
