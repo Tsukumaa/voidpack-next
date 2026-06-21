@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Zap } from 'lucide-react'
+import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 import { useGameStore } from '@/store/game'
 import { CardMedia } from '@/components/game/CardMedia'
 import { CardBackDisplay } from '@/components/game/CardBackDisplay'
@@ -155,7 +156,8 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
       style={{ backgroundImage: 'url(/assets/bg-void.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: RARITY_BG[bestRarity] ?? RARITY_BG.common }} />
+      <ParticlesCanvas />
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, background: RARITY_BG[bestRarity] ?? RARITY_BG.common }} />
 
       {/* Level up */}
       {levelUp && (
@@ -197,7 +199,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0 relative z-[3]">
         <div>
           <h2 className="text-white font-black text-base">Cartes obtenues</h2>
           <p className="text-white/40 text-xs">{cards.length} cartes · Clique pour inspecter</p>
@@ -225,7 +227,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
       </div>
 
       {/* Grille petites cartes */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8 overflow-hidden">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 overflow-hidden relative z-[3]">
         <div className="flex flex-wrap gap-4 justify-center max-w-2xl">
           {cards.map((card, i) => {
             const isNew = newCardIds.has(card.id)
@@ -507,7 +509,8 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       className={cn('fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700', shake && 'animate-[screenShake_.4s_ease-in-out]')}
       style={{ backgroundImage: 'url(/assets/bg-void.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: bgStyle }} />
+      <ParticlesCanvas />
+      <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ zIndex: 2, background: bgStyle }} />
       {phase === 'idle' && onCancel && (
         <button
           onClick={e => { e.stopPropagation(); onCancel() }}
@@ -520,7 +523,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
 
       {/* ── IDLE / TEARING ── */}
       {(phase === 'idle' || phase === 'tearing') && (
-        <div onClick={handleTear} className="relative flex flex-col items-center gap-8 cursor-pointer select-none">
+        <div onClick={handleTear} className="relative z-[3] flex flex-col items-center gap-8 cursor-pointer select-none">
           {/* Canvas particules déchirure — plein écran pour que les particules volent librement */}
           <canvas ref={tearCanvasRef} className="fixed inset-0 pointer-events-none"
             style={{ zIndex: 110, width: '100vw', height: '100vh' }} />
@@ -556,7 +559,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
 
       {/* ── TORN ── */}
       {phase === 'torn' && (
-        <div className="relative" style={{ width:'min(72vw,300px)' }}>
+        <div className="relative z-[3]" style={{ width:'min(72vw,300px)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={packSrc} alt="" className="w-full h-auto invisible block" draggable={false} />
           <div className="absolute inset-x-0 top-0 overflow-hidden"
@@ -578,7 +581,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
 
       {/* ── CARDS ── */}
       {phase === 'cards' && currentCard && (
-        <div className="flex flex-col items-center gap-5 relative">
+        <div className="flex flex-col items-center gap-5 relative z-[3]">
           {/* Indicateurs */}
           <div className="flex items-center gap-1.5 z-10">
             {cards.map((_, i) => (
