@@ -3,8 +3,11 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { matchmakingQueue, gameSessions } from '@/lib/db/schema'
 import { eq, lt, sql } from 'drizzle-orm'
+import { checkFeature } from '@/lib/features'
 
 export async function POST(req: NextRequest) {
+  const blocked = await checkFeature('feature_combat_multiplayer')
+  if (blocked) return blocked
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const uid = session.user.id

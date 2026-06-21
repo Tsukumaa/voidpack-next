@@ -1411,8 +1411,44 @@ function BoostersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 }
 
 // ─── Onglet Paramètres (via API route service role) ───────────────────────────
+const FEATURE_FLAGS = [
+  { key: 'feature_combat_multiplayer', label: 'Combat multijoueur',  desc: 'Matchmaking + défis entre joueurs',   icon: '⚔️' },
+  { key: 'feature_combat_training',    label: 'Combat entraînement', desc: 'Combat contre le bot',                icon: '🤖' },
+  { key: 'feature_pack_opening',       label: 'Ouverture de packs',  desc: 'Ouvrir des boosters',                 icon: '📦' },
+  { key: 'feature_trading',            label: 'Échange de cartes',   desc: 'Trades entre joueurs',                icon: '🔄' },
+  { key: 'feature_social',             label: 'Social / Chat',       desc: 'Messages, amis, communauté',          icon: '💬' },
+  { key: 'feature_shop',               label: 'Boutique arènes',     desc: 'Achat d\'arènes et objets',           icon: '🏪' },
+]
+
+function FeatureToggle({ featureKey, label, desc, icon, value, onChange }: {
+  featureKey: string; label: string; desc: string; icon: string
+  value: boolean; onChange: (key: string, val: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl"
+      style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${value ? 'rgba(74,158,106,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+      <div className="flex items-center gap-3">
+        <span className="text-xl">{icon}</span>
+        <div>
+          <p className="text-sm font-bold text-white">{label}</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{desc}</p>
+        </div>
+      </div>
+      <button
+        onClick={() => onChange(featureKey, !value)}
+        className="relative flex-shrink-0 w-12 h-6 rounded-full transition-colors duration-200"
+        style={{ background: value ? '#4a9e6a' : 'rgba(255,255,255,0.1)' }}
+      >
+        <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+          style={{ transform: value ? 'translateX(24px)' : 'translateX(0)' }} />
+      </button>
+    </div>
+  )
+}
+
 function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [settings, setSettings] = useState<Setting[]>([])
+  const [features, setFeatures] = useState<Record<string, boolean>>({})
   const [loading, setLoading]   = useState(true)
   const [newKey, setNewKey]     = useState('')
   const [newVal, setNewVal]     = useState('')
@@ -1420,8 +1456,15 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await adminDb('select', 'settings', { order: 'key' })
+      const data: Setting[] = await adminDb('select', 'settings', { order: 'key' })
       setSettings(data ?? [])
+      const map: Record<string, boolean> = {}
+      for (const f of FEATURE_FLAGS) {
+        const row = (data ?? []).find((s: Setting) => s.key === f.key)
+        // Par défaut activé si pas de valeur en base
+        map[f.key] = row ? row.value !== 'false' : true
+      }
+      setFeatures(map)
     } finally { setLoading(false) }
   }, [])
 
@@ -1433,6 +1476,12 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     load()
   }
 
+  async function toggleFeature(key: string, val: boolean) {
+    setFeatures(f => ({ ...f, [key]: val }))
+    await adminDb('upsert', 'settings', { key, value: val ? 'true' : 'false' }, { col: 'key', val: key, onConflict: 'key' })
+    onMsg(val ? `✅ ${FEATURE_FLAGS.find(f => f.key === key)?.label} activé` : `⛔ ${FEATURE_FLAGS.find(f => f.key === key)?.label} désactivé`)
+  }
+
   async function add() {
     if (!newKey.trim()) return
     await upsert(newKey.trim(), newVal)
@@ -1440,37 +1489,57 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   }
 
   return (
-    <div>
-      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>Paramètres globaux du jeu — clé/valeur.</p>
-      {loading ? <LoadingText /> : (
-        <div className="space-y-2 mb-6">
-          {settings.map(s => (
-            <div
-              key={s.key}
-              className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-            >
-              <span className="text-xs font-mono w-48 flex-shrink-0" style={{ color: '#a78bfa' }}>{s.key}</span>
-              <input
-                defaultValue={s.value}
-                onBlur={e => { if (e.target.value !== s.value) upsert(s.key, e.target.value) }}
-                className={`${inputCls} flex-1 text-xs`}
+    <div className="space-y-8">
+      {/* ── Fonctionnalités ── */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Fonctionnalités</h3>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Activer ou désactiver des modules du site en temps réel.
+        </p>
+        {loading ? <LoadingText /> : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {FEATURE_FLAGS.map(f => (
+              <FeatureToggle
+                key={f.key}
+                featureKey={f.key}
+                label={f.label}
+                desc={f.desc}
+                icon={f.icon}
+                value={features[f.key] ?? true}
+                onChange={toggleFeature}
               />
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Clés/valeurs brutes ── */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Paramètres bruts</h3>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Toutes les clés/valeurs de la table settings.</p>
+        {loading ? <LoadingText /> : (
+          <div className="space-y-2 mb-4">
+            {settings.filter(s => !FEATURE_FLAGS.find(f => f.key === s.key)).map(s => (
+              <div key={s.key} className="flex items-center gap-3 p-3 rounded-xl"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="text-xs font-mono w-48 flex-shrink-0" style={{ color: '#a78bfa' }}>{s.key}</span>
+                <input defaultValue={s.value}
+                  onBlur={e => { if (e.target.value !== s.value) upsert(s.key, e.target.value) }}
+                  className={`${inputCls} flex-1 text-xs`} />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-3 items-end p-4 rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Field label="Nouvelle clé">
+            <input value={newKey} onChange={e => setNewKey(e.target.value)} className={inputCls} placeholder="ma_cle" />
+          </Field>
+          <Field label="Valeur">
+            <input value={newVal} onChange={e => setNewVal(e.target.value)} className={inputCls} placeholder="valeur" />
+          </Field>
+          <button onClick={add} className={primaryBtnCls + ' flex-shrink-0'}>+ Ajouter</button>
         </div>
-      )}
-      <div
-        className="flex flex-wrap gap-3 items-end p-4 rounded-2xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <Field label="Nouvelle clé">
-          <input value={newKey} onChange={e => setNewKey(e.target.value)} className={inputCls} placeholder="ma_cle" />
-        </Field>
-        <Field label="Valeur">
-          <input value={newVal} onChange={e => setNewVal(e.target.value)} className={inputCls} placeholder="valeur" />
-        </Field>
-        <button onClick={add} className={primaryBtnCls + ' flex-shrink-0'}>+ Ajouter</button>
       </div>
     </div>
   )

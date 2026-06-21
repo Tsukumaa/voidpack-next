@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle, Plus, Pencil, Trash2, Save, ChevronLeft, Gem, Shield } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { useFeatures } from '@/hooks/useFeatures'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
 import { CardHover } from '@/components/game/CardHover'
@@ -70,6 +71,7 @@ function DraftContent() {
     ? JSON.parse(sessionStorage.getItem('challenge_friend') ?? 'null') as { id: string; username: string } | null
     : null
   const { user } = useGameStore(s => ({ user: s.user }))
+  const { isEnabled } = useFeatures()
 
   const [view, setView]                 = useState<'select' | 'builder'>('select')
   const [savedDecks, setSavedDecks]     = useState<SavedDeck[]>([])
@@ -246,6 +248,8 @@ function DraftContent() {
   }
 
   async function selectAndPlay(deck: SavedDeck, mode: 'queue' | 'training') {
+    if (mode === 'training' && !isEnabled('feature_combat_training')) { alert('L\'entraînement est temporairement désactivé.'); return }
+    if (mode === 'queue' && !isEnabled('feature_combat_multiplayer')) { alert('Le combat multijoueur est temporairement désactivé.'); return }
     try {
       const entries = JSON.parse(deck.cards) as SelectedEntry[]
       const payload = buildPayload(entries)
@@ -275,6 +279,7 @@ function DraftContent() {
   }
 
   async function handleQueue() {
+    if (!isEnabled('feature_combat_multiplayer')) { alert('Le combat multijoueur est temporairement désactivé.'); return }
     if (totalCards < DECK_SIZE || manaOver) return
     const deck = buildPayload(selected)
     sessionStorage.setItem('draft_deck', JSON.stringify(deck))
@@ -300,6 +305,7 @@ function DraftContent() {
   }
 
   function handleTraining() {
+    if (!isEnabled('feature_combat_training')) { alert('L\'entraînement est temporairement désactivé.'); return }
     if (totalCards < 1) return
     sessionStorage.setItem('draft_deck', JSON.stringify(buildPayload(selected)))
     router.push('/combat/training')
