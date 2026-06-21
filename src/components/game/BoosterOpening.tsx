@@ -10,7 +10,6 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
-import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 
 interface Card {
   id: string
@@ -155,8 +154,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
-      style={{ background: '#06010e' }}>
-      <ParticlesCanvas />
+      style={{ backgroundImage: 'url(/assets/bg-void.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: RARITY_BG[bestRarity] ?? RARITY_BG.common }} />
 
       {/* Level up */}
@@ -507,9 +505,8 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   return (
     <div
       className={cn('fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700', shake && 'animate-[screenShake_.4s_ease-in-out]')}
-      style={{ background: '#06010e' }}
+      style={{ backgroundImage: 'url(/assets/bg-void.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <ParticlesCanvas />
       <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: bgStyle }} />
       {phase === 'idle' && onCancel && (
         <button
