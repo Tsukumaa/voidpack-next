@@ -10,6 +10,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
+import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 
 interface Card {
   id: string
@@ -38,11 +39,11 @@ const RARITY_COLOR: Record<string, string> = {
   rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
-  void:      'radial-gradient(ellipse at 50% 0%, #1a0a3a 0%, #050210 60%, #000 100%)',
-  legendary: 'radial-gradient(ellipse at 50% 0%, #2a1800 0%, #100800 60%, #000 100%)',
-  epic:      'radial-gradient(ellipse at 50% 0%, #1a0a2e 0%, #0a0518 60%, #000 100%)',
-  rare:      'radial-gradient(ellipse at 50% 0%, #0a1628 0%, #040810 60%, #000 100%)',
-  common:    'radial-gradient(ellipse at 50% 0%, #111118 0%, #060608 60%, #000 100%)',
+  void:      'radial-gradient(ellipse at 50% 0%, rgba(26,10,58,0.82) 0%, rgba(5,2,16,0.72) 60%, rgba(6,1,14,0.6) 100%)',
+  legendary: 'radial-gradient(ellipse at 50% 0%, rgba(42,24,0,0.82) 0%, rgba(16,8,0,0.72) 60%, rgba(6,1,14,0.6) 100%)',
+  epic:      'radial-gradient(ellipse at 50% 0%, rgba(26,10,46,0.82) 0%, rgba(10,5,24,0.72) 60%, rgba(6,1,14,0.6) 100%)',
+  rare:      'radial-gradient(ellipse at 50% 0%, rgba(10,22,40,0.82) 0%, rgba(4,8,16,0.72) 60%, rgba(6,1,14,0.6) 100%)',
+  common:    'radial-gradient(ellipse at 50% 0%, rgba(17,17,24,0.82) 0%, rgba(6,6,8,0.72) 60%, rgba(6,1,14,0.6) 100%)',
 }
 const SUSPENSE_MS: Record<string, number> = {
   void: 2800, legendary: 2800, epic: 1500, rare: 1000, common: 420,
@@ -154,7 +155,9 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
-      style={{ background: RARITY_BG[bestRarity] ?? RARITY_BG.common }}>
+      style={{ background: '#06010e' }}>
+      <ParticlesCanvas />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: RARITY_BG[bestRarity] ?? RARITY_BG.common }} />
 
       {/* Level up */}
       {levelUp && (
@@ -332,7 +335,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
   const [revealedColor, setRevealedColor] = useState('')
-  const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
+  const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, rgba(13,5,32,0.75) 0%, rgba(6,1,14,0.55) 100%)')
   const [auraColor, setAuraColor]   = useState('')
   const [raysColor, setRaysColor]   = useState('')
   const [particles, setParticles]   = useState<Particle[]>([])
@@ -472,7 +475,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       clearTimers(); setAuraColor(''); setRaysColor(''); setParticles([])
       setRevealedColor('')
       if (!isLast) {
-        setBgStyle('radial-gradient(ellipse at 50% 30%, #0d0520 0%, #000 100%)')
+        setBgStyle('radial-gradient(ellipse at 50% 30%, rgba(13,5,32,0.75) 0%, rgba(6,1,14,0.55) 100%)')
         locked.current = true
         setCardPhase('hiding')
         // Attendre la fin du flip retour (950ms) avant de changer de carte
@@ -504,8 +507,10 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   return (
     <div
       className={cn('fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden transition-all duration-700', shake && 'animate-[screenShake_.4s_ease-in-out]')}
-      style={{ background: bgStyle }}
+      style={{ background: '#06010e' }}
     >
+      <ParticlesCanvas />
+      <div className="absolute inset-0 pointer-events-none transition-all duration-700" style={{ background: bgStyle }} />
       {phase === 'idle' && onCancel && (
         <button
           onClick={e => { e.stopPropagation(); onCancel() }}
