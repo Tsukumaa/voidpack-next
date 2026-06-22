@@ -196,8 +196,18 @@ function Conversation({ friend, myId, myProfile, onBack }: {
     load(true)
     inputRef.current?.focus()
     if (!chatPanelOpen) return
-    const iv = setInterval(() => load(false), 5000)
-    return () => clearInterval(iv)
+    // 5s onglet actif, pause en arrière-plan
+    let timer: ReturnType<typeof setTimeout>
+    function schedule() {
+      const delay = document.visibilityState === 'visible' ? 5000 : 30_000
+      timer = setTimeout(async () => { await load(false); schedule() }, delay)
+    }
+    schedule()
+    function onVisibility() {
+      if (document.visibilityState === 'visible') { clearTimeout(timer); load(false); schedule() }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility) }
   }, [load, chatPanelOpen])
 
   async function send() {

@@ -56,11 +56,33 @@ export function GlobalOverlay() {
       fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
     }
 
+    // Polling adaptatif : 30s onglet actif, 120s en arrière-plan
+    let pollTimer: ReturnType<typeof setTimeout>
+    function scheduleNextPoll() {
+      const delay = document.visibilityState === 'visible' ? 30_000 : 120_000
+      pollTimer = setTimeout(async () => { await poll(); scheduleNextPoll() }, delay)
+    }
+
     poll()
     pingPresence()
-    const i1 = setInterval(poll, 30_000)
+    scheduleNextPoll()
     const i2 = setInterval(pingPresence, 60_000)
-    return () => { clearInterval(i1); clearInterval(i2) }
+
+    // Au retour sur l'onglet : fetch immédiat + reprise du rythme rapide
+    function onVisibility() {
+      if (document.visibilityState === 'visible') {
+        clearTimeout(pollTimer)
+        poll()
+        scheduleNextPoll()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      clearTimeout(pollTimer)
+      clearInterval(i2)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast])
 
   return (
