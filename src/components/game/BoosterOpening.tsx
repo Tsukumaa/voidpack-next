@@ -10,7 +10,7 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
-import { trackMissionProgress } from '@/lib/game/mission-tracker'
+import { trackMissions } from '@/lib/game/mission-tracker'
 
 interface Card {
   id: string
@@ -97,13 +97,14 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
         packsOpenedTotal = claimData.packs_opened ?? 1
       }
 
-      // Track missions
+      // Track missions (batch en une seule requête)
       if (user) {
         const RARITY_RANK: Record<string, number> = { void: 4, legendary: 3, epic: 2, rare: 1, common: 0 }
         const bestRank = cards.reduce((max, c) => Math.max(max, RARITY_RANK[c.rarity] ?? 0), 0)
-        trackMissionProgress(user.id, 'collect_5', cards.length)
-        if (bestRank >= 1) trackMissionProgress(user.id, 'get_rare', 1)
-        if (bestRank >= 2) trackMissionProgress(user.id, 'get_epic', 1)
+        const events: { missionId: string; count?: number }[] = [{ missionId: 'collect_5', count: cards.length }]
+        if (bestRank >= 1) events.push({ missionId: 'get_rare', count: 1 })
+        if (bestRank >= 2) events.push({ missionId: 'get_epic', count: 1 })
+        trackMissions(user.id, events)
       }
 
       // Save cards

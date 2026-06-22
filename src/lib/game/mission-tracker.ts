@@ -12,6 +12,18 @@ export async function trackMissionProgress(userId: string, eventType: string, co
   } catch { /* best-effort */ }
 }
 
+// Envoie plusieurs événements en une seule requête (batch)
+export async function trackMissions(userId: string, events: { missionId: string; count?: number }[]) {
+  if (!userId || events.length === 0) return
+  try {
+    await fetch('/api/profile/missions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events }),
+    })
+  } catch { /* best-effort */ }
+}
+
 // Maintenu pour compatibilité — le profil charge directement depuis l'API maintenant.
 export function getMissionProgress(_userId: string, _eventType: string): number { return 0 }
 export function getClaimedMissions(_userId: string): string[] { return [] }

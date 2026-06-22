@@ -43,26 +43,33 @@ export async function POST(req: NextRequest) {
   const uid  = session.user.id
   const date = todayStr()
 
-  const { missionId, count = 1 } = await req.json() as { missionId: string; count?: number }
+  const body = await req.json() as
+    | { missionId: string; count?: number }
+    | { events: { missionId: string; count?: number }[] }
+
+  // Accepte un événement unique OU un tableau d'événements (batch)
+  const events = 'events' in body
+    ? body.events
+    : [{ missionId: body.missionId, count: body.count }]
+
   const missions = getTodayMissions()
-  const mission  = missions.find(m => m.id === missionId)
-  if (!mission) return NextResponse.json({ ok: true }) // mission pas active aujourd'hui, on ignore
 
-  await db
-    .insert(playerDailyMissions)
-    .values({ userId: uid, date, missionId, progress: count })
-    .onConflictDoUpdate({
-      target: [playerDailyMissions.userId, playerDailyMissions.date, playerDailyMissions.missionId],
-      set: {
-        progress:  sql`MIN(${playerDailyMissions.progress} + ${count}, ${mission.goal})`,
-        updatedAt: new Date().toISOString(),
-      },
-    })
+  for (const ev of events) {
+    const count   = ev.count ?? 1
+    const mission = missions.find(m => m.id === ev.missionId)
+    if (!mission) continue // mission pas active aujourd'hui, on ignore
 
-  const [row] = await db
-    .select()
-    .from(playerDailyMissions)
-    .where(and(eq(playerDailyMissions.userId, uid), eq(playerDailyMissions.date, date), eq(playerDailyMissions.missionId, missionId)))
+    await db
+      .insert(playerDailyMissions)
+      .values({ userId: uid, date, missionId: ev.missionId, progress: count })
+      .onConflictDoUpdate({
+        target: [playerDailyMissions.userId, playerDailyMissions.date, playerDailyMissions.missionId],
+        set: {
+          progress:  sql`MIN(${playerDailyMissions.progress} + ${count}, ${mission.goal})`,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+  }
 
-  return NextResponse.json({ ok: true, progress: row?.progress ?? count })
+  return NextResponse.json({ ok: true })
 }
