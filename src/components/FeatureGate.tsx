@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { getFeatures } from '@/hooks/useFeatures'
 
 interface Props {
   featureKey: string
@@ -13,11 +14,8 @@ export function FeatureGate({ featureKey, children, label = 'Cette fonctionnalit
   const router = useRouter()
 
   useEffect(() => {
-    fetch('/api/features')
-      .then(r => r.json())
-      .then((data: Record<string, boolean>) => {
-        setEnabled(featureKey in data ? data[featureKey] : true)
-      })
+    getFeatures()
+      .then((data) => setEnabled(featureKey in data ? data[featureKey] : true))
       .catch(() => setEnabled(true))
   }, [featureKey])
 

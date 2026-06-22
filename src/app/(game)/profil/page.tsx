@@ -99,8 +99,8 @@ export default function ProfilPage() {
 
   const loadMissions = useCallback(async (isInitial = false) => {
     if (!user) return
-    // Marquer la mission daily_login
-    await trackMissionProgress(user.id, 'daily_login', 1)
+    // Marquer la mission daily_login uniquement au chargement initial
+    if (isInitial) await trackMissionProgress(user.id, 'daily_login', 1)
     const data: { mission_id: string; progress: number; claimed: boolean }[] =
       await fetch('/api/profile/missions').then(r => r.ok ? r.json() : [])
     const mapped = todayMissions.map(m => {
@@ -222,7 +222,13 @@ export default function ProfilPage() {
       } else {
         setClaimMsg('Booster crédité !')
       }
-      load()
+      // Refresh ciblé du streak (pas besoin de tout recharger)
+      const dailyData = await fetch('/api/profile/streak').then(r => r.ok ? r.json() : null)
+      if (dailyData) setDaily({
+        last_claim_at: dailyData.lastClaimAt ?? null,
+        current_streak: dailyData.currentStreak ?? 0,
+        best_streak: dailyData.bestStreak ?? 0,
+      })
     } catch { setClaimMsg('Déjà réclamé aujourd\'hui.') }
     finally { setClaiming(false); setTimeout(() => setClaimMsg(''), 4000) }
   }
