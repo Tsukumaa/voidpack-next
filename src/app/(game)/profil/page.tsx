@@ -387,6 +387,27 @@ export default function ProfilPage() {
             </div>
           </div>
 
+          {/* Streamer — connecter sa chaîne pour offrir des boosters en Channel Points */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(145,71,255,0.15)' }}>
+                  <Tv2 size={16} className="text-white/60" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">Tu es streamer ?</p>
+                  <p className="text-white/40 text-xs mt-0.5">Connecte ta chaîne pour offrir des boosters en Points de Chaîne</p>
+                </div>
+              </div>
+              <a href="/api/twitch/streamer/connect"
+                className="px-3 py-1.5 rounded-xl text-white text-xs font-bold whitespace-nowrap"
+                style={{ background: 'linear-gradient(135deg,#9147ff,#5a1fb8)' }}>
+                Connecter ma chaîne
+              </a>
+            </div>
+          </div>
+
           {/* Daily reward — redesign */}
           <div className="rounded-2xl border border-white/[0.07] overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(255,154,61,0.07) 0%, rgba(123,43,255,0.05) 100%)' }}>

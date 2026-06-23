@@ -287,6 +287,40 @@ export const twitchPendingCodes = sqliteTable('twitch_pending_codes', {
   createdAt:        text('created_at').notNull().default(now),
 })
 
+// ── twitch_streamers ──────────────────────────────────────────────────────────
+// Chaînes Twitch connectées via OAuth (scope channel:read:redemptions).
+// Les tokens permettent de (re)créer les abonnements EventSub.
+export const twitchStreamers = sqliteTable('twitch_streamers', {
+  broadcasterId:    text('broadcaster_id').primaryKey(),
+  broadcasterLogin: text('broadcaster_login').notNull(),
+  userId:           text('user_id'),                 // compte VOID du streamer (Discord id)
+  accessToken:      text('access_token'),
+  refreshToken:     text('refresh_token'),
+  scope:            text('scope'),
+  active:           integer('active', { mode: 'boolean' }).notNull().default(true),
+  subscriptionId:   text('subscription_id'),          // id de l'abonnement EventSub
+  createdAt:        text('created_at').notNull().default(now),
+  updatedAt:        text('updated_at').notNull().default(now),
+})
+
+// ── twitch_rewards ────────────────────────────────────────────────────────────
+// Mapping reward Channel Points → type de booster. boosterType null = non mappé
+// (auto-découvert lors d'une première utilisation, à mapper dans l'admin).
+export const twitchRewards = sqliteTable('twitch_rewards', {
+  id:            integer('id').primaryKey({ autoIncrement: true }),
+  broadcasterId: text('broadcaster_id').notNull(),
+  rewardId:      text('reward_id').notNull(),
+  rewardTitle:   text('reward_title'),
+  rewardCost:    integer('reward_cost'),
+  boosterType:   text('booster_type'),                // null = pas encore mappé
+  quantity:      integer('quantity').notNull().default(1),
+  active:        integer('active', { mode: 'boolean' }).notNull().default(true),
+  createdAt:     text('created_at').notNull().default(now),
+  updatedAt:     text('updated_at').notNull().default(now),
+}, (t) => [
+  uniqueIndex('idx_twitch_rewards_unique').on(t.broadcasterId, t.rewardId),
+])
+
 // ── game_actions ──────────────────────────────────────────────────────────────
 export const gameActions = sqliteTable('game_actions', {
   id:         integer('id').primaryKey({ autoIncrement: true }),

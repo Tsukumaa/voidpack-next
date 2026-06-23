@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X } from 'lucide-react'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Trash2 } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'settings'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'twitch' | 'settings'
 
 interface Arena {
   id?: string
@@ -104,6 +104,7 @@ export default function AdminPage() {
     { id: 'boosters',  icon: <Package size={13} />,  label: 'Boosters' },
     { id: 'cardbacks', icon: <Shirt size={13} />,    label: 'Dos' },
     { id: 'arenas',    icon: <Shield size={13} />,   label: 'Arènes' },
+    { id: 'twitch',    icon: <Tv2 size={13} />,      label: 'Twitch' },
     { id: 'settings',  icon: <Settings size={13} />, label: 'Params' },
   ]
 
@@ -224,6 +225,7 @@ export default function AdminPage() {
         {tab === 'boosters' && <BoostersTab onMsg={showMsg} />}
         {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
         {tab === 'arenas'   && <ArenasTab onMsg={showMsg} />}
+        {tab === 'twitch'   && <TwitchTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
       </div>
     </div>
@@ -1442,6 +1444,142 @@ function FeatureToggle({ featureKey, label, desc, icon, value, onChange }: {
         <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
           style={{ transform: value ? 'translateX(24px)' : 'translateX(0)' }} />
       </button>
+    </div>
+  )
+}
+
+// ─── Twitch : streamers connectés + mapping rewards → boosters ─────────────────
+interface TwitchStreamer {
+  broadcasterId: string
+  broadcasterLogin: string
+  userId: string | null
+  active: boolean
+  subscriptionId: string | null
+  createdAt: string
+}
+interface TwitchReward {
+  id: number
+  broadcasterId: string
+  rewardId: string
+  rewardTitle: string | null
+  rewardCost: number | null
+  boosterType: string | null
+  quantity: number
+  active: boolean
+}
+
+function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [streamers, setStreamers] = useState<TwitchStreamer[]>([])
+  const [rewards, setRewards]     = useState<TwitchReward[]>([])
+  const [boosterOptions, setBoosterOptions] = useState<{ value: string; label: string }[]>([{ value: 'void', label: 'VOID Pack (global)' }])
+  const [loading, setLoading]     = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const [tw, fams] = await Promise.all([
+      fetch('/api/admin/twitch').then(r => r.ok ? r.json() : { streamers: [], rewards: [] }),
+      fetch('/api/families').then(r => r.ok ? r.json() : []).catch(() => []),
+    ])
+    setStreamers(tw.streamers ?? [])
+    setRewards(tw.rewards ?? [])
+    const opts = [{ value: 'void', label: 'VOID Pack (global)' }]
+    for (const f of (fams as { key: string; label: string }[])) {
+      if (f.key && f.key !== 'global' && f.key !== 'void') opts.push({ value: f.key, label: `${f.label} Pack` })
+    }
+    setBoosterOptions(opts)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function post(action: string, data: Record<string, unknown>) {
+    const res = await fetch('/api/admin/twitch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, data }),
+    })
+    if (res.ok) { onMsg('Mis à jour', true); load() }
+    else onMsg('Erreur', false)
+  }
+
+  async function saveReward(r: TwitchReward) {
+    await post('map_reward', { id: r.id, boosterType: r.boosterType, quantity: r.quantity, active: r.active })
+  }
+
+  function patchReward(id: number, patch: Partial<TwitchReward>) {
+    setRewards(rs => rs.map(r => r.id === id ? { ...r, ...patch } : r))
+  }
+
+  if (loading) return <div className="text-white/40 text-sm p-4">Chargement…</div>
+
+  return (
+    <div className="space-y-6">
+      {/* Streamers connectés */}
+      <div>
+        <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><Tv2 size={15} className="text-[#9146FF]" /> Chaînes connectées</h3>
+        {streamers.length === 0 ? (
+          <p className="text-white/40 text-xs">Aucune chaîne connectée. Un streamer se connecte via le bouton « Connecter ma chaîne » sur son profil.</p>
+        ) : (
+          <div className="space-y-2">
+            {streamers.map(s => (
+              <div key={s.broadcasterId} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-white text-sm font-semibold">{s.broadcasterLogin}</p>
+                  <p className="text-white/40 text-[11px]">
+                    {s.subscriptionId ? '✅ EventSub actif' : '⚠️ Pas d\'abonnement EventSub'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => post('toggle_streamer', { broadcasterId: s.broadcasterId, active: !s.active })}
+                  className={`text-xs px-3 py-1 rounded-md font-semibold ${s.active ? 'bg-[#4a9e6a]/20 text-[#6ee7a0]' : 'bg-white/10 text-white/50'}`}
+                >{s.active ? 'Actif' : 'Inactif'}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Mapping rewards → boosters */}
+      <div>
+        <h3 className="text-white font-bold text-sm mb-2">Rewards Channel Points → Boosters</h3>
+        <p className="text-white/40 text-[11px] mb-3">
+          Les rewards apparaissent automatiquement dès leur première utilisation. Assigne un booster à chacun.
+        </p>
+        {rewards.length === 0 ? (
+          <p className="text-white/40 text-xs">Aucun reward détecté pour l&apos;instant.</p>
+        ) : (
+          <div className="space-y-2">
+            {rewards.map(r => (
+              <div key={r.id} className="bg-white/5 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+                <div className="flex-1 min-w-[140px]">
+                  <p className="text-white text-sm font-semibold">{r.rewardTitle ?? r.rewardId}</p>
+                  {r.rewardCost != null && <p className="text-white/40 text-[11px]">{r.rewardCost} points</p>}
+                  {!r.boosterType && <p className="text-amber-400 text-[11px]">⚠️ Non mappé</p>}
+                </div>
+                <select
+                  value={r.boosterType ?? ''}
+                  onChange={e => patchReward(r.id, { boosterType: e.target.value || null })}
+                  className="bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5"
+                >
+                  <option value="">— Aucun —</option>
+                  {boosterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <input
+                  type="number" min={1} value={r.quantity}
+                  onChange={e => patchReward(r.id, { quantity: Math.max(1, Number(e.target.value)) })}
+                  className="w-14 bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5"
+                  title="Quantité de boosters"
+                />
+                <button
+                  onClick={() => patchReward(r.id, { active: !r.active })}
+                  className={`text-[11px] px-2 py-1.5 rounded-md font-semibold ${r.active ? 'bg-[#4a9e6a]/20 text-[#6ee7a0]' : 'bg-white/10 text-white/50'}`}
+                >{r.active ? 'On' : 'Off'}</button>
+                <button onClick={() => saveReward(r)} className="text-[11px] px-3 py-1.5 rounded-md font-semibold bg-[#9146FF]/20 text-[#c4a7ff]">Enregistrer</button>
+                <button onClick={() => post('delete_reward', { id: r.id })} className="text-white/30 hover:text-red-400"><Trash2 size={14} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

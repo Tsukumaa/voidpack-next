@@ -272,7 +272,7 @@ function Column({
 
   return (
     <div
-      className="flex flex-col flex-1 min-w-0 rounded-2xl transition-all"
+      className="flex flex-col flex-1 min-h-0 min-w-[280px] rounded-2xl transition-all"
       style={{
         background: over ? `${col.color}08` : 'rgba(255,255,255,.02)',
         border: `1px solid ${over ? col.color + '50' : 'rgba(255,255,255,.06)'}`,
@@ -298,7 +298,7 @@ function Column({
       </div>
 
       {/* Cards */}
-      <div className="flex flex-col gap-2 p-3 overflow-y-auto min-h-[200px]" style={{ maxHeight: 'calc(100vh - 130px)' }}>
+      <div className="flex flex-col gap-2 p-3 overflow-y-auto flex-1 min-h-0">
         {cards.map(card => (
           <Card
             key={card.id}
@@ -437,7 +437,7 @@ export default function BoardPage() {
     cards.filter(c => c.column === colId).sort((a, b) => a.position - b.position)
 
   return (
-    <div className="min-h-svh bg-[#06010e] text-white">
+    <div className="h-svh flex flex-col bg-[#06010e] text-white">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-white/5 flex-wrap">
         <Link href="/admin" className="text-white/40 hover:text-white transition-colors text-sm">← Admin</Link>
@@ -464,7 +464,7 @@ export default function BoardPage() {
           <div className="w-8 h-8 border-2 border-[#7b2bff]/20 border-t-[#7b2bff] rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="flex gap-4 p-6 h-[calc(100vh-73px)] overflow-hidden">
+        <div className="flex gap-4 p-6 flex-1 min-h-0 overflow-x-auto">
           {COLUMNS.map(col => (
             <Column
               key={col.id}
