@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { friendships, playerProfiles, gameSessions } from '@/lib/db/schema'
 import { eq, or, and, sql, count } from 'drizzle-orm'
 import { playerCards, customCards } from '@/lib/db/schema'
+import { isSubscriberActive } from '@/lib/kofi/grant'
 
 export async function GET() {
   const session = await auth()
@@ -51,6 +52,7 @@ export async function GET() {
       status: r.status,
       collectionComplete: totalAvailable > 0 && unique >= totalAvailable,
       activeSessionId: sessionOf(friendId),
+      is_subscriber: isSubscriberActive(profile ?? {}),
     }
   })
 
@@ -95,10 +97,28 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { friendshipId, accept } = await req.json()
+  const uid = session.user.id
+
+  const [row] = await db.select().from(friendships).where(eq(friendships.id, friendshipId)).limit(1)
+
   await db
     .update(friendships)
     .set({ status: accept ? 'accepted' : 'blocked', updatedAt: new Date().toISOString() })
     .where(eq(friendships.id, friendshipId))
+
+  if (accept && row) {
+    const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    for (const u of [uid, row.senderId]) {
+      fetch(`${base}/api/profile/missions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ missionId: 'add_friend', count: 1 }),
+      }).catch(() => {})
+      fetch(`${base}/api/achievements/check`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rarities: [], totalPacks: 0, uniqueCards: 0, level: 1, _uid: u }),
+      }).catch(() => {})
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

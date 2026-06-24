@@ -11,6 +11,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
 import { trackMissions } from '@/lib/game/mission-tracker'
+import { fadeSiteMusicOut, fadeSiteMusicIn } from '@/components/layout/MusicPlayer'
 
 interface Card {
   id: string
@@ -62,7 +63,68 @@ function hexToRgba(hex: string, a: number) {
 interface Particle { id:number; x:number; y:number; color:string; size:number; delay:number; dur:number; vx:number; vy:number }
 
 type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
-type CardPhase = 'back'|'suspense'|'revealed'|'hiding'
+type CardPhase = 'back'|'suspense'|'void-video'|'revealed'|'hiding'
+
+// ── Overlay vidéo VOID ────────────────────────────────────────────────────────
+const VIDEO_VOLUME = 0.2
+
+function fadeVideoIn(v: HTMLVideoElement, ms = 500) {
+  v.volume = 0
+  const steps = 25; const tick = ms / steps; let step = 0
+  const id = setInterval(() => {
+    step++
+    v.volume = Math.min(VIDEO_VOLUME, VIDEO_VOLUME * (step / steps))
+    if (step >= steps) { clearInterval(id); v.volume = VIDEO_VOLUME }
+  }, tick)
+  return id
+}
+
+function fadeVideoOut(v: HTMLVideoElement, ms = 400, onDone?: () => void) {
+  const start = v.volume
+  const steps = 20; const tick = ms / steps; let step = 0
+  const id = setInterval(() => {
+    step++
+    v.volume = Math.max(0, start * (1 - step / steps))
+    if (step >= steps) { clearInterval(id); v.volume = 0; onDone?.() }
+  }, tick)
+  return id
+}
+
+function VoidVideoReveal({ onReveal }: { onReveal: () => void }) {
+  const revealRef  = useRef(false)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (v) v.volume = 0
+    fadeSiteMusicOut(600)
+    setTimeout(() => { if (videoRef.current) fadeVideoIn(videoRef.current, 500) }, 650)
+  }, [])
+
+  function handleEnded() {
+    if (revealRef.current) return
+    revealRef.current = true
+    const v = videoRef.current
+    if (v) fadeVideoOut(v, 200)
+    // onReveal gère le flash blanc dans le parent (survit au démontage de ce composant)
+    onReveal()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[110] overflow-hidden bg-black">
+      <video
+        ref={videoRef}
+        src="/assets/void-reveal.mp4"
+        autoPlay
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        onEnded={handleEnded}
+        style={{ opacity: 0, animation: 'voidVideoFadeIn 0.4s ease-out 0.1s forwards' }}
+      />
+      <style>{`@keyframes voidVideoFadeIn { from { opacity:0 } to { opacity:1 } }`}</style>
+    </div>
+  )
+}
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
 function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpenAnother, canOpenAnother, creditId }: { cards: Card[]; boosterType?: string; newCardIds: Set<string>; onClose: () => void; onOpenAnother?: () => void; canOpenAnother?: boolean; creditId?: number | string | null }) {
@@ -338,6 +400,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [phase, setPhase]           = useState<Phase>('idle')
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
+  const [whiteFlash, setWhiteFlash] = useState(0) // 0=off, 1=rising, 2=fading
   const [revealedColor, setRevealedColor] = useState('')
   const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, rgba(13,5,32,0.75) 0%, rgba(6,1,14,0.55) 100%)')
   const [auraColor, setAuraColor]   = useState('')
@@ -463,12 +526,19 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const handleCardTap = useCallback(() => {
     if (locked.current) return
     if (cardPhase === 'back') {
-      locked.current = true; setCardPhase('suspense')
+      locked.current = true
+      setCardPhase('suspense')
       const suspenseMs = SUSPENSE_MS[rarity] ?? 580
-      if (rarity==='legendary'||rarity==='void') {
-        later(() => { setShake(true); setTimeout(() => setShake(false), 400) }, suspenseMs*.6)
+      if (rarity === 'legendary' || rarity === 'void') {
+        later(() => { setShake(true); setTimeout(() => setShake(false), 400) }, suspenseMs * .6)
       }
       later(() => {
+        if (rarity === 'void') {
+          // Après le suspense → vidéo cinématique
+          setCardPhase('void-video')
+          locked.current = false
+          return
+        }
         const c = RARITY_COLOR[rarity] ?? '#9ca3af'
         setRevealedColor(c); setBgStyle(RARITY_BG[rarity])
         setRevealFx(rarity, c); setCardPhase('revealed')
@@ -491,6 +561,26 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       } else { setPhase('results') }
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
+
+  const triggerVoidReveal = useCallback(() => {
+    // Flash blanc : monte, révèle la carte au pic, puis redescend
+    setWhiteFlash(1)
+    setTimeout(() => {
+      fadeSiteMusicIn(700)
+      const c = RARITY_COLOR['void']
+      setRevealedColor(c)
+      setBgStyle(RARITY_BG['void'])
+      setRevealFx('void', c)
+      spawnRevealParticles(c, PARTICLE_COUNT['void'])
+      setCardPhase('revealed')
+      locked.current = false
+      // Double rAF pour que le navigateur peigne opacity:1 avant de démarrer le fade-out
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setWhiteFlash(2)
+        setTimeout(() => setWhiteFlash(0), 700)
+      }))
+    }, 350)
+  }, []) // eslint-disable-line
 
   // Révélation automatique : enchaîne les taps tout en gardant les animations
   useEffect(() => {
@@ -523,6 +613,24 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
         >
           ✕
         </button>
+      )}
+
+      {/* ── VOID VIDEO REVEAL ── */}
+      {phase === 'cards' && cardPhase === 'void-video' && (
+        <VoidVideoReveal onReveal={triggerVoidReveal} />
+      )}
+
+      {/* ── FLASH BLANC post-vidéo VOID ── */}
+      {whiteFlash > 0 && (
+        <div
+          className="fixed inset-0 pointer-events-none"
+          style={{
+            zIndex: 115,
+            background: 'white',
+            opacity: whiteFlash === 1 ? 1 : 0,
+            transition: whiteFlash === 1 ? 'opacity 350ms ease-out' : 'opacity 700ms ease-in',
+          }}
+        />
       )}
 
       {/* ── IDLE / TEARING ── */}

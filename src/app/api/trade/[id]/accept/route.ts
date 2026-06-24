@@ -60,5 +60,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .set({ status: 'accepted', respondedAt: new Date().toISOString() })
     .where(eq(tradeOffers.id, id))
 
+  // Missions & succès des deux parties (fire-and-forget)
+  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  for (const uid of [session.user.id, trade.senderId]) {
+    fetch(`${base}/api/profile/missions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ missionId: 'make_trade', count: 1 }),
+    }).catch(() => {})
+    fetch(`${base}/api/achievements/check`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rarities: [], totalPacks: 0, uniqueCards: 0, level: 1, _uid: uid }),
+    }).catch(() => {})
+  }
+
   return NextResponse.json({ ok: true })
 }

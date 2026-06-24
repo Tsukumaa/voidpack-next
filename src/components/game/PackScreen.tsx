@@ -134,8 +134,9 @@ export function PackScreen() {
 
       if (user) {
         const events: { missionId: string; count?: number }[] = [
-          { missionId: 'open_1_pack', count: 1 },
+          { missionId: 'open_1_pack',  count: 1 },
           { missionId: 'open_3_packs', count: 1 },
+          { missionId: 'open_5_packs', count: 1 },
         ]
         if (type === 'void') events.push({ missionId: 'open_void_pack', count: 1 })
         trackMissions(user.id, events)
@@ -193,7 +194,8 @@ export function PackScreen() {
               {types.length > 1 && safeIdx > 0 && (
                 <button
                   onClick={() => setCarouselIdx(i => i - 1)}
-                  className="absolute left-1 sm:left-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 text-white/60"
+                  className="absolute left-1 sm:left-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full text-[#bf9fff] text-2xl font-bold transition-all hover:scale-110"
+                  style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.45)', boxShadow: '0 0 12px rgba(123,43,255,0.3)' }}
                 >
                   ‹
                 </button>
@@ -252,7 +254,8 @@ export function PackScreen() {
               {types.length > 1 && safeIdx < types.length - 1 && (
                 <button
                   onClick={() => setCarouselIdx(i => i + 1)}
-                  className="absolute right-1 sm:right-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 text-white/60"
+                  className="absolute right-1 sm:right-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full text-[#bf9fff] text-2xl font-bold transition-all hover:scale-110"
+                  style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.45)', boxShadow: '0 0 12px rgba(123,43,255,0.3)' }}
                 >
                   ›
                 </button>

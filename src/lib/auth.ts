@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import Discord from 'next-auth/providers/discord'
 import { db } from '@/lib/db'
-import { playerProfiles, adminUsers } from '@/lib/db/schema'
+import { playerProfiles, adminUsers, boosterCredits } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -23,6 +23,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       // Upsert profile — ne pas bloquer la connexion si la DB est down
       try {
+        const existing = await db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, discordId) })
+
         await db
           .insert(playerProfiles)
           .values({ userId: discordId, username, avatarUrl, email })
@@ -30,6 +32,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             target: playerProfiles.userId,
             set: { username, avatarUrl, ...(email ? { email } : {}), updatedAt: new Date().toISOString() },
           })
+
+        // Booster de bienvenue à la première connexion
+        if (!existing) {
+          await db.insert(boosterCredits).values({
+            userId:      discordId,
+            boosterType: 'void',
+            source:      'welcome',
+            sourceRef:   `welcome_${discordId}`,
+          }).onConflictDoNothing()
+        }
       } catch (e) {
         console.error('signIn DB error:', e)
       }

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
-import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { useSocialStore } from '@/store/social'
 import { FeatureGate } from '@/components/FeatureGate'
@@ -23,6 +23,7 @@ interface LadderEntry {
   highest_rarity: string | null
   role: UserRole
   collectionComplete?: boolean
+  is_subscriber?: boolean
 }
 
 interface Friend {
@@ -33,6 +34,7 @@ interface Friend {
   status: string
   collectionComplete?: boolean
   activeSessionId?: string | null
+  is_subscriber?: boolean
 }
 
 interface Trade {
@@ -211,7 +213,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Rechercher une carte…"
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
               </div>
               <div className="space-y-1.5">
                 {filteredCards.slice(0, 50).map(c => {
@@ -240,7 +242,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
           {step === 'friend' && (
             <div className="px-4 pb-4 space-y-2">
-              {friends.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucun ami — ajoute des amis d&apos;abord</p>}
+              {friends.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucun ami - ajoute des amis d&apos;abord</p>}
               {friends.map(f => (
                 <button key={f.friend_id} onClick={() => { setReceiver(f); setStep('confirm') }}
                   className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
@@ -281,7 +283,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 <label className="text-white/40 text-xs block mb-1.5">Message (optionnel)</label>
                 <textarea value={message} onChange={e => setMessage(e.target.value)}
                   placeholder="Un petit mot…" rows={2}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white resize-none" />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white resize-none" />
               </div>
 
               {error && <p className="text-red-400 text-xs text-center">{error}</p>}
@@ -351,6 +353,7 @@ function CommunauteContent() {
       role:               (e.role ?? null) as UserRole,
       void_cards:         e.void_cards ?? 0,
       collectionComplete: e.collectionComplete ?? false,
+      is_subscriber:      (e.is_subscriber ?? false) as boolean,
     })))
     setLoading(false)
   }, [])
@@ -476,7 +479,7 @@ function CommunauteContent() {
 
         {/* Tabs */}
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+          <div className="flex flex-1 gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06]">
             {(['xp', 'combat', 'trades'] as const).map(tab => (
               <button key={tab} onClick={() => setLadder(tab)}
                 className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all relative',
@@ -531,7 +534,7 @@ function CommunauteContent() {
               const rank = i + 1
               return (
                 <div key={entry.user_id}
-                  className={cn('flex items-center gap-3 p-3 rounded-2xl border transition-all',
+                  className={cn('flex items-center gap-3 p-3 rounded-2xl border transition-all backdrop-blur-sm',
                     isMe ? 'bg-[#7b2bff]/10 border-[#7b2bff]/30' : 'bg-white/[0.03] border-white/[0.06]')}>
                   <div className="w-8 text-center flex-shrink-0">
                     {rank <= 3 ? (
@@ -557,6 +560,7 @@ function CommunauteContent() {
                         {isMe && <span className="text-xs text-white/40 font-normal ml-1">(toi)</span>}
                       </p>
                       <RoleBadge role={entry.role} />
+                      <SubscriberBadge isSubscriber={entry.is_subscriber} />
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
@@ -607,10 +611,10 @@ function CommunauteContent() {
           {user && (
             <>
               {tradeMsg && (
-                <div className="mb-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white text-center">{tradeMsg}</div>
+                <div className="mb-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-white text-center">{tradeMsg}</div>
               )}
 
-              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-4">
+              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] mb-4">
                 {(['incoming', 'outgoing'] as const).map(t => (
                   <button key={t} onClick={() => setTradeTab(t)}
                     className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all relative',
@@ -664,7 +668,7 @@ function CommunauteContent() {
                             {!isSender && (
                               <>
                                 <button onClick={() => tradeAction(trade.id, 'decline')} disabled={!!actioning}
-                                  className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
+                                  className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
                                   Refuser
                                 </button>
                                 <button onClick={() => tradeAction(trade.id, 'accept')} disabled={!!actioning}
@@ -676,7 +680,7 @@ function CommunauteContent() {
                             )}
                             {isSender && (
                               <button onClick={() => tradeAction(trade.id, 'cancel')} disabled={!!actioning}
-                                className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
+                                className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
                                 {actioning === trade.id ? '…' : 'Annuler'}
                               </button>
                             )}
@@ -825,7 +829,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && searchUsers(search)}
             placeholder="Rechercher un joueur…"
-            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm focus:border-[#7b2bff]/60 focus:outline-none"
+            className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none"
           />
           <button onClick={() => searchUsers(search)}
             className="px-3 py-2 rounded-xl bg-[#7b2bff]/20 border border-[#7b2bff]/30 text-[#a78bfa] text-sm font-bold">

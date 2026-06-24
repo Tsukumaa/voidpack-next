@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Trash2 } from 'lucide-react'
-import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus } from 'lucide-react'
+import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -22,12 +22,13 @@ interface Player {
 }
 
 interface Family {
-  id?: string
   key: string
   label: string
   color: string
   description: string
   order_index?: number
+  active?: boolean
+  _originalKey?: string
 }
 
 interface Card {
@@ -53,7 +54,7 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'twitch' | 'settings'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'twitch' | 'artists' | 'settings'
 
 interface Arena {
   id?: string
@@ -100,6 +101,7 @@ export default function AdminPage() {
 
   const tabs: { id: Tab; icon: React.ReactNode; label: string }[] = [
     { id: 'players',   icon: <Users size={13} />,    label: 'Joueurs' },
+    { id: 'artists',   icon: <Palette size={13} />,  label: 'Artistes' },
     { id: 'families',  icon: <Globe size={13} />,    label: 'Familles' },
     { id: 'cards',     icon: <Layers size={13} />,   label: 'Cartes' },
     { id: 'boosters',  icon: <Package size={13} />,  label: 'Boosters' },
@@ -182,16 +184,14 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Tabs — style BottomNav */}
-      <div className="px-4 sm:px-6 pt-4">
+      {/* Tabs */}
+      <div className="pt-4 overflow-x-auto scrollbar-hide px-4 sm:px-6">
         <div
-          className="grid p-2.5 rounded-[26px] overflow-x-auto"
+          className="flex p-2 rounded-[26px] gap-1 w-max sm:w-full min-w-full"
           style={{
-            gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
             background: 'rgba(8,10,18,0.82)',
             backdropFilter: 'blur(24px)',
             boxShadow: '0 16px 50px rgba(0,0,0,0.6)',
-            gap: '8px',
           }}
         >
           {tabs.map(t => {
@@ -200,16 +200,19 @@ export default function AdminPage() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className="relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-[18px] transition-all duration-300"
+                className="relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-3 py-2 rounded-[18px] transition-all duration-300 shrink-0 min-w-[52px] sm:min-w-0"
                 style={active
                   ? { color: '#b97cff', background: 'rgba(123,43,255,0.10)', boxShadow: 'inset 0 0 20px rgba(185,124,255,0.06)' }
                   : { color: 'rgba(255,255,255,0.30)' }
                 }
               >
-                <div style={active ? { filter: 'drop-shadow(0 0 6px rgba(185,124,255,0.75))', transform: 'scale(1.15) translateY(-1px)', transition: 'transform 0.2s ease' } : { transform: 'scale(1)', transition: 'transform 0.2s ease' }}>
+                <div style={active ? { filter: 'drop-shadow(0 0 6px rgba(185,124,255,0.75))', transform: 'scale(1.1)', transition: 'transform 0.2s ease' } : { transform: 'scale(1)', transition: 'transform 0.2s ease' }}>
                   {t.icon}
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap" style={{ fontFamily: 'Cinzel, serif' }}>
+                <span className="text-[8px] sm:text-[10px] font-bold tracking-wider uppercase whitespace-nowrap sm:hidden" style={{ fontFamily: 'Cinzel, serif' }}>
+                  {t.label.slice(0, 3)}
+                </span>
+                <span className="text-[10px] font-bold tracking-wider uppercase whitespace-nowrap hidden sm:inline" style={{ fontFamily: 'Cinzel, serif' }}>
                   {t.label}
                 </span>
               </button>
@@ -227,6 +230,7 @@ export default function AdminPage() {
         {tab === 'cardbacks' && <CardBacksTab onMsg={showMsg} />}
         {tab === 'arenas'   && <ArenasTab onMsg={showMsg} />}
         {tab === 'twitch'   && <TwitchTab onMsg={showMsg} />}
+        {tab === 'artists'  && <ArtistsTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
       </div>
     </div>
@@ -383,7 +387,8 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     >
                       {!p.avatar_url && (p.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
-                    <span className="font-medium">{p.username ?? '—'}</span>
+                    <span className="font-medium">{p.username ?? '-'}</span>
+                    <SubscriberBadge isSubscriber={p.is_subscriber} />
                     <RoleBadge role={p.role} />
                   </div>
                 </td>
@@ -406,10 +411,11 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     className={selectCls + ' text-xs py-1.5'}
                     style={{ width: 'auto' }}
                   >
-                    <option value="">— Aucun —</option>
+                    <option value="">Aucun</option>
                     <option value="founder">Fondateur</option>
                     <option value="developer">Développeur</option>
                     <option value="artist">Artiste</option>
+                    <option value="streamer">Streamer</option>
                   </select>
                 </td>
                 <td className="px-4 py-3">
@@ -481,7 +487,8 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold truncate">{p.username ?? '—'}</span>
+                  <span className="font-semibold truncate">{p.username ?? '-'}</span>
+                  <SubscriberBadge isSubscriber={p.is_subscriber} />
                   <RoleBadge role={p.role} />
                 </div>
                 <div className="flex gap-3 text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -634,8 +641,8 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     setSaving(true)
     try {
       const fields = { key: form.key, label: form.label, color: form.color, description: form.description }
-      if (form.id) {
-        await adminDb('update', 'families', fields, { col: 'id', val: form.id })
+      if (form._originalKey) {
+        await adminDb('update', 'families', fields, { col: 'key', val: form._originalKey })
       } else {
         await adminDb('insert', 'families', fields)
       }
@@ -647,8 +654,15 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
   async function del(fam: Family) {
     if (!confirm(`Supprimer "${fam.label}" ?`)) return
-    await adminDb('delete', 'families', undefined, { col: 'id', val: fam.id })
+    await adminDb('delete', 'families', undefined, { col: 'key', val: fam.key })
     onMsg(`🗑 "${fam.label}" supprimée`); load()
+  }
+
+  async function toggleActive(fam: Family) {
+    const cur = fam.active == null ? true : !!(fam.active as unknown as number | boolean)
+    await adminDb('update', 'families', { active: !cur }, { col: 'key', val: fam.key })
+    onMsg(cur ? `"${fam.label}" désactivée` : `"${fam.label}" activée`, true)
+    load()
   }
 
   return (
@@ -660,16 +674,25 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
       {loading ? <LoadingText /> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {families.map(f => (
+          {families.map(f => {
+            const isActive = f.active == null ? true : !!(f.active as unknown as number | boolean)
+            return (
             <div
               key={f.key}
-              className="p-4 rounded-2xl flex items-start justify-between gap-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="p-4 rounded-2xl flex items-start justify-between gap-3 transition-opacity"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: `1px solid ${!isActive ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)'}`,
+                opacity: !isActive ? 0.5 : 1,
+              }}
             >
               <div className="flex items-start gap-3">
-                <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1" style={{ background: f.color }} />
+                <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1" style={{ background: !isActive ? '#444' : f.color }} />
                 <div>
-                  <p className="font-semibold text-white">{f.label}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-white">{f.label}</p>
+                    {!isActive && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/30 font-bold">INACTIF</span>}
+                  </div>
                   <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{f.key}</p>
                   {f.description && (
                     <p className="text-xs mt-1.5 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{f.description}</p>
@@ -677,16 +700,26 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => setForm({ ...f })} className={iconBtnCls}><Pencil size={12} /></button>
+                <button
+                  onClick={() => toggleActive(f)}
+                  className="px-2 py-1 rounded-lg text-[10px] font-bold transition-colors"
+                  style={!isActive
+                    ? { background: 'rgba(74,158,106,0.15)', color: '#6ee7a0', border: '1px solid rgba(74,158,106,0.3)' }
+                    : { background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}
+                >
+                  {!isActive ? 'Activer' : 'Désactiver'}
+                </button>
+                <button onClick={() => setForm({ ...f, _originalKey: f.key } as Family)} className={iconBtnCls}><Pencil size={12} /></button>
                 <button onClick={() => del(f)} className={dangerIconBtnCls}><X size={12} /></button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {form && (
-        <Modal title={form.id ? `Modifier "${form.label}"` : 'Nouvelle famille'} onClose={() => setForm(null)}>
+        <Modal title={form._originalKey ? `Modifier "${form.label}"` : 'Nouvelle famille'} onClose={() => setForm(null)}>
           <Field label="Clé (ex: neon-divide)">
             <input value={form.key} onChange={e => setForm(f => f && ({ ...f, key: e.target.value }))} className={inputCls} placeholder="ma-famille" />
           </Field>
@@ -702,7 +735,7 @@ function FamiliesTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
           <Field label="Description (optionnel)">
             <textarea value={form.description} onChange={e => setForm(f => f && ({ ...f, description: e.target.value }))} className={`${inputCls} resize-none h-20`} />
           </Field>
-          <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
+          <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form._originalKey ? 'Modifier' : 'Créer'} />
         </Modal>
       )}
     </div>
@@ -983,10 +1016,9 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [search, setSearch]     = useState('')
   const [filterFam, setFilterFam] = useState('')
   const [filterRarity, setFilterRarity] = useState('')
+  const [filterArtist, setFilterArtist] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [artists, setArtists]   = useState<{ id: number; name: string; url: string | null }[]>([])
-  const [newArtistOpen, setNewArtistOpen] = useState(false)
-  const [newArtist, setNewArtist] = useState({ name: '', url: '' })
   const [artistOpen, setArtistOpen] = useState(false)
   const artistRef = useRef<HTMLDivElement>(null)
 
@@ -1019,20 +1051,6 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     adminDb('select', 'artists', { order: 'name' }).then(data => setArtists(data ?? [])).catch(() => {})
   }, [load])
 
-  async function addArtist() {
-    const name = newArtist.name.trim()
-    if (!name) return
-    try {
-      await adminDb('insert', 'artists', { name, url: newArtist.url.trim() || null })
-      const data = await adminDb('select', 'artists', { order: 'name' })
-      setArtists(data ?? [])
-      setForm(f => f && ({ ...f, artist: name, artistUrl: newArtist.url.trim() }))
-      setNewArtist({ name: '', url: '' })
-      setNewArtistOpen(false)
-    } catch {
-      onMsg('Artiste déjà existant ou erreur.', false)
-    }
-  }
 
   async function save() {
     if (!form) return
@@ -1080,29 +1098,37 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const filtered = cards.filter(c =>
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&
     (!filterFam || c.family === filterFam) &&
-    (!filterRarity || c.rarity === filterRarity)
+    (!filterRarity || c.rarity === filterRarity) &&
+    (!filterArtist || c.artist === filterArtist)
   )
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-4">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher une carte…"
-          className={inputCls + ' w-52'}
+          className={inputCls}
         />
-        <select value={filterFam} onChange={e => setFilterFam(e.target.value)} className={selectCls + ' w-44'}>
-          <option value="">Toutes les familles</option>
-          {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
-        </select>
-        <select value={filterRarity} onChange={e => setFilterRarity(e.target.value)} className={selectCls + ' w-36'}>
-          <option value="">Toutes raretés</option>
-          {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{filtered.length} carte(s)</span>
-        <div className="ml-auto flex items-center gap-2">
-          {/* Toggle vue */}
+        <div className="grid grid-cols-3 gap-2">
+          <select value={filterFam} onChange={e => setFilterFam(e.target.value)} className={selectCls}>
+            <option value="">Toutes les familles</option>
+            {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          <select value={filterRarity} onChange={e => setFilterRarity(e.target.value)} className={selectCls}>
+            <option value="">Toutes raretés</option>
+            {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <select value={filterArtist} onChange={e => setFilterArtist(e.target.value)} className={selectCls}>
+            <option value="">Tous les artistes</option>
+            {artists.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-bold px-3 py-1 rounded-lg" style={{ color: '#a78bfa', background: 'rgba(123,43,255,0.12)', border: '1px solid rgba(123,43,255,0.25)' }}>
+            {filtered.length} carte{filtered.length !== 1 ? 's' : ''}
+          </span>
           <div className="flex rounded-xl overflow-hidden border border-white/10">
             <button onClick={() => setViewMode('grid')}
               className="px-3 py-1.5 text-xs font-bold transition-colors"
@@ -1151,7 +1177,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       </div>
                     </td>
                     <td className="px-3 py-1.5 font-semibold text-white">{c.name}</td>
-                    <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '—'}</td>
+                    <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '-'}</td>
                     <td className="px-3 py-1.5">
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>{c.rarity}</span>
                     </td>
@@ -1226,7 +1252,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
             <Field label="Clé (auto si vide)"><input value={form.id ?? ''} onChange={e => setForm(f => f && ({ ...f, id: e.target.value }))} className={inputCls} placeholder="auto" /></Field>
             <Field label="Famille">
               <select value={form.family} onChange={e => setForm(f => f && ({ ...f, family: e.target.value }))} className={selectCls}>
-                <option value="">— Aucune —</option>
+                <option value="">Aucune</option>
                 {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
               </select>
             </Field>
@@ -1279,71 +1305,46 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
             </div>
             <div className="col-span-1 sm:col-span-2">
               <Field label="Artiste *">
-                <div className="flex gap-2 items-start">
-                  <div ref={artistRef} className="relative flex-1">
-                    <button type="button" onClick={() => setArtistOpen(v => !v)}
-                      className={`${inputCls} flex items-center justify-between text-left`}>
-                      <span style={form.artist ? {} : { color: 'rgba(255,255,255,0.35)' }}>
-                        {form.artist || '— Choisir un artiste —'}
-                      </span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                        className={`shrink-0 transition-transform ${artistOpen ? 'rotate-180' : ''}`} style={{ opacity: .5 }}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                    {artistOpen && (
-                      <div
-                        className="absolute bottom-full left-0 right-0 mb-1 z-50 max-h-56 overflow-y-auto rounded-xl"
-                        style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)' }}
-                      >
-                        {form.artist && (
-                          <button type="button"
-                            onClick={() => { setForm(f => f && ({ ...f, artist: '', artistUrl: '' })); setArtistOpen(false) }}
-                            className="w-full text-left px-4 py-2 text-xs transition-colors hover:bg-white/5"
-                            style={{ color: 'rgba(255,255,255,0.3)' }}>
-                            — Aucun —
-                          </button>
-                        )}
-                        {artists.length === 0 && (
-                          <p className="px-4 py-2.5 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Aucun artiste — ajoutes-en un →</p>
-                        )}
-                        {artists.map(a => (
-                          <button key={a.id} type="button"
-                            onClick={() => { setForm(f => f && ({ ...f, artist: a.name, artistUrl: a.url ?? '' })); setArtistOpen(false) }}
-                            className="w-full text-left px-4 py-2 text-xs font-bold transition-colors"
-                            style={form.artist === a.name
-                              ? { color: '#a78bfa', background: 'rgba(123,43,255,0.15)' }
-                              : { color: 'rgba(255,255,255,0.6)' }
-                            }>
-                            {a.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button type="button" onClick={() => setNewArtistOpen(v => !v)}
-                    className="shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
-                    + Nouvel artiste
+                <div ref={artistRef} className="relative">
+                  <button type="button" onClick={() => setArtistOpen(v => !v)}
+                    className={`${inputCls} flex items-center justify-between text-left w-full`}>
+                    <span style={form.artist ? {} : { color: 'rgba(255,255,255,0.35)' }}>
+                      {form.artist || 'Choisir un artiste'}
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                      className={`shrink-0 transition-transform ${artistOpen ? 'rotate-180' : ''}`} style={{ opacity: .5 }}>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
                   </button>
+                  {artistOpen && (
+                    <div className="absolute bottom-full left-0 right-0 mb-1 z-50 max-h-56 overflow-y-auto rounded-xl"
+                      style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)' }}>
+                      {form.artist && (
+                        <button type="button"
+                          onClick={() => { setForm(f => f && ({ ...f, artist: '', artistUrl: '' })); setArtistOpen(false) }}
+                          className="w-full text-left px-4 py-2 text-xs transition-colors hover:bg-white/5"
+                          style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          Aucun
+                        </button>
+                      )}
+                      {artists.length === 0 && (
+                        <p className="px-4 py-2.5 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Aucun artiste - gérer dans l&apos;onglet Artistes</p>
+                      )}
+                      {artists.map(a => (
+                        <button key={a.id} type="button"
+                          onClick={() => { setForm(f => f && ({ ...f, artist: a.name, artistUrl: a.url ?? '' })); setArtistOpen(false) }}
+                          className="w-full text-left px-4 py-2 text-xs font-bold transition-colors"
+                          style={form.artist === a.name
+                            ? { color: '#a78bfa', background: 'rgba(123,43,255,0.15)' }
+                            : { color: 'rgba(255,255,255,0.6)' }
+                          }>
+                          {a.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Field>
-              {newArtistOpen && (
-                <div
-                  className="mt-2 p-3 rounded-lg flex flex-col gap-2"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <input value={newArtist.name} onChange={e => setNewArtist(n => ({ ...n, name: e.target.value }))}
-                    className={inputCls} placeholder="Nom de l'artiste" />
-                  <input value={newArtist.url} onChange={e => setNewArtist(n => ({ ...n, url: e.target.value }))}
-                    className={inputCls} placeholder="Lien (optionnel) — https://…" />
-                  <button type="button" onClick={addArtist}
-                    className="self-end px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                    style={{ background: 'rgba(123,43,255,0.3)', border: '1px solid rgba(123,43,255,0.4)', color: '#a78bfa' }}>
-                    Ajouter à la liste
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
@@ -1533,7 +1534,6 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
 
   return (
     <div className="space-y-6">
-      {/* Streamers connectés */}
       <div>
         <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2"><Tv2 size={15} className="text-[#9146FF]" /> Chaînes connectées</h3>
         {streamers.length === 0 ? (
@@ -1558,12 +1558,9 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         )}
       </div>
 
-      {/* Mapping rewards → boosters */}
       <div>
         <h3 className="text-white font-bold text-sm mb-2">Rewards Channel Points → Boosters</h3>
-        <p className="text-white/40 text-[11px] mb-3">
-          Les rewards apparaissent automatiquement dès leur première utilisation. Assigne un booster à chacun.
-        </p>
+        <p className="text-white/40 text-[11px] mb-3">Les rewards apparaissent automatiquement dès leur première utilisation. Assigne un booster à chacun.</p>
         {rewards.length === 0 ? (
           <p className="text-white/40 text-xs">Aucun reward détecté pour l&apos;instant.</p>
         ) : (
@@ -1575,22 +1572,15 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   {r.rewardCost != null && <p className="text-white/40 text-[11px]">{r.rewardCost} points</p>}
                   {!r.boosterType && <p className="text-amber-400 text-[11px]">⚠️ Non mappé</p>}
                 </div>
-                <select
-                  value={r.boosterType ?? ''}
-                  onChange={e => patchReward(r.id, { boosterType: e.target.value || null })}
-                  className="bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5"
-                >
-                  <option value="">— Aucun —</option>
+                <select value={r.boosterType ?? ''} onChange={e => patchReward(r.id, { boosterType: e.target.value || null })}
+                  className="bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5">
+                  <option value="">Aucun</option>
                   {boosterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <input
-                  type="number" min={1} value={r.quantity}
+                <input type="number" min={1} value={r.quantity}
                   onChange={e => patchReward(r.id, { quantity: Math.max(1, Number(e.target.value)) })}
-                  className="w-14 bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5"
-                  title="Quantité de boosters"
-                />
-                <button
-                  onClick={() => patchReward(r.id, { active: !r.active })}
+                  className="w-14 bg-black/40 border border-white/10 rounded-md text-white text-xs px-2 py-1.5" title="Quantité de boosters" />
+                <button onClick={() => patchReward(r.id, { active: !r.active })}
                   className={`text-[11px] px-2 py-1.5 rounded-md font-semibold ${r.active ? 'bg-[#4a9e6a]/20 text-[#6ee7a0]' : 'bg-white/10 text-white/50'}`}
                 >{r.active ? 'On' : 'Off'}</button>
                 <button onClick={() => saveReward(r)} className="text-[11px] px-3 py-1.5 rounded-md font-semibold bg-[#9146FF]/20 text-[#c4a7ff]">Enregistrer</button>
@@ -1601,7 +1591,6 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         )}
       </div>
 
-      {/* Messages de félicitations dans le chat */}
       <div>
         <h3 className="text-white font-bold text-sm mb-2">Messages de félicitations (chat)</h3>
         <p className="text-white/40 text-[11px] mb-3">
@@ -1624,6 +1613,119 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ArtistsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [artists, setArtists]     = useState<{ id: number; name: string; url: string | null }[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [saving, setSaving]       = useState(false)
+  const [editId, setEditId]       = useState<number | null>(null)
+  const [form, setForm]           = useState({ name: '', url: '' })
+  const [isNew, setIsNew]         = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { setArtists((await adminDb('select', 'artists', { order: 'name' })) ?? []) }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function save() {
+    if (!form.name.trim()) return
+    setSaving(true)
+    try {
+      if (isNew) {
+        await adminDb('insert', 'artists', { name: form.name.trim(), url: form.url.trim() || null })
+      } else {
+        await adminDb('update', 'artists', { id: editId, name: form.name.trim(), url: form.url.trim() || null })
+      }
+      await load()
+      setEditId(null); setIsNew(false); setForm({ name: '', url: '' })
+      onMsg(isNew ? 'Artiste ajouté.' : 'Artiste modifié.')
+    } catch { onMsg('Erreur.', false) }
+    finally { setSaving(false) }
+  }
+
+  async function del(id: number) {
+    if (!confirm('Supprimer cet artiste ?')) return
+    try {
+      await adminDb('delete', 'artists', { id })
+      setArtists(prev => prev.filter(a => a.id !== id))
+      onMsg('Artiste supprimé.')
+    } catch { onMsg('Erreur.', false) }
+  }
+
+  const inputCls = 'w-full px-3 py-2 rounded-xl text-sm outline-none bg-white/[0.04] border border-white/10 text-white placeholder:text-white/25 focus:border-[#7b2bff]/50'
+
+  return (
+    <div className="p-4 max-w-xl mx-auto space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-bold text-white text-sm uppercase tracking-wider flex items-center gap-2"><Palette size={14} className="text-[#a78bfa]" /> Artistes</h2>
+        {!isNew && !editId && (
+          <button onClick={() => { setIsNew(true); setForm({ name: '', url: '' }) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
+            style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.4)', color: '#a78bfa' }}>
+            <Plus size={12} /> Nouvel artiste
+          </button>
+        )}
+      </div>
+
+      {(isNew || editId !== null) && (
+        <div className="p-4 rounded-2xl space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(123,43,255,0.2)' }}>
+          <p className="text-xs font-bold text-[#a78bfa] uppercase tracking-wider">{isNew ? 'Nouvel artiste' : 'Modifier'}</p>
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            className={inputCls} placeholder="Nom de l'artiste *" />
+          <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+            className={inputCls} placeholder="URL (portfolio, twitter…)" />
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => { setIsNew(false); setEditId(null); setForm({ name: '', url: '' }) }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white/40 hover:text-white/60 transition-colors">Annuler</button>
+            <button onClick={save} disabled={saving || !form.name.trim()}
+              className="px-4 py-1.5 rounded-xl text-xs font-bold transition-colors"
+              style={{ background: 'rgba(123,43,255,0.3)', border: '1px solid rgba(123,43,255,0.4)', color: '#a78bfa' }}>
+              {saving ? 'Sauvegarde…' : isNew ? 'Créer' : 'Modifier'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-white/30 text-sm text-center py-8">Chargement…</p>
+      ) : artists.length === 0 ? (
+        <p className="text-white/20 text-sm text-center py-8">Aucun artiste enregistré.</p>
+      ) : (
+        <div className="space-y-2">
+          {artists.map(a => (
+            <div key={a.id} className="flex items-center gap-3 px-4 py-3 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{a.name}</p>
+                {a.url && (
+                  <a href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] text-[#a78bfa]/70 hover:text-[#a78bfa] transition-colors truncate mt-0.5">
+                    <LinkIcon size={9} /> {a.url}
+                  </a>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => { setEditId(a.id); setIsNew(false); setForm({ name: a.name, url: a.url ?? '' }) }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-white/10"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Pencil size={11} className="text-white/40" />
+                </button>
+                <button onClick={() => del(a.id)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-red-500/20"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <Trash2 size={11} className="text-white/40" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -1816,7 +1918,7 @@ function SqlTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>{result.length} ligne(s)</p>
           {result.length === 0 ? (
             <div className="p-4 rounded-2xl text-sm text-center" style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.3)' }}>
-              Requête exécutée — aucune ligne retournée.
+              Requête exécutée, aucune ligne retournée.
             </div>
           ) : (
             <div className="rounded-2xl overflow-auto max-h-[50vh]" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>

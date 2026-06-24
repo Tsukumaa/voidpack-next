@@ -614,7 +614,7 @@ export function CombatArena({
         {/* ── HAND ── */}
         <div className="ca-hand">
           {selected && (
-            <span className="ca-hand-hint">{selected.name} — choisissez une cible</span>
+            <span className="ca-hand-hint">{selected.name} - choisissez une cible</span>
           )}
           {myHand.length === 0 ? (
             <span className="ca-hand-empty">Main vide</span>

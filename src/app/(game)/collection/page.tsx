@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, Plus, Minus, X, ShoppingBag } from 'lucide-react'
+import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, Plus, Minus, X, ShoppingBag, Search } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
@@ -59,7 +59,7 @@ interface GroupedCard {
 const MANA_PER_RARITY: Record<string, number> = {
   common: 1, rare: 2, epic: 3, legendary: 4, void: 5,
 }
-const BOOSTER_COST = 300
+const BOOSTER_COST = 180
 
 interface TradeModal { card: GroupedCard; qty: number }
 
@@ -67,7 +67,9 @@ export default function CollectionPage() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const [cards, setCards]         = useState<GroupedCard[]>([])
   const [loading, setLoading]     = useState(true)
-  const [filter, setFilter]       = useState<string>('all')
+  const [rarityFilter, setRarityFilter] = useState<string>('all')
+  const [famFilter, setFamFilter]       = useState<string>('all')
+  const [search, setSearch]       = useState('')
   const [families, setFamilies]   = useState<{ key: string; label: string }[]>([])
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -127,7 +129,7 @@ export default function CollectionPage() {
       }
     }
 
-    const ownedList: GroupedCard[] = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
+    const ownedList: GroupedCard[] = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => defMap[c.card_id ?? c.cardId ?? '']).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
       return {
@@ -213,7 +215,12 @@ export default function CollectionPage() {
     showToast('Booster ajouté à tes crédits !')
   }
 
-  const filtered = filter === 'all' ? cards : cards.filter(c => c.rarity === filter || c.family === filter)
+  const filtered = cards.filter(c => {
+    const matchRarity = rarityFilter === 'all' || c.rarity === rarityFilter
+    const matchFam    = famFilter === 'all' || c.family === famFilter
+    const matchSearch = !search.trim() || c.name.toLowerCase().includes(search.toLowerCase())
+    return matchRarity && matchFam && matchSearch
+  })
 
   const rarityGroups = RARITY_ORDER.filter(r => filtered.some(c => c.rarity === r))
 
@@ -234,11 +241,11 @@ export default function CollectionPage() {
           </div>
           {/* Mana bar */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold"
               style={{ background: 'rgba(123,43,255,0.12)', border: '1px solid rgba(123,43,255,0.25)' }}>
               <Flame size={12} className="text-[#a78bfa]" />
-              <span className="text-[#a78bfa] font-black text-sm">{mana.toLocaleString('fr-FR')}</span>
-              <span className="text-white/30 text-xs hidden sm:inline">mana</span>
+              <span className="text-[#a78bfa] font-black">{mana.toLocaleString('fr-FR')}</span>
+              <span className="text-white/30 hidden sm:inline">mana</span>
             </div>
             <button
               onClick={handleRedeem}
@@ -258,16 +265,16 @@ export default function CollectionPage() {
         {/* Filtres */}
         <div className="flex items-center justify-center gap-2 px-4">
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide min-w-0">
-            <button onClick={() => setFilter('all')}
+            <button onClick={() => setRarityFilter('all')}
               className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-                filter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
+                rarityFilter === 'all' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60')}>
               Tout
             </button>
             {RARITY_ORDER.filter(r => cards.some(c => c.rarity === r)).map(r => (
-              <button key={r} onClick={() => setFilter(filter === r ? 'all' : r)}
+              <button key={r} onClick={() => setRarityFilter(rarityFilter === r ? 'all' : r)}
                 className={cn('px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all capitalize',
-                  filter === r ? 'text-white' : 'text-white/40 hover:text-white/60')}
-                style={filter === r ? { background: RARITY_COLOR[r] + '30', color: RARITY_COLOR[r] } : {}}>
+                  rarityFilter === r ? 'text-white' : 'text-white/40 hover:text-white/60')}
+                style={rarityFilter === r ? { background: RARITY_COLOR[r] + '30', color: RARITY_COLOR[r] } : {}}>
                 {r}
               </button>
             ))}
@@ -280,26 +287,26 @@ export default function CollectionPage() {
                 <button
                   onClick={() => setFamOpen(v => !v)}
                   className={cn('flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all',
-                    families.some(f => f.key === filter) ? 'text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}
-                  style={families.some(f => f.key === filter) ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
+                    famFilter !== 'all' ? 'text-[#a78bfa]' : 'text-white/40 hover:text-white/60')}
+                  style={famFilter !== 'all' ? { background:'rgba(123,43,255,0.2)', border:'1px solid rgba(123,43,255,0.4)' } : { border:'1px solid rgba(255,255,255,0.08)' }}
                 >
-                  {families.find(f => f.key === filter)?.label ?? 'Famille'}
+                  {families.find(f => f.key === famFilter)?.label ?? 'Famille'}
                   <ChevronDown size={11} className={cn('transition-transform', famOpen && 'rotate-180')} />
                 </button>
                 {famOpen && (
                   <div className="absolute top-full mt-1 right-0 z-50 min-w-[140px] rounded-xl overflow-hidden"
                     style={{ background:'#0d0d1a', border:'1px solid rgba(255,255,255,0.08)', boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
-                    {families.some(f => f.key === filter) && (
-                      <button onClick={() => { setFilter('all'); setFamOpen(false) }}
+                    {famFilter !== 'all' && (
+                      <button onClick={() => { setFamFilter('all'); setFamOpen(false) }}
                         className="w-full text-left px-4 py-2 text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors">
                         Toutes les familles
                       </button>
                     )}
                     {families.map(f => (
                       <button key={f.key}
-                        onClick={() => { setFilter(f.key); setFamOpen(false) }}
+                        onClick={() => { setFamFilter(f.key); setFamOpen(false) }}
                         className={cn('w-full text-left px-4 py-2 text-xs font-bold transition-colors',
-                          filter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
+                          famFilter === f.key ? 'text-[#a78bfa] bg-[#7b2bff]/15' : 'text-white/60 hover:text-white hover:bg-white/5')}>
                         {f.label}
                       </button>
                     ))}
@@ -331,6 +338,23 @@ export default function CollectionPage() {
                 </div>
                 <p className="text-white/25 text-[9px] mt-2.5 leading-snug">Taux de base par booster, hors pity.</p>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recherche */}
+        <div className="flex items-center justify-center px-4 pt-2">
+          <div className="relative w-full max-w-sm">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher une carte…"
+              className="w-full pl-7 pr-7 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-xs text-white placeholder:text-white/25 focus:outline-none focus:border-[#7b2bff]/50"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <X size={11} />
+              </button>
             )}
           </div>
         </div>
@@ -504,23 +528,38 @@ export default function CollectionPage() {
             </div>
 
             {/* Sélecteur quantité */}
-            <div className="flex items-center justify-between gap-3 p-3 rounded-xl"
-              style={{ background: 'rgba(123,43,255,0.08)', border: '1px solid rgba(123,43,255,0.18)' }}>
-              <button
-                onClick={() => setTrade(t => t && t.qty > 1 ? { ...t, qty: t.qty - 1 } : t)}
-                disabled={trade.qty <= 1}
-                className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10">
-                <Minus size={14} className="text-white" />
-              </button>
-              <div className="flex flex-col items-center">
-                <span className="text-white font-black text-xl">{trade.qty}</span>
-                <span className="text-white/30 text-[10px]">exemplaire{trade.qty > 1 ? 's' : ''}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1 p-3 rounded-xl"
+                style={{ background: 'rgba(123,43,255,0.08)', border: '1px solid rgba(123,43,255,0.18)' }}>
+                <button
+                  onClick={() => setTrade(t => t && t.qty > 1 ? { ...t, qty: t.qty - 1 } : t)}
+                  disabled={trade.qty <= 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10 shrink-0">
+                  <Minus size={14} className="text-white" />
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={trade.card.count - 1}
+                  value={trade.qty}
+                  onChange={e => {
+                    const v = Math.max(1, Math.min(trade.card.count - 1, parseInt(e.target.value) || 1))
+                    setTrade(t => t ? { ...t, qty: v } : t)
+                  }}
+                  className="flex-1 text-center bg-transparent text-white font-black text-xl focus:outline-none w-0 min-w-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  onClick={() => setTrade(t => t && t.qty < t.card.count - 1 ? { ...t, qty: t.qty + 1 } : t)}
+                  disabled={trade.qty >= trade.card.count - 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10 shrink-0">
+                  <Plus size={14} className="text-white" />
+                </button>
               </div>
               <button
-                onClick={() => setTrade(t => t && t.qty < t.card.count - 1 ? { ...t, qty: t.qty + 1 } : t)}
-                disabled={trade.qty >= trade.card.count - 1}
-                className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 transition-colors hover:bg-white/10">
-                <Plus size={14} className="text-white" />
+                onClick={() => setTrade(t => t ? { ...t, qty: t.card.count - 1 } : t)}
+                className="px-3 py-1.5 rounded-xl text-xs font-black transition-colors hover:opacity-90 shrink-0"
+                style={{ background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.35)', color: '#c084fc' }}>
+                Max
               </button>
             </div>
 

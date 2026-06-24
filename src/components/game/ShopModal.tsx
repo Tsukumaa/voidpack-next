@@ -48,7 +48,30 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
     })
   }
 
-  function openKofi() {
+  const [kofiStep, setKofiStep]   = useState<'idle' | 'email'>('idle')
+  const [kofiEmail, setKofiEmail] = useState(profile?.kofi_email ?? '')
+  const [kofiSaving, setKofiSaving] = useState(false)
+
+  async function startSubscribe() {
+    if (profile?.kofi_email) {
+      window.open(KOFI_URL, '_blank', 'noopener,noreferrer')
+    } else {
+      setKofiStep('email')
+    }
+  }
+
+  async function confirmSubscribe() {
+    const email = kofiEmail.trim()
+    if (!email) return
+    setKofiSaving(true)
+    await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kofiEmail: email }),
+    })
+    if (profile) setProfile({ ...profile, kofi_email: email })
+    setKofiSaving(false)
+    setKofiStep('idle')
     window.open(KOFI_URL, '_blank', 'noopener,noreferrer')
   }
 
@@ -86,14 +109,44 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               </div>
-              {!isSubscriber && (
-                <button onClick={openKofi}
+              {!isSubscriber && kofiStep === 'idle' && (
+                <button onClick={startSubscribe}
                   className="flex-shrink-0 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all flex items-center gap-1.5"
                   style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
                   <Coffee size={14} /> S&apos;abonner sur Ko-fi
                 </button>
               )}
             </div>
+
+            {/* Étape email avant redirection Ko-fi */}
+            {kofiStep === 'email' && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-white/70 text-xs mb-2">
+                  Entre l&apos;email de ton compte Ko-fi pour qu&apos;on puisse activer tes avantages automatiquement.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={kofiEmail}
+                    onChange={e => setKofiEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && confirmSubscribe()}
+                    placeholder="ton-email@ko-fi.com"
+                    autoFocus
+                    className="flex-1 bg-black/40 border border-white/10 rounded-xl text-white text-xs px-3 py-2 focus:outline-none focus:border-purple-500/50"
+                  />
+                  <button
+                    onClick={confirmSubscribe}
+                    disabled={kofiSaving || !kofiEmail.trim()}
+                    className="px-3 py-2 rounded-xl text-white text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
+                    style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
+                    <Coffee size={12} /> {kofiSaving ? '…' : 'Continuer'}
+                  </button>
+                  <button onClick={() => setKofiStep('idle')} className="px-3 py-2 rounded-xl text-white/30 text-xs hover:text-white/60">
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-4">
@@ -145,7 +198,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                       ) : accessible ? (
                         <p className="text-[#4a9e6a] text-[10px]">{isSubscriber && !owned ? 'Via abonnement' : 'Débloqué'}</p>
                       ) : (
-                        <button onClick={openKofi}
+                        <button onClick={startSubscribe}
                           className="w-full py-1 rounded-lg text-[10px] font-bold text-white/70 transition-all flex items-center justify-center gap-1"
                           style={{ background: 'rgba(123,43,255,0.25)' }}>
                           <Lock size={10} /> Abonnés
@@ -160,7 +213,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
 
           {/* ── Arènes de combat ── */}
           <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-7 mb-3">
-            Fonds d&apos;arène — change le décor de tes combats
+            Fonds d&apos;arène - change le décor de tes combats
             {isSubscriber && <span className="ml-2 text-[#4a9e6a]">· Tous débloqués avec ton abonnement</span>}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

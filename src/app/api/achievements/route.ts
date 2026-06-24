@@ -32,5 +32,7 @@ export async function GET() {
     .from(playerAchievements)
     .where(eq(playerAchievements.userId, uid))
 
-  return NextResponse.json(rows)
+  return NextResponse.json(rows, {
+    headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+  })
 }

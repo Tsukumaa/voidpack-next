@@ -286,7 +286,7 @@ function TrainingContent() {
             enemyHand:  next.enemyHand.filter(c => c.uid !== card.uid),
             // Newly played card: exhausted unless charge. Existing cards already unexhausted above.
             enemyBoard: [...next.enemyBoard, { ...card, exhausted: !(card.effects?.includes('charge') ?? false) }],
-            log: botHasVoidSurge ? `Bot invoque ${card.name} — VOID Surge !` : `Bot invoque ${card.name} !`,
+            log: botHasVoidSurge ? `Bot invoque ${card.name} - VOID Surge !` : `Bot invoque ${card.name} !`,
           }
         }
         return next
@@ -314,7 +314,7 @@ function TrainingContent() {
               }
               next.playerBoard = next.playerBoard.map(c => ({ ...c, exhausted: false }))
               next.locked = false
-              next.log    = `Tour ${next.turn} — Mana : ${next.playerMana}`
+              next.log    = `Tour ${next.turn} - Mana : ${next.playerMana}`
               return next
             })
             setBotThinking(false)

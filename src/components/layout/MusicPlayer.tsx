@@ -69,6 +69,34 @@ function crossfade(fromUrl: string, toUrl: string, volume: number, muted: boolea
   activeUrl = toUrl
 }
 
+let _fadeMusicTimer: ReturnType<typeof setInterval> | null = null
+
+export function fadeSiteMusicOut(ms = 600): void {
+  if (_fadeMusicTimer) clearInterval(_fadeMusicTimer)
+  const active = Object.values(audios).filter(a => !a.paused)
+  if (!active.length) return
+  const steps = 25; const tick = ms / steps; let step = 0
+  const startVols = active.map(a => a.volume)
+  _fadeMusicTimer = setInterval(() => {
+    step++
+    active.forEach((a, i) => { a.volume = Math.max(0, startVols[i] * (1 - step / steps)) })
+    if (step >= steps) { clearInterval(_fadeMusicTimer!); _fadeMusicTimer = null }
+  }, tick)
+}
+
+export function fadeSiteMusicIn(ms = 600): void {
+  if (_fadeMusicTimer) clearInterval(_fadeMusicTimer)
+  const active = Object.values(audios).filter(a => !a.paused)
+  if (!active.length) return
+  const target = useSettingsStore.getState().musicVolume
+  const steps = 25; const tick = ms / steps; let step = 0
+  _fadeMusicTimer = setInterval(() => {
+    step++
+    active.forEach(a => { a.volume = Math.min(target, target * (step / steps)) })
+    if (step >= steps) { clearInterval(_fadeMusicTimer!); _fadeMusicTimer = null; active.forEach(a => { a.volume = target }) }
+  }, tick)
+}
+
 export function MusicPlayer() {
   const pathname = usePathname()
   const volume   = useSettingsStore(s => s.musicVolume)

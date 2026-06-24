@@ -19,12 +19,14 @@ export function FavoriteShowcase({
   editable = false,
   ownedIds = [],
   onSave,
+  onCardClick,
   className = ''
 }: {
   favoriteIds: string[]
   editable?: boolean
   ownedIds?: string[]
   onSave?: (ids: string[]) => void | Promise<void>
+  onCardClick?: (def: CardDef) => void
   className?: string
 }) {
   const [defs, setDefs] = useState<Record<string, CardDef>>({})
@@ -89,7 +91,7 @@ export function FavoriteShowcase({
   }
 
   return (
-    <div className={`rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4 ${className}`}>
+    <div className={`rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Star size={15} className="text-[#a855f7]" />
@@ -108,7 +110,12 @@ export function FavoriteShowcase({
       <div className="grid grid-cols-3 gap-3">
         {[0, 1, 2].map(i => {
           const def = favCards[i]
-          if (def) return <div key={def.id}>{renderCard(def)}</div>
+          if (def) return (
+            <div key={def.id} onClick={() => onCardClick?.(def)}
+              className={onCardClick ? 'cursor-pointer active:scale-95 transition-transform' : ''}>
+              {renderCard(def)}
+            </div>
+          )
           return (
             <button
               key={`empty-${i}`}

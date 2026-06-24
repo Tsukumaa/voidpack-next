@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { playerProfiles, adminUsers, playerCards, customCards, settings } from '@/lib/db/schema'
-import { eq, count, sql } from 'drizzle-orm'
+import { playerProfiles, adminUsers, playerCards, customCards, settings, twitchStreamers, boosterCredits } from '@/lib/db/schema'
+import { eq, count, sql, and } from 'drizzle-orm'
 import { isSubscriberActive, consumePendingForUser } from '@/lib/kofi/grant'
 
 function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
@@ -41,18 +41,28 @@ export async function GET() {
 
   const uid = session.user.id
 
-  const [profile, admin, [totalRow], [uniqueRow], ownedArenasRow] = await Promise.all([
+  const [profile, admin, [totalRow], [uniqueRow], ownedArenasRow, streamerRow, welcomeRow] = await Promise.all([
     db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, uid) }),
     db.query.adminUsers.findFirst({ where: eq(adminUsers.discordId, uid) }),
     db.select({ total: count() }).from(customCards),
     db.select({ unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
       .from(playerCards).where(eq(playerCards.userId, uid)),
     db.select({ value: settings.value }).from(settings).where(eq(settings.key, `owned_arenas:${uid}`)).limit(1),
+    db.query.twitchStreamers.findFirst({ where: eq(twitchStreamers.userId, uid) }),
+    db.query.boosterCredits.findFirst({ where: and(eq(boosterCredits.userId, uid), eq(boosterCredits.source, 'welcome'), eq(boosterCredits.claimed, false)) }),
   ])
   const collectionComplete = (totalRow?.total ?? 0) > 0 && (uniqueRow?.unique ?? 0) >= (totalRow?.total ?? 0)
   const ownedArenas: string[] = ownedArenasRow[0]?.value ? JSON.parse(ownedArenasRow[0].value) : []
 
-  return NextResponse.json({ ...toSnake(profile as unknown as Record<string, unknown>, !!admin), collection_complete: collectionComplete, owned_arenas: ownedArenas })
+  return NextResponse.json({
+    ...toSnake(profile as unknown as Record<string, unknown>, !!admin),
+    collection_complete: collectionComplete,
+    owned_arenas: ownedArenas,
+    streamer_channel: streamerRow ? { login: streamerRow.broadcasterLogin, active: streamerRow.active } : null,
+    music_volume: profile?.musicVolume != null ? Number(profile.musicVolume) : null,
+    music_muted:  profile?.musicMuted ?? null,
+    welcome_booster: !!welcomeRow,
+  }, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -60,6 +70,17 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const patch = await req.json()
+  const uid = session.user.id
+
+  // Paramètres musique → player_profiles
+  if ('musicVolume' in patch || 'musicMuted' in patch) {
+    const musicPatch: Record<string, unknown> = { updatedAt: new Date().toISOString() }
+    if ('musicVolume' in patch) musicPatch.musicVolume = String(patch.musicVolume)
+    if ('musicMuted'  in patch) musicPatch.musicMuted  = patch.musicMuted
+    await db.update(playerProfiles).set(musicPatch).where(eq(playerProfiles.userId, uid))
+    return NextResponse.json({ ok: true })
+  }
+
   const allowed = ['username', 'avatarUrl', 'selectedCardBack', 'autoReveal', 'favoriteCards', 'kofiEmail'] as const
   const safe: Record<string, unknown> = { updatedAt: new Date().toISOString() }
   for (const key of allowed) {
@@ -69,12 +90,11 @@ export async function PATCH(req: NextRequest) {
   const [updated] = await db
     .update(playerProfiles)
     .set(safe)
-    .where(eq(playerProfiles.userId, session.user.id))
+    .where(eq(playerProfiles.userId, uid))
     .returning()
 
-  // Si l'user vient de renseigner son email Ko-fi → applique les paiements en attente
   if ('kofiEmail' in patch && typeof patch.kofiEmail === 'string' && patch.kofiEmail.trim()) {
-    await consumePendingForUser(session.user.id, patch.kofiEmail).catch(e => console.error('consumePending error:', e))
+    await consumePendingForUser(uid, patch.kofiEmail).catch(e => console.error('consumePending error:', e))
   }
 
   return NextResponse.json(updated ?? null)

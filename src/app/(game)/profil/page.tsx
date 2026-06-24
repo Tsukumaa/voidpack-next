@@ -1,11 +1,11 @@
 'use client'
 import React from 'react'
-import { Target, Tv2, Flame, Gift, CheckCircle2, Check, PackagePlus, Package, Sparkles, Gem, Zap, Crown, Wind, BookOpen, Map, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, LayoutGrid, Inbox } from 'lucide-react'
+import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { AvatarRing } from '@/components/game/AvatarRing'
-import { RoleBadge } from '@/components/game/RoleBadge'
+import { RoleBadge, SubscriberBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
@@ -13,33 +13,52 @@ import { useSocialStore } from '@/store/social'
 import { Link as LinkIcon } from 'lucide-react'
 
 const ACHIEVEMENT_ICON: Record<string, React.ReactNode> = {
-  open_first:    <Inbox size={18} />,
-  open_10:       <Package size={18} />,
-  open_50:       <LayoutGrid size={18} />,
+  // ── Succès boosters
+  open_first:    <Inbox    size={18} />,
+  open_10:       <Package  size={18} />,
+  open_50:       <Archive  size={18} />,
   open_100:      <Sparkles size={18} />,
-  get_rare:      <Gem size={18} />,
-  get_epic:      <Zap size={18} />,
-  get_legendary: <Crown size={18} />,
-  get_void:      <Wind size={18} />,
+  open_500:      <Orbit    size={18} />,
+  // ── Succès raretés
+  get_rare:      <Gem      size={18} />,
+  get_epic:      <Zap      size={18} />,
+  get_legendary: <Crown    size={18} />,
+  get_void:      <Telescope size={18} />,
+  // ── Succès collection
   cards_10:      <BookOpen size={18} />,
-  cards_25:      <Map size={18} />,
-  cards_50:      <Archive size={18} />,
+  cards_25:      <Library  size={18} />,
+  cards_50:      <Archive  size={18} />,
   cards_100:     <Landmark size={18} />,
-  streak_3:      <Flame size={18} />,
-  streak_7:      <TrendingUp size={18} />,
-  streak_30:     <Trophy size={18} />,
-  level_5:       <Star size={18} />,
-  level_10:      <Award size={18} />,
-  level_25:      <Crown size={18} />,
-  level_50:      <Sparkles size={18} />,
-  // missions
-  open_1_pack:    <Inbox size={16} />,
-  open_3_packs:   <Package size={16} />,
-  get_rare_m:     <Gem size={16} />,
-  get_epic_m:     <Zap size={16} />,
-  daily_login:    <LogIn size={16} />,
+  // ── Succès streak
+  streak_3:      <Flame       size={18} />,
+  streak_7:      <TrendingUp  size={18} />,
+  streak_30:     <Trophy      size={18} />,
+  streak_100:    <CalendarCheck size={18} />,
+  // ── Succès niveaux
+  level_5:       <Star     size={18} />,
+  level_10:      <Award    size={18} />,
+  level_25:      <Medal    size={18} />,
+  level_50:      <Rocket   size={18} />,
+  // ── Succès social
+  friend_1:      <UserPlus size={18} />,
+  friend_5:      <Users    size={18} />,
+  // ── Succès combat
+  win_1:         <Swords   size={18} />,
+  win_10:        <Shield   size={18} />,
+  win_50:        <Trophy   size={18} />,
+  // ── Succès trading
+  trade_1:       <ArrowLeftRight size={18} />,
+  trade_10:      <ArrowLeftRight size={18} />,
+  // ── Missions (ids distincts des succès)
+  open_1_pack:    <Inbox    size={16} />,
+  open_3_packs:   <Package  size={16} />,
+  open_5_packs:   <Archive  size={16} />,
+  daily_login:    <LogIn    size={16} />,
   collect_5:      <BookOpen size={16} />,
-  open_void_pack: <Wind size={16} />,
+  open_void_pack: <Telescope size={16} />,
+  win_combat:     <Swords   size={16} />,
+  make_trade:     <ArrowLeftRight size={16} />,
+  add_friend:     <UserPlus size={16} />,
 }
 
 const RARITY_COLOR: Record<string, string> = {
@@ -89,27 +108,7 @@ export default function ProfilPage() {
   const notifiedRef     = useRef(false)
   const dataLoadedRef   = useRef(false)
   const [now, setNow]                   = useState(() => Date.now())
-  const [kofiEmail, setKofiEmail]       = useState('')
-  const [kofiSaving, setKofiSaving]     = useState(false)
-  const [kofiMsg, setKofiMsg]           = useState('')
-
   const todayMissions = getTodayMissions()
-
-  useEffect(() => { setKofiEmail(profile?.kofi_email ?? '') }, [profile?.kofi_email])
-
-  async function saveKofiEmail() {
-    if (kofiSaving) return
-    setKofiSaving(true); setKofiMsg('')
-    try {
-      await fetch('/api/profile', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kofiEmail: kofiEmail.trim() }),
-      })
-      if (profile) setProfile({ ...profile, kofi_email: kofiEmail.trim() })
-      setKofiMsg('Email Ko-fi enregistré ✓')
-    } catch { setKofiMsg('Erreur') }
-    finally { setKofiSaving(false); setTimeout(() => setKofiMsg(''), 4000) }
-  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000)
@@ -265,7 +264,7 @@ export default function ProfilPage() {
 
         if (data?.xp_gained && profile) setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
         const mission = todayMissions.find(m => m.id === missionId)
-        addToast({ type: 'mission', title: 'Mission complétée !', body: mission ? `${mission.label} — +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP` })
+        addToast({ type: 'mission', title: 'Mission complétée !', body: mission ? `${mission.label} - +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP` })
         await loadMissions()
       }
     } catch(e) { console.error(e) }
@@ -323,6 +322,7 @@ export default function ProfilPage() {
             <div className="flex items-center gap-1.5">
               <p className="font-black text-white text-base truncate leading-tight">{profile?.username ?? 'Joueur'}</p>
               <RoleBadge role={profile?.role} />
+              <SubscriberBadge isSubscriber={profile?.is_subscriber} />
               {profile?.highest_rarity && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
                   style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity] }}>
@@ -346,7 +346,7 @@ export default function ProfilPage() {
           </div>
         </div>
 
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06]">
         {([
           { id: 'overview',     label: 'Vue d\'ensemble', dot: canClaim },
           { id: 'missions',     label: completedMissions > 0 ? `Missions · ${completedMissions}/${todayMissions.length}` : 'Missions', dot: unclaimedMissions > 0, count: unclaimedMissions },
@@ -376,7 +376,7 @@ export default function ProfilPage() {
           />
 
           {/* Twitch */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -406,58 +406,42 @@ export default function ProfilPage() {
             </div>
           </div>
 
-          {/* Streamer — connecter sa chaîne pour offrir des boosters en Channel Points */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(145,71,255,0.15)' }}>
-                  <Tv2 size={16} className="text-white/60" />
+          {/* Streamer — visible uniquement pour le rôle streamer */}
+          {profile?.role === 'streamer' && (
+            <div className="rounded-2xl p-4 relative overflow-hidden backdrop-blur-sm"
+              style={{ background: 'linear-gradient(135deg, rgba(145,71,255,0.12) 0%, rgba(90,31,184,0.08) 100%)', border: '1px solid rgba(145,71,255,0.35)' }}>
+              {/* Glow bg */}
+              <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(145,71,255,0.15) 0%, transparent 70%)' }} />
+              <div className="flex items-center justify-between relative">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(145,71,255,0.25)', border: '1px solid rgba(145,71,255,0.4)' }}>
+                    <Tv2 size={18} className="text-[#bf9fff]" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-sm">Chaîne Twitch</p>
+                    {profile.streamer_channel
+                      ? <p className="text-[#a78bfa] text-xs mt-0.5">twitch.tv/<span className="font-bold text-white">{profile.streamer_channel.login}</span></p>
+                      : <p className="text-[#a78bfa]/70 text-xs mt-0.5">Offre des boosters à ta communauté via les Points de Chaîne</p>
+                    }
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white font-bold text-sm">Tu es streamer ?</p>
-                  <p className="text-white/40 text-xs mt-0.5">Connecte ta chaîne pour offrir des boosters en Points de Chaîne</p>
-                </div>
-              </div>
-              <a href="/api/twitch/streamer/connect"
-                className="px-3 py-1.5 rounded-xl text-white text-xs font-bold whitespace-nowrap"
-                style={{ background: 'linear-gradient(135deg,#9147ff,#5a1fb8)' }}>
-                Connecter ma chaîne
-              </a>
-            </div>
-          </div>
-
-          {/* Ko-fi — lier l'email pour recevoir les avantages d'abonné */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(255,94,91,0.15)' }}>
-                <span className="text-base">☕</span>
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm flex items-center gap-2">
-                  Abonnement Ko-fi
-                  {profile?.is_subscriber && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4a9e6a]/20 text-[#4a9e6a] font-bold">Actif</span>}
-                </p>
-                <p className="text-white/40 text-xs mt-0.5">Renseigne l&apos;email de ton compte Ko-fi pour recevoir tes avantages</p>
+                {profile.streamer_channel ? (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-md whitespace-nowrap" style={{ background: 'rgba(74,158,106,0.2)', color: '#6ee7a0', border: '1px solid rgba(74,158,106,0.3)' }}>● Chaîne connectée</span>
+                ) : (
+                  <a href="/api/twitch/streamer/connect"
+                    className="px-4 py-2 rounded-xl text-white text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-opacity hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg,#9147ff,#5a1fb8)', boxShadow: '0 0 16px rgba(145,71,255,0.4)' }}>
+                    <Tv2 size={12} /> Connecter ma chaîne
+                  </a>
+                )}
               </div>
             </div>
-            <div className="flex gap-2">
-              <input
-                type="email" value={kofiEmail} onChange={e => setKofiEmail(e.target.value)}
-                placeholder="ton-email@ko-fi.com"
-                className="flex-1 bg-black/40 border border-white/10 rounded-xl text-white text-xs px-3 py-2" />
-              <button onClick={saveKofiEmail} disabled={kofiSaving}
-                className="px-3 py-2 rounded-xl text-white text-xs font-bold disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#ff5e5b,#d63f3c)' }}>
-                {kofiSaving ? '…' : 'Lier'}
-              </button>
-            </div>
-            {kofiMsg && <p className="text-[#4a9e6a] text-[11px] mt-2">{kofiMsg}</p>}
-          </div>
+          )}
 
           {/* Daily reward — redesign */}
-          <div className="rounded-2xl border border-white/[0.07] overflow-hidden"
+          <div className="rounded-2xl border border-white/[0.07] overflow-hidden backdrop-blur-sm"
             style={{ background: 'linear-gradient(135deg, rgba(255,154,61,0.07) 0%, rgba(123,43,255,0.05) 100%)' }}>
 
             <div className="px-4 pt-4 pb-3 flex items-center gap-3">
@@ -514,7 +498,7 @@ export default function ProfilPage() {
                   ? { background: 'rgba(255,154,61,0.15)', color: '#ff9a3d', border: '1px solid rgba(255,154,61,0.3)' }
                   : { background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.06)', cursor: 'not-allowed' }}>
                 {claiming ? '…' : canClaim
-                  ? <><PackagePlus size={15} />Réclamer mon booster quotidien</>
+                  ? <><Gift size={15} />Réclamer mon booster quotidien</>
                   : <><Check size={14} />Déjà réclamé aujourd&apos;hui</>}
               </button>
               {claimMsg && <p className="text-xs text-[#4a9e6a] text-center mt-2 font-bold">{claimMsg}</p>}
@@ -522,7 +506,7 @@ export default function ProfilPage() {
           </div>
 
           {/* Missions aperçu */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Missions du jour</p>
               <button onClick={() => setActiveTab('missions')}
@@ -574,14 +558,14 @@ export default function ProfilPage() {
 
           {/* Stats collection */}
           {stats && (
-            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="rounded-xl bg-white/[0.04] p-3">
+                <div className="rounded-xl bg-white/[0.04] backdrop-blur-sm p-3">
                   <p className="text-white font-black text-xl">{stats.totalCards}</p>
                   <p className="text-white/40 text-xs">Cartes total</p>
                 </div>
-                <div className="rounded-xl bg-white/[0.04] p-3">
+                <div className="rounded-xl bg-white/[0.04] backdrop-blur-sm p-3">
                   <p className="text-white font-black text-xl">{stats.uniqueCards}</p>
                   <p className="text-white/40 text-xs">Uniques</p>
                 </div>
@@ -623,7 +607,7 @@ export default function ProfilPage() {
 
             return (
               <div key={mission.id}
-                className="rounded-2xl border overflow-hidden transition-all"
+                className="rounded-2xl border overflow-hidden transition-all backdrop-blur-sm"
                 style={{
                   background: claimed ? 'rgba(0,200,150,0.04)' : completed ? 'rgba(255,154,61,0.06)' : 'rgba(255,255,255,0.03)',
                   borderColor: claimed ? 'rgba(0,200,150,0.2)' : completed ? 'rgba(255,154,61,0.25)' : 'rgba(255,255,255,0.07)',
@@ -703,7 +687,7 @@ export default function ProfilPage() {
               const unlocked = achievements.includes(a.id)
               return (
                 <div key={a.id}
-                  className="flex items-center gap-3 p-3 rounded-2xl border transition-all"
+                  className="flex items-center gap-3 p-3 rounded-2xl border transition-all backdrop-blur-sm"
                   style={{
                     background: unlocked ? 'rgba(123,43,255,0.08)' : 'rgba(255,255,255,0.02)',
                     border: unlocked ? '1px solid rgba(123,43,255,0.25)' : '1px solid rgba(255,255,255,0.05)',

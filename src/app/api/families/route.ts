@@ -4,10 +4,13 @@ import { db } from '@/lib/db'
 import { families } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function GET() {
-  const rows = await db.select().from(families)
+export async function GET(req: NextRequest) {
+  const isAdmin = req.headers.get('x-admin') === '1'
+  const rows = isAdmin
+    ? await db.select().from(families)
+    : await db.select().from(families).where(eq(families.active, true))
   return NextResponse.json(rows, {
-    headers: { 'Cache-Control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=300' },
+    headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=20' },
   })
 }
 
@@ -15,7 +18,14 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { key, label } = await req.json()
+  const { key, label, active } = await req.json()
+
+  // Toggle active si demandé
+  if (active !== undefined && key) {
+    await db.update(families).set({ active }).where(eq(families.key, key))
+    return NextResponse.json({ ok: true })
+  }
+
   await db.insert(families).values({ key, label }).onConflictDoUpdate({
     target: families.key,
     set: { label },

@@ -97,5 +97,5 @@ export async function GET() {
       currentStreak: streakRow?.currentStreak ?? 0,
       lastClaimAt:   streakRow?.lastClaimAt ?? null,
     },
-  })
+  }, { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=30' } })
 }

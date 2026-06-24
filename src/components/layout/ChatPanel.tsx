@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
 import { Send, X, Search, ArrowLeft, MessageSquare, Swords } from 'lucide-react'
-import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ interface FriendPreview {
   lastSeenAt: string | null
   role?: UserRole
   collectionComplete?: boolean
+  is_subscriber?: boolean
 }
 
 function onlineStatus(lastSeenAt: string | null): { label: string; color: string } {
@@ -83,6 +84,7 @@ function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; 
               {f.username ?? '???'}
             </span>
             <RoleBadge role={f.role} />
+            <SubscriberBadge isSubscriber={f.is_subscriber} />
           </div>
           {f.lastAt && (
             <span className="text-[10px] flex-shrink-0" style={{ color: 'rgba(255,255,255,.2)' }}>
@@ -125,7 +127,7 @@ function DuelCard({ sessionId, isMe, status, onAccept, onDecline }: {
         </div>
       </div>
       {status === 'accepted' ? (
-        <p className="text-[11px] text-[#22c55e] font-bold">✓ Duel accepté — en cours</p>
+        <p className="text-[11px] text-[#22c55e] font-bold">✓ Duel accepté - en cours</p>
       ) : status === 'declined' ? (
         <p className="text-[11px] text-white/35 italic">✕ Défi refusé</p>
       ) : isMe ? (
@@ -199,7 +201,7 @@ function Conversation({ friend, myId, myProfile, onBack }: {
     // 5s onglet actif, pause en arrière-plan
     let timer: ReturnType<typeof setTimeout>
     function schedule() {
-      const delay = document.visibilityState === 'visible' ? 5000 : 30_000
+      const delay = document.visibilityState === 'visible' ? 8_000 : 60_000
       timer = setTimeout(async () => { await load(false); schedule() }, delay)
     }
     schedule()
@@ -344,7 +346,13 @@ function Conversation({ friend, myId, myProfile, onBack }: {
 export function ChatPanel() {
   const user    = useGameStore(s => s.user)
   const profile = useGameStore(s => s.profile)
-  const { chatFriend, setChatFriend, chatPanelOpen, setChatPanelOpen, setUnreadBySender, setUnreadMessageCount, unreadMessageCount } = useSocialStore()
+  const chatFriend          = useSocialStore(s => s.chatFriend)
+  const setChatFriend       = useSocialStore(s => s.setChatFriend)
+  const chatPanelOpen       = useSocialStore(s => s.chatPanelOpen)
+  const setChatPanelOpen    = useSocialStore(s => s.setChatPanelOpen)
+  const setUnreadBySender   = useSocialStore(s => s.setUnreadBySender)
+  const setUnreadMessageCount = useSocialStore(s => s.setUnreadMessageCount)
+  const unreadMessageCount  = useSocialStore(s => s.unreadMessageCount)
 
   const [friends, setFriends] = useState<FriendPreview[]>([])
   const [search, setSearch]   = useState('')
@@ -368,7 +376,7 @@ export function ChatPanel() {
   useEffect(() => {
     if (!user || !chatPanelOpen) return
     loadPreviews()
-    const iv = setInterval(loadPreviews, 20_000)
+    const iv = setInterval(loadPreviews, 60_000)
     return () => clearInterval(iv)
   }, [chatPanelOpen, user, loadPreviews])
 

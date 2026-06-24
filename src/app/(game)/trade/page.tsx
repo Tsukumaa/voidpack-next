@@ -183,7 +183,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                 <input value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Rechercher une carte…"
-                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
               </div>
               <div className="space-y-1.5">
                 {filteredCards.slice(0, 50).map(c => {
@@ -253,7 +253,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                 <label className="text-white/40 text-xs block mb-1.5">Message (optionnel)</label>
                 <textarea value={message} onChange={e => setMessage(e.target.value)}
                   placeholder="Un petit mot…" rows={2}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white resize-none" />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white resize-none" />
               </div>
 
               {error && <p className="text-red-400 text-xs text-center">{error}</p>}
@@ -342,11 +342,11 @@ function TradeContent() {
       </div>
 
       {msg && (
-        <div className="mb-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white text-center">{msg}</div>
+        <div className="mb-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-white text-center">{msg}</div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06] mb-4">
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] mb-4">
         {(['incoming', 'outgoing'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all relative',
@@ -404,7 +404,7 @@ function TradeContent() {
                     {!isSender && (
                       <>
                         <button onClick={() => action(trade.id, 'decline')} disabled={!!actioning}
-                          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
+                          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
                           Refuser
                         </button>
                         <button onClick={() => action(trade.id, 'accept')} disabled={!!actioning}
@@ -416,7 +416,7 @@ function TradeContent() {
                     )}
                     {isSender && (
                       <button onClick={() => action(trade.id, 'cancel')} disabled={!!actioning}
-                        className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
+                        className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
                         {actioning === trade.id ? '…' : 'Annuler'}
                       </button>
                     )}

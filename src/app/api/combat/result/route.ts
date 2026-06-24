@@ -60,5 +60,18 @@ export async function POST(req: NextRequest) {
       },
     })
 
+  // Missions & succès du gagnant (fire-and-forget)
+  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  Promise.all([
+    fetch(`${base}/api/profile/missions`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ missionId: 'win_combat', count: 1 }),
+    }).catch(() => {}),
+    fetch(`${base}/api/achievements/check`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rarities: [], totalPacks: 0, uniqueCards: 0, level: 1 }),
+    }).catch(() => {}),
+  ])
+
   return NextResponse.json({ ok: true })
 }

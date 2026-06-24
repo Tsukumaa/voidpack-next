@@ -14,7 +14,9 @@ export async function GET() {
     .where(eq(playerCards.userId, session.user.id))
     .orderBy(desc(playerCards.lastObtainedAt))
 
-  return NextResponse.json(rows)
+  return NextResponse.json(rows, {
+    headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=40' },
+  })
 }
 
 export async function POST(req: NextRequest) {

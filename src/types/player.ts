@@ -20,6 +20,7 @@ export interface PlayerProfile {
   auto_reveal?: boolean
   favorite_cards?: string[] | null
   collection_complete?: boolean
+  streamer_channel?: { login: string; active: boolean } | null
 }
 
 export interface BoosterCredit {

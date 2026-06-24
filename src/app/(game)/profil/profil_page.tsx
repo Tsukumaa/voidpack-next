@@ -155,7 +155,7 @@ export default function ProfilPage() {
         addToast({
           type: 'mission',
           title: `Mission complétée !`,
-          body: mission ? `${mission.label} — +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP`,
+          body: mission ? `${mission.label} - +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP`,
         })
         load()
       }
@@ -210,7 +210,7 @@ export default function ProfilPage() {
       </div>
 
       {/* XP bar */}
-      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4 space-y-2">
+      <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4 space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-white/60 text-xs font-bold uppercase tracking-wider">Expérience</span>
           <span className="text-white/50 text-xs">{xpCurrent.toLocaleString('fr-FR')} / {xpNeeded.toLocaleString('fr-FR')} XP</span>
@@ -223,7 +223,7 @@ export default function ProfilPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06]">
         {([
           { id: 'overview',     label: '📊 Vue d\'ensemble' },
           { id: 'missions',     label: `🎯 Missions ${completedMissions > 0 ? `· ${completedMissions}/${todayMissions.length}` : ''}` },
@@ -302,7 +302,7 @@ export default function ProfilPage() {
           </div>
 
           {/* Missions aperçu */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Missions du jour</p>
               <button onClick={() => setActiveTab('missions')}
@@ -342,14 +342,14 @@ export default function ProfilPage() {
 
           {/* Stats */}
           {stats && (
-            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
               <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
               <div className="grid grid-cols-2 gap-2 mb-3">
-                <div className="rounded-xl bg-white/[0.04] p-3">
+                <div className="rounded-xl bg-white/[0.04] backdrop-blur-sm p-3">
                   <p className="text-white font-black text-xl">{stats.totalCards}</p>
                   <p className="text-white/40 text-xs">Cartes total</p>
                 </div>
-                <div className="rounded-xl bg-white/[0.04] p-3">
+                <div className="rounded-xl bg-white/[0.04] backdrop-blur-sm p-3">
                   <p className="text-white font-black text-xl">{stats.uniqueCards}</p>
                   <p className="text-white/40 text-xs">Uniques</p>
                 </div>

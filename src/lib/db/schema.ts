@@ -25,6 +25,8 @@ export const playerProfiles = sqliteTable('player_profiles', {
   kofiEmail:     text('kofi_email'),                  // email Ko-fi si différent (override)
   isSubscriber:  integer('is_subscriber', { mode: 'boolean' }).notNull().default(false),
   subscriberUntil: text('subscriber_until'),          // ISO date d'expiration de l'abonnement
+  musicVolume:   text('music_volume'),                // volume musique (0.0–1.0, null = défaut)
+  musicMuted:    integer('music_muted', { mode: 'boolean' }).notNull().default(false),
   createdAt:     text('created_at').notNull().default(now),
   updatedAt:     text('updated_at').notNull().default(now),
 })
@@ -82,6 +84,7 @@ export const families = sqliteTable('families', {
   color:      text('color'),
   description: text('description'),
   orderIndex: integer('order_index').notNull().default(0),
+  active:     integer('active', { mode: 'boolean' }).notNull().default(true),
   createdAt:  text('created_at').notNull().default(now),
 })
 

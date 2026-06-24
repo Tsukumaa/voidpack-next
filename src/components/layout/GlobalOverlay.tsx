@@ -56,10 +56,10 @@ export function GlobalOverlay() {
       fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
     }
 
-    // Polling adaptatif : 30s onglet actif, 120s en arrière-plan
+    // Polling adaptatif : 60s onglet actif, 300s en arrière-plan
     let pollTimer: ReturnType<typeof setTimeout>
     function scheduleNextPoll() {
-      const delay = document.visibilityState === 'visible' ? 30_000 : 120_000
+      const delay = document.visibilityState === 'visible' ? 60_000 : 300_000
       pollTimer = setTimeout(async () => { await poll(); scheduleNextPoll() }, delay)
     }
 

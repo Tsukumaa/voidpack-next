@@ -7,7 +7,7 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
-import { RoleBadge } from '@/components/game/RoleBadge'
+import { RoleBadge, SubscriberBadge } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { cn } from '@/lib/utils'
 
@@ -104,7 +104,7 @@ export default function PlayerProfilePage() {
       }
     }
 
-    const ownedList: GroupedCard[] = (player.collection ?? []).map((c: { cardId?: string; card_id?: string; rarity: string; family: string; count?: number }) => {
+    const ownedList: GroupedCard[] = (player.collection ?? []).filter((c: { cardId?: string; card_id?: string }) => defMap[c.cardId ?? c.card_id ?? '']).map((c: { cardId?: string; card_id?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.cardId ?? c.card_id ?? ''
       const def = defMap[cardKey]
       return {
@@ -262,6 +262,7 @@ export default function PlayerProfilePage() {
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-white font-black text-sm truncate leading-tight">{profile?.username ?? '…'}</p>
               <RoleBadge role={(profile as unknown as { role?: string } | null)?.role as 'founder' | 'developer' | 'artist' | 'streamer' | null} />
+              <SubscriberBadge isSubscriber={(profile as unknown as { is_subscriber?: boolean } | null)?.is_subscriber} />
               {profile?.highestRarity && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
                   style={{ background: RARITY_COLOR[profile.highestRarity]+'20', color: RARITY_COLOR[profile.highestRarity] }}>
@@ -300,7 +301,7 @@ export default function PlayerProfilePage() {
         <div className="flex items-center justify-center py-20 text-white/30 text-sm">Chargement…</div>
       ) : (
         <>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 mb-6">
+          <div className="rounded-2xl border border-white/[0.06] p-4 mb-6 backdrop-blur-md" style={{ background: 'rgba(10,6,24,0.55)' }}>
             <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3">Collection</p>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="rounded-xl bg-white/[0.03] p-3">
@@ -327,6 +328,14 @@ export default function PlayerProfilePage() {
           <FavoriteShowcase
             className="mb-6"
             favoriteIds={(profile as unknown as { favoriteCards?: string[] }).favoriteCards ?? []}
+            onCardClick={def => {
+              const match = cards.find(c => c.card_id === def.id)
+              setSelected(match ?? {
+                card_id: def.id, rarity: def.rarity, family: '', count: 0,
+                name: def.name, image_url: def.image_url, description: null,
+                cost: null, atk: null, def: null, owned: false, artist: null, artistUrl: null,
+              })
+            }}
           />
 
           {/* Album */}
@@ -349,8 +358,8 @@ export default function PlayerProfilePage() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
                         {group.map(card => (
                           !card.owned ? (
-                            <div key={card.card_id} className="flex flex-col">
-                              <div className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40" style={{ aspectRatio: '0.714' }}>
+                            <div key={card.card_id} className="flex flex-col cursor-pointer" onClick={() => setSelected(card)}>
+                              <div className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40 active:scale-95 transition-transform" style={{ aspectRatio: '0.714' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/assets/dos.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center">
@@ -362,18 +371,16 @@ export default function PlayerProfilePage() {
                               <div className="min-h-[30px]" />
                             </div>
                           ) : (
-                            <div key={card.card_id} className="flex flex-col">
-                            <CardHover rarity={card.rarity} className="relative cursor-pointer active:scale-95" style={{ aspectRatio: '0.714', overflow: 'visible' }}>
+                            <div key={card.card_id} className="flex flex-col cursor-pointer" onClick={() => setSelected(card)}>
+                            <CardHover rarity={card.rarity} className="relative active:scale-95" style={{ aspectRatio: '0.714', overflow: 'visible' }}>
                               <CardFrame rarity={card.rarity} name={card.name} cost={card.cost} atk={card.atk} def={card.def} glow={false} hideStats style={{ position: 'absolute', inset: 0 }}>
-                                <button onClick={() => setSelected(card)} className="absolute inset-0 w-full h-full">
-                                  {card.image_url ? (
-                                    <CardMedia src={card.image_url} alt={card.name} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <div className="w-12 h-12 rounded-full opacity-30" style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
-                                    </div>
-                                  )}
-                                </button>
+                                {card.image_url ? (
+                                  <CardMedia src={card.image_url} alt={card.name} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-full opacity-30" style={{ background: `radial-gradient(circle, ${RARITY_COLOR[card.rarity]}, transparent)` }} />
+                                  </div>
+                                )}
                               </CardFrame>
                               {card.count > 1 && (
                                 <div className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-black/80 border-2 flex items-center justify-center text-[10px] font-bold text-white shadow-lg"

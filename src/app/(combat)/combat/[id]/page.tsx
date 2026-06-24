@@ -173,7 +173,7 @@ export default function CombatPage() {
       [`${me}_mana`]: myMana - card.cost,
     }
     setGameState(newState)
-    addLog(hasVoidSurge ? `Tu joues ${card.name} — VOID Surge !` : `Tu joues ${card.name}`)
+    addLog(hasVoidSurge ? `Tu joues ${card.name} - VOID Surge !` : `Tu joues ${card.name}`)
     await submitAction('play_card', { card_id: card.uid }, newState as unknown as null)
   }
 

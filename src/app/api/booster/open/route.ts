@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { customCards } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { customCards, families } from '@/lib/db/schema'
+import { eq, and } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
 
 const RARITY_WEIGHTS: Record<string, number> = {
@@ -32,9 +32,14 @@ export async function POST(req: NextRequest) {
 
   const { booster_type = 'void', count = 5 } = await req.json()
 
+  // Pour le VOID pack, exclure les cartes des familles inactives
+  const activeFamilies = (await db.select({ key: families.key }).from(families).where(eq(families.active, true))).map(f => f.key)
+
   const pool = booster_type === 'void'
-    ? await db.select().from(customCards)
-    : await db.select().from(customCards).where(eq(customCards.family, booster_type))
+    ? await db.select().from(customCards).then(cards => cards.filter(c => activeFamilies.includes(c.family) || c.family === 'global'))
+    : activeFamilies.includes(booster_type)
+      ? await db.select().from(customCards).where(eq(customCards.family, booster_type))
+      : []
 
   if (!pool.length) {
     const rarities = ['common', 'rare', 'epic', 'legendary']
