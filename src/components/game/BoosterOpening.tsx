@@ -90,49 +90,23 @@ function fadeVideoOut(v: HTMLVideoElement, ms = 400, onDone?: () => void) {
   return id
 }
 
-function VoidVideoReveal({ onReveal }: { onReveal: () => void }) {
-  const revealRef  = useRef(false)
-  const videoRef   = useRef<HTMLVideoElement>(null)
-
+// Overlay noir derrière la vidéo void (la <video> est dans le parent, toujours dans le DOM)
+function VoidVideoReveal({ videoRef, onReveal }: { videoRef: React.RefObject<HTMLVideoElement | null>; onReveal: () => void }) {
   useEffect(() => {
+    // Fallback autoReveal : si la vidéo n'a pas été lancée par le tap handler
     const v = videoRef.current
-    if (!v) return
-    // Volume à 0 avant tout — évite le spike audio au démarrage
-    v.volume = 0
-    // muted=true est requis pour l'autoplay garanti sur iOS (même la 2e fois)
-    v.muted = true
-    fadeSiteMusicOut(600)
-    v.play().then(() => {
-      // Lecture lancée : on peut unmute silencieusement puis monter le volume
-      v.muted = false
-      setTimeout(() => { if (videoRef.current) fadeVideoIn(videoRef.current, 500) }, 650)
-    }).catch(() => {
-      // Autoplay bloqué même en muted — on passe directement à la révélation
-      if (!revealRef.current) { revealRef.current = true; onReveal() }
-    })
+    if (v && v.paused) {
+      v.currentTime = 0
+      v.volume = 0
+      v.muted = true
+      fadeSiteMusicOut(600)
+      v.play()
+        .then(() => { v.muted = false; setTimeout(() => fadeVideoIn(v, 500), 650) })
+        .catch(() => onReveal())
+    }
   }, []) // eslint-disable-line
 
-  function handleEnded() {
-    if (revealRef.current) return
-    revealRef.current = true
-    const v = videoRef.current
-    if (v) fadeVideoOut(v, 200)
-    onReveal()
-  }
-
-  return (
-    <div className="fixed inset-0 z-[110] overflow-hidden bg-black">
-      <video
-        ref={videoRef}
-        src="/assets/void-reveal.mp4"
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        onEnded={handleEnded}
-        style={{ opacity: 0, animation: 'voidVideoFadeIn 0.4s ease-out 0.1s forwards' }}
-      />
-      <style>{`@keyframes voidVideoFadeIn { from { opacity:0 } to { opacity:1 } }`}</style>
-    </div>
-  )
+  return <div className="fixed inset-0 z-[110] bg-black" />
 }
 
 // ── Écran de résultats ────────────────────────────────────────────────────────
@@ -410,6 +384,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const [cardIndex, setCardIndex]   = useState(0)
   const [cardPhase, setCardPhase]   = useState<CardPhase>('back')
   const [whiteFlash, setWhiteFlash] = useState(0) // 0=off, 1=rising, 2=fading
+  const voidVideoRef = useRef<HTMLVideoElement>(null)
   const [revealedColor, setRevealedColor] = useState('')
   const [bgStyle, setBgStyle]       = useState('radial-gradient(ellipse at 50% 30%, rgba(13,5,32,0.75) 0%, rgba(6,1,14,0.55) 100%)')
   const [auraColor, setAuraColor]   = useState('')
@@ -543,7 +518,17 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       }
       later(() => {
         if (rarity === 'void') {
-          // Après le suspense → vidéo cinématique
+          // Lancer play() ici, dans le callback le plus proche du geste possible
+          voidRevealFired.current = false
+          const v = voidVideoRef.current
+          if (v) {
+            v.currentTime = 0
+            v.volume = 0
+            v.muted = true
+            v.play().then(() => { v.muted = false }).catch(() => {})
+          }
+          fadeSiteMusicOut(600)
+          setTimeout(() => { if (voidVideoRef.current) fadeVideoIn(voidVideoRef.current, 500) }, 650)
           setCardPhase('void-video')
           locked.current = false
           return
@@ -571,7 +556,10 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
     }
   }, [cardPhase, rarity, isLast]) // eslint-disable-line
 
+  const voidRevealFired = useRef(false)
   const triggerVoidReveal = useCallback(() => {
+    if (voidRevealFired.current) return
+    voidRevealFired.current = true
     // Flash blanc : monte, révèle la carte au pic, puis redescend
     setWhiteFlash(1)
     setTimeout(() => {
@@ -624,9 +612,23 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
         </button>
       )}
 
-      {/* ── VOID VIDEO REVEAL ── */}
+      {/* ── VIDÉO VOID — toujours dans le DOM pour que play() soit appelable depuis le tap handler ── */}
+      <video
+        ref={voidVideoRef}
+        src="/assets/void-reveal.mp4"
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover"
+        style={{ zIndex: 111, display: cardPhase === 'void-video' ? 'block' : 'none' }}
+        onEnded={() => {
+          const v = voidVideoRef.current
+          if (v) fadeVideoOut(v, 200)
+          triggerVoidReveal()
+        }}
+      />
+
+      {/* ── OVERLAY NOIR VOID VIDEO ── */}
       {phase === 'cards' && cardPhase === 'void-video' && (
-        <VoidVideoReveal onReveal={triggerVoidReveal} />
+        <VoidVideoReveal videoRef={voidVideoRef} onReveal={triggerVoidReveal} />
       )}
 
       {/* ── FLASH BLANC post-vidéo VOID ── */}
