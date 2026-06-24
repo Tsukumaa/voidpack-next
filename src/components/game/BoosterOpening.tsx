@@ -96,17 +96,27 @@ function VoidVideoReveal({ onReveal }: { onReveal: () => void }) {
 
   useEffect(() => {
     const v = videoRef.current
-    if (v) v.volume = 0
+    if (!v) return
+    // Volume à 0 avant tout — évite le spike audio au démarrage
+    v.volume = 0
+    // muted=true est requis pour l'autoplay garanti sur iOS (même la 2e fois)
+    v.muted = true
     fadeSiteMusicOut(600)
-    setTimeout(() => { if (videoRef.current) fadeVideoIn(videoRef.current, 500) }, 650)
-  }, [])
+    v.play().then(() => {
+      // Lecture lancée : on peut unmute silencieusement puis monter le volume
+      v.muted = false
+      setTimeout(() => { if (videoRef.current) fadeVideoIn(videoRef.current, 500) }, 650)
+    }).catch(() => {
+      // Autoplay bloqué même en muted — on passe directement à la révélation
+      if (!revealRef.current) { revealRef.current = true; onReveal() }
+    })
+  }, []) // eslint-disable-line
 
   function handleEnded() {
     if (revealRef.current) return
     revealRef.current = true
     const v = videoRef.current
     if (v) fadeVideoOut(v, 200)
-    // onReveal gère le flash blanc dans le parent (survit au démontage de ce composant)
     onReveal()
   }
 
@@ -115,7 +125,6 @@ function VoidVideoReveal({ onReveal }: { onReveal: () => void }) {
       <video
         ref={videoRef}
         src="/assets/void-reveal.mp4"
-        autoPlay
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
         onEnded={handleEnded}
