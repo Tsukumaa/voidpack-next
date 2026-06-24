@@ -89,8 +89,27 @@ export default function ProfilPage() {
   const notifiedRef     = useRef(false)
   const dataLoadedRef   = useRef(false)
   const [now, setNow]                   = useState(() => Date.now())
+  const [kofiEmail, setKofiEmail]       = useState('')
+  const [kofiSaving, setKofiSaving]     = useState(false)
+  const [kofiMsg, setKofiMsg]           = useState('')
 
   const todayMissions = getTodayMissions()
+
+  useEffect(() => { setKofiEmail(profile?.kofi_email ?? '') }, [profile?.kofi_email])
+
+  async function saveKofiEmail() {
+    if (kofiSaving) return
+    setKofiSaving(true); setKofiMsg('')
+    try {
+      await fetch('/api/profile', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kofiEmail: kofiEmail.trim() }),
+      })
+      if (profile) setProfile({ ...profile, kofi_email: kofiEmail.trim() })
+      setKofiMsg('Email Ko-fi enregistré ✓')
+    } catch { setKofiMsg('Erreur') }
+    finally { setKofiSaving(false); setTimeout(() => setKofiMsg(''), 4000) }
+  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000)
@@ -406,6 +425,35 @@ export default function ProfilPage() {
                 Connecter ma chaîne
               </a>
             </div>
+          </div>
+
+          {/* Ko-fi — lier l'email pour recevoir les avantages d'abonné */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(255,94,91,0.15)' }}>
+                <span className="text-base">☕</span>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm flex items-center gap-2">
+                  Abonnement Ko-fi
+                  {profile?.is_subscriber && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4a9e6a]/20 text-[#4a9e6a] font-bold">Actif</span>}
+                </p>
+                <p className="text-white/40 text-xs mt-0.5">Renseigne l&apos;email de ton compte Ko-fi pour recevoir tes avantages</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="email" value={kofiEmail} onChange={e => setKofiEmail(e.target.value)}
+                placeholder="ton-email@ko-fi.com"
+                className="flex-1 bg-black/40 border border-white/10 rounded-xl text-white text-xs px-3 py-2" />
+              <button onClick={saveKofiEmail} disabled={kofiSaving}
+                className="px-3 py-2 rounded-xl text-white text-xs font-bold disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#ff5e5b,#d63f3c)' }}>
+                {kofiSaving ? '…' : 'Lier'}
+              </button>
+            </div>
+            {kofiMsg && <p className="text-[#4a9e6a] text-[11px] mt-2">{kofiMsg}</p>}
           </div>
 
           {/* Daily reward — redesign */}

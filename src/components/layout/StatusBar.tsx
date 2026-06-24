@@ -2,8 +2,7 @@
 
 import {
   Flame,
-  ShoppingBasket,
-  Coins,
+  Coffee,
   Shield,
   LogOut,
   Link as LinkIcon,
@@ -151,28 +150,15 @@ export function StatusBar() {
             </Link>
           )}
 
-          <a
-            href="https://ko-fi.com/voidpack"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 px-3 py-2 rounded-full"
-            style={{ background: 'rgba(123,43,255,.12)', border: '1px solid rgba(185,124,255,.28)' }}
-          >
-            <Coins size={13} style={{ color: '#b97cff' }} />
-            <span className="hidden sm:inline text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-cinzel)', color: '#b97cff', letterSpacing: '.06em' }}>
-              Soutenir
-            </span>
-          </a>
-
           {user && (
           <button
             onClick={() => setShowShop(true)}
-            className="flex items-center gap-1 px-3 py-2 rounded-full bg-black/60 border border-white/[0.08]"
+            className="flex items-center gap-1 px-3 py-2 rounded-full"
+            style={{ background: 'rgba(123,43,255,.12)', border: '1px solid rgba(185,124,255,.28)' }}
           >
-            <ShoppingBasket size={13} />
-
-            <span className="hidden sm:inline text-xs">
-              Boutique
+            <Coffee size={13} style={{ color: '#b97cff' }} />
+            <span className="hidden sm:inline text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-cinzel)', color: '#b97cff', letterSpacing: '.06em' }}>
+              Soutien
             </span>
           </button>
           )}

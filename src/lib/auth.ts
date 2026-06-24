@@ -19,15 +19,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!discordId) return false
       const username  = (profile?.username as string) ?? user.name ?? 'Unknown'
       const avatarUrl = user.image ?? null
+      const email     = (profile?.email as string) ?? user.email ?? null
 
       // Upsert profile — ne pas bloquer la connexion si la DB est down
       try {
         await db
           .insert(playerProfiles)
-          .values({ userId: discordId, username, avatarUrl })
+          .values({ userId: discordId, username, avatarUrl, email })
           .onConflictDoUpdate({
             target: playerProfiles.userId,
-            set: { username, avatarUrl, updatedAt: new Date().toISOString() },
+            set: { username, avatarUrl, ...(email ? { email } : {}), updatedAt: new Date().toISOString() },
           })
       } catch (e) {
         console.error('signIn DB error:', e)

@@ -1,5 +1,5 @@
 'use client'
-import { Lock, Check, Coffee, Crown, Gift, X } from 'lucide-react'
+import { Lock, Check, Coffee, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useGameStore } from '@/store/game'
 import { CardBackDisplay } from '@/components/game/CardBackDisplay'
@@ -14,7 +14,6 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
   const [arenas, setArenas]       = useState<Arena[]>([])
   const [selectedArena, setSelectedArena] = useState<string>('default')
   const [loading, setLoading]     = useState(true)
-  const [buying, setBuying]       = useState<string | null>(null)
 
   const unlocked    = profile?.unlocked_card_backs ?? ['default']
   const selected    = profile?.selected_card_back ?? 'default'
@@ -49,24 +48,8 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
     })
   }
 
-  async function checkout(mode: 'subscription' | 'payment', skin?: CardBack) {
-    setBuying(mode === 'subscription' ? 'sub' : (skin?.id ?? ''))
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode,
-          card_back_id:   skin?.id,
-          card_back_name: skin?.name,
-        }),
-      })
-      const { url, error } = await res.json()
-      if (error) throw new Error(error)
-      window.location.href = url
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erreur lors du paiement')
-    } finally { setBuying(null) }
+  function openKofi() {
+    window.open(KOFI_URL, '_blank', 'noopener,noreferrer')
   }
 
   const canUse = (skin: CardBack) => isSubscriber || unlocked.includes(skin.id)
@@ -80,7 +63,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
         {/* ── Header sticky ── */}
         <div className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white flex items-center gap-2"><Gift size={18} /> Boutique</h2>
+            <h2 className="text-lg font-black text-white flex items-center gap-2"><Coffee size={18} /> Soutien</h2>
             <button onClick={onClose} className="text-white/40 hover:text-white"><X size={18} /></button>
           </div>
 
@@ -96,25 +79,25 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                   Abonnement VOID Pack
                   {isSubscriber && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#4a9e6a]/20 text-[#4a9e6a] font-bold">Actif</span>}
                 </p>
-                <p className="text-white/50 text-xs mt-1">2,99€ / mois · Tous les dos débloqués + 3 boosters/mois</p>
+                <p className="text-white/50 text-xs mt-1">4,99€ / mois · Tout débloqué + 5 boosters offerts</p>
                 <div className="flex flex-wrap gap-3 mt-2">
-                  {['Tous les dos de carte débloqués', '3 boosters VOID offerts par mois', 'Badge abonné sur le profil'].map(b => (
+                  {['Tous les dos de carte débloqués', 'Tous les fonds d\'arène débloqués', '5 boosters VOID offerts par mois', 'Badge abonné sur le profil'].map(b => (
                     <span key={b} className="text-white/60 text-[10px] flex items-center gap-1"><Check size={12} /> {b}</span>
                   ))}
                 </div>
               </div>
               {!isSubscriber && (
-                <button onClick={() => checkout('subscription')} disabled={buying === 'sub'}
-                  className="flex-shrink-0 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-50"
+                <button onClick={openKofi}
+                  className="flex-shrink-0 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all flex items-center gap-1.5"
                   style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-                  {buying === 'sub' ? '…' : "S'abonner"}
+                  <Coffee size={14} /> S&apos;abonner sur Ko-fi
                 </button>
               )}
             </div>
           </div>
 
           <p className="text-white/40 text-xs font-bold uppercase tracking-wider mt-4">
-            Dos de carte — 1,00€ l&apos;unité
+            Dos de carte
             {isSubscriber && <span className="ml-2 text-[#4a9e6a]">· Tous débloqués avec ton abonnement</span>}
           </p>
         </div>
@@ -162,10 +145,10 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                       ) : accessible ? (
                         <p className="text-[#4a9e6a] text-[10px]">{isSubscriber && !owned ? 'Via abonnement' : 'Débloqué'}</p>
                       ) : (
-                        <button onClick={() => checkout('payment', skin)} disabled={buying === skin.id}
-                          className="w-full py-1 rounded-lg text-[10px] font-bold text-white transition-all disabled:opacity-50"
-                          style={{ background: 'rgba(123,43,255,0.4)' }}>
-                          {buying === skin.id ? '…' : '1,00€ — Acheter'}
+                        <button onClick={openKofi}
+                          className="w-full py-1 rounded-lg text-[10px] font-bold text-white/70 transition-all flex items-center justify-center gap-1"
+                          style={{ background: 'rgba(123,43,255,0.25)' }}>
+                          <Lock size={10} /> Abonnés
                         </button>
                       )}
                     </div>

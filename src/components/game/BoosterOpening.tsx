@@ -87,10 +87,13 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
       // Claim le booster maintenant (annuler avant cette étape ne retire rien)
       let packsOpenedTotal = 1
       if (creditId) {
+        // Meilleure carte du pack (pour l'annonce Twitch éventuelle)
+        const RANK: Record<string, number> = { void: 4, legendary: 3, epic: 2, rare: 1, common: 0 }
+        const best = cards.reduce((b, c) => (RANK[c.rarity] ?? 0) > (RANK[b.rarity] ?? 0) ? c : b, cards[0])
         const claimRes = await fetch('/api/booster/claim', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: Number(creditId) }),
+          body: JSON.stringify({ id: Number(creditId), bestRarity: best?.rarity ?? null, bestCardName: best?.name ?? null }),
         })
         if (!claimRes.ok) throw new Error('claim error')
         const claimData = await claimRes.json()

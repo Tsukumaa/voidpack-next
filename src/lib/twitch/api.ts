@@ -26,16 +26,40 @@ export function eventsubCallbackUrl() {
   return `${siteUrl()}/api/twitch/eventsub`
 }
 
+// Scopes demandés au streamer :
+//   channel:read:redemptions → recevoir les rachats de Channel Points
+//   user:write:chat          → poster les messages de félicitations dans son chat
+export const STREAMER_SCOPES = 'channel:read:redemptions user:write:chat'
+
 // URL d'autorisation OAuth pour qu'un streamer connecte sa chaîne
 export function streamerAuthUrl(state: string) {
   const params = new URLSearchParams({
     client_id:     TWITCH_CLIENT_ID,
     redirect_uri:  streamerRedirectUri(),
     response_type: 'code',
-    scope:         'channel:read:redemptions',
+    scope:         STREAMER_SCOPES,
     state,
   })
   return `${OAUTH}/authorize?${params.toString()}`
+}
+
+// Envoie un message dans le chat d'une chaîne. sender = broadcaster lui-même.
+// Retourne true si envoyé, false sinon (token invalide, scope manquant…).
+export async function sendChatMessage(broadcasterId: string, accessToken: string, message: string) {
+  const res = await fetch(`${HELIX}/chat/messages`, {
+    method: 'POST',
+    headers: {
+      'Client-Id': TWITCH_CLIENT_ID,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      broadcaster_id: broadcasterId,
+      sender_id:      broadcasterId,
+      message,
+    }),
+  })
+  return res
 }
 
 // Échange le code OAuth contre les tokens utilisateur

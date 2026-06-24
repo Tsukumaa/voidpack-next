@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { twitchStreamers, twitchRewards } from '@/lib/db/schema'
+import { twitchStreamers, twitchRewards, settings } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { deleteSubscription, subscribeRedemptions } from '@/lib/twitch/api'
+import { getMessageTemplates, MSG_KEYS } from '@/lib/twitch/announce'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,8 +23,9 @@ export async function GET() {
   }).from(twitchStreamers).orderBy(desc(twitchStreamers.createdAt))
 
   const rewards = await db.select().from(twitchRewards).orderBy(desc(twitchRewards.createdAt))
+  const messages = await getMessageTemplates()
 
-  return NextResponse.json({ streamers, rewards })
+  return NextResponse.json({ streamers, rewards, messages })
 }
 
 // POST — actions de gestion
@@ -61,6 +63,21 @@ export async function POST(req: NextRequest) {
       target: [twitchRewards.broadcasterId, twitchRewards.rewardId],
       set: { rewardTitle: rewardTitle ?? null, boosterType: boosterType || null, updatedAt: new Date().toISOString() },
     })
+    return NextResponse.json({ ok: true })
+  }
+
+  // Sauvegarde les messages de félicitations
+  if (action === 'save_messages') {
+    const { voidMsg, legendaryMsg } = data as { voidMsg?: string; legendaryMsg?: string }
+    const entries = [
+      { key: MSG_KEYS.void,      value: voidMsg ?? '' },
+      { key: MSG_KEYS.legendary, value: legendaryMsg ?? '' },
+    ]
+    for (const e of entries) {
+      await db.insert(settings).values(e).onConflictDoUpdate({
+        target: settings.key, set: { value: e.value },
+      })
+    }
     return NextResponse.json({ ok: true })
   }
 

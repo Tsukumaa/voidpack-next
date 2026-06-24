@@ -18,6 +18,7 @@ interface Player {
   unlocked_card_backs: string[] | null
   owned_arenas:        string[]
   role: UserRole
+  is_subscriber?: boolean
 }
 
 interface Family {
@@ -433,6 +434,22 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
                     >
                       Arènes
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const active = !p.is_subscriber
+                        setPlayers(ps => ps.map(q => q.user_id === p.user_id ? { ...q, is_subscriber: active } : q))
+                        await fetch('/api/admin/players', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'set_subscriber', userId: p.user_id, data: { active } }),
+                        })
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      style={p.is_subscriber
+                        ? { background: 'rgba(74,158,106,0.18)', border: '1px solid rgba(74,158,106,0.35)', color: '#6ee7a0' }
+                        : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
+                    >
+                      {p.is_subscriber ? '★ Abonné' : 'Abonné'}
                     </button>
                   </div>
                 </td>
@@ -1472,6 +1489,8 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [streamers, setStreamers] = useState<TwitchStreamer[]>([])
   const [rewards, setRewards]     = useState<TwitchReward[]>([])
   const [boosterOptions, setBoosterOptions] = useState<{ value: string; label: string }[]>([{ value: 'void', label: 'VOID Pack (global)' }])
+  const [voidMsg, setVoidMsg]           = useState('')
+  const [legendaryMsg, setLegendaryMsg] = useState('')
   const [loading, setLoading]     = useState(true)
 
   const load = useCallback(async () => {
@@ -1482,6 +1501,7 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     ])
     setStreamers(tw.streamers ?? [])
     setRewards(tw.rewards ?? [])
+    if (tw.messages) { setVoidMsg(tw.messages.void ?? ''); setLegendaryMsg(tw.messages.legendary ?? '') }
     const opts = [{ value: 'void', label: 'VOID Pack (global)' }]
     for (const f of (fams as { key: string; label: string }[])) {
       if (f.key && f.key !== 'global' && f.key !== 'void') opts.push({ value: f.key, label: `${f.label} Pack` })
@@ -1579,6 +1599,30 @@ function TwitchTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Messages de félicitations dans le chat */}
+      <div>
+        <h3 className="text-white font-bold text-sm mb-2">Messages de félicitations (chat)</h3>
+        <p className="text-white/40 text-[11px] mb-3">
+          Envoyés dans le chat du streamer quand un viewer pull une carte rare. Variables : <code className="text-[#c4a7ff]">{'{viewer}'}</code> = nom du viewer, <code className="text-[#c4a7ff]">{'{card}'}</code> = nom de la carte.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="text-white/60 text-xs font-semibold block mb-1">Message VOID ⬛</label>
+            <textarea value={voidMsg} onChange={e => setVoidMsg(e.target.value)} rows={2}
+              className="w-full bg-black/40 border border-white/10 rounded-lg text-white text-xs px-3 py-2 resize-none" />
+          </div>
+          <div>
+            <label className="text-white/60 text-xs font-semibold block mb-1">Message Légendaire 🌟</label>
+            <textarea value={legendaryMsg} onChange={e => setLegendaryMsg(e.target.value)} rows={2}
+              className="w-full bg-black/40 border border-white/10 rounded-lg text-white text-xs px-3 py-2 resize-none" />
+          </div>
+          <button onClick={() => post('save_messages', { voidMsg, legendaryMsg })}
+            className="text-xs px-4 py-2 rounded-lg font-semibold bg-[#9146FF]/20 text-[#c4a7ff]">
+            Enregistrer les messages
+          </button>
+        </div>
       </div>
     </div>
   )
