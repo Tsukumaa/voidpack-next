@@ -14,7 +14,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    discordId?: string
-    isAdmin?:   boolean
+    uid?:     string
+    isAdmin?: boolean
   }
 }

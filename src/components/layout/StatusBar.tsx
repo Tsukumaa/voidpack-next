@@ -50,7 +50,7 @@ export function StatusBar() {
     if (user) {
       await signOut({ callbackUrl: '/pack' })
     } else {
-      await signIn('discord', { callbackUrl: '/pack' })
+      await signIn('twitch', { callbackUrl: '/pack' })
     }
   }
 

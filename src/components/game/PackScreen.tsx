@@ -304,7 +304,7 @@ export function PackScreen() {
             <div
               className="flex flex-col items-center gap-3.5 px-7 py-6 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl w-[88vw] max-w-[340px]"
               style={{ boxShadow: '0 0 45px rgba(123,43,255,0.18)', cursor: !user ? 'pointer' : 'default' }}
-              onClick={!user ? () => signIn('discord') : undefined}
+              onClick={!user ? () => signIn('twitch') : undefined}
               role={!user ? 'button' : undefined}
             >
               <div
