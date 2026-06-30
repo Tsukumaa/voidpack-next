@@ -111,13 +111,15 @@ export async function getAppToken() {
   return data.access_token
 }
 
-// Récupère l'utilisateur Twitch associé à un token (pour obtenir broadcaster_id + login)
+// Récupère l'utilisateur Twitch associé à un token (id, login, display_name, avatar, email)
 export async function getAuthedUser(accessToken: string) {
   const res = await fetch(`${HELIX}/users`, {
     headers: { 'Client-Id': TWITCH_CLIENT_ID, Authorization: `Bearer ${accessToken}` },
   })
   if (!res.ok) throw new Error(`getAuthedUser failed: ${res.status}`)
-  const data = await res.json() as { data: { id: string; login: string; display_name: string }[] }
+  const data = await res.json() as { data: {
+    id: string; login: string; display_name: string; profile_image_url?: string; email?: string
+  }[] }
   return data.data[0]
 }
 

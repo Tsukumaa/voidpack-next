@@ -1,8 +1,9 @@
 import NextAuth from 'next-auth'
 import Twitch from 'next-auth/providers/twitch'
 import { db } from '@/lib/db'
-import { playerProfiles, adminUsers, boosterCredits } from '@/lib/db/schema'
+import { playerProfiles, adminUsers } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { getAuthedUser } from '@/lib/twitch/api'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -15,38 +16,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider !== 'twitch') return false
-      // Twitch OIDC : profile.sub = id Twitch, preferred_username = login
-      const twitchId = (profile?.sub as string) ?? user.id
+
+      // Source fiable : API Helix avec le token d'accès (l'OIDC Twitch ne renvoie
+      // pas toujours pseudo/avatar). Fallback sur les claims OIDC si Helix échoue.
+      let twitchId  = profile?.sub as string | undefined
+      let login     = profile?.preferred_username as string | undefined
+      let avatarUrl = profile?.picture as string | undefined
+      let email     = profile?.email as string | undefined
+
+      if (account.access_token) {
+        try {
+          const tu = await getAuthedUser(account.access_token)
+          if (tu) {
+            twitchId  = tu.id ?? twitchId
+            login     = tu.display_name ?? tu.login ?? login
+            avatarUrl = tu.profile_image_url ?? avatarUrl
+            email     = tu.email ?? email
+          }
+        } catch (e) {
+          console.error('Helix getAuthedUser error:', e)
+        }
+      }
+
+      twitchId = twitchId ?? (user.id as string)
       if (!twitchId) return false
-      const login     = (profile?.preferred_username as string) ?? user.name ?? 'Unknown'
-      const avatarUrl = (profile?.picture as string) ?? user.image ?? null
-      const email     = (profile?.email as string) ?? user.email ?? null
+      const username = login ?? user.name ?? 'Joueur'
 
-      // Upsert profile — le user_id EST l'id Twitch (twitch_id rempli pour le matching points)
       try {
-        const existing = await db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, discordId) })
-
         await db
           .insert(playerProfiles)
-          .values({ userId: twitchId, username: login, avatarUrl, email, twitchId, twitchLogin: login })
+          .values({ userId: twitchId, username, avatarUrl: avatarUrl ?? null, email: email ?? null, twitchId, twitchLogin: login ?? username })
           .onConflictDoUpdate({
             target: playerProfiles.userId,
             set: {
-              username: login, avatarUrl, twitchId, twitchLogin: login,
+              username, avatarUrl: avatarUrl ?? null, twitchId, twitchLogin: login ?? username,
               ...(email ? { email } : {}),
               updatedAt: new Date().toISOString(),
             },
           })
-
-        // Booster de bienvenue à la première connexion
-        if (!existing) {
-          await db.insert(boosterCredits).values({
-            userId:      discordId,
-            boosterType: 'void',
-            source:      'welcome',
-            sourceRef:   `welcome_${discordId}`,
-          }).onConflictDoNothing()
-        }
       } catch (e) {
         console.error('signIn DB error:', e)
       }
@@ -54,10 +61,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true
     },
     async jwt({ token, account, profile }) {
-      if (account?.provider === 'twitch' && profile) {
-        token.uid = profile.sub as string
+      if (account?.provider === 'twitch') {
+        // profile.sub = id Twitch ; sinon token.sub (= user.id) déjà posé par NextAuth
+        token.uid = (profile?.sub as string) ?? (token.sub as string)
       }
-      // Re-check admin on every token refresh so changes take effect without re-login
       if (token.uid) {
         const admin = await db.query.adminUsers.findFirst({
           where: eq(adminUsers.discordId, token.uid as string),
