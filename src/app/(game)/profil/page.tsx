@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit } from 'lucide-react'
+import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit, Trash2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
@@ -406,6 +406,9 @@ export default function ProfilPage() {
             </div>
           </div>
 
+          {/* Supprimer le compte */}
+          <DeleteAccountButton />
+
           {/* Streamer — visible uniquement pour le rôle streamer */}
           {profile?.role === 'streamer' && (
             <div className="rounded-2xl p-4 relative overflow-hidden backdrop-blur-sm"
@@ -581,6 +584,7 @@ export default function ProfilPage() {
               </div>
             </div>
           )}
+
         </div>
       )}
 
@@ -710,6 +714,72 @@ export default function ProfilPage() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DeleteAccountButton() {
+  const [confirm, setConfirm] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function handleDelete() {
+    setLoading(true)
+    const res = await fetch('/api/account/delete', { method: 'DELETE' })
+    if (res.ok) {
+      window.location.href = '/api/auth/signout'
+    } else {
+      setLoading(false)
+      setConfirm(false)
+      alert('Une erreur est survenue. Réessaie.')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,71,87,0.12)' }}>
+            <Trash2 size={16} className="text-red-400/70" />
+          </div>
+          <div>
+            <p className="text-white font-bold text-sm">Supprimer mon compte</p>
+            <p className="text-white/40 text-xs mt-0.5">Suppression définitive et irréversible</p>
+          </div>
+        </div>
+        {!confirm && (
+          <button
+            onClick={() => setConfirm(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 transition-all"
+          >
+            Supprimer
+          </button>
+        )}
+      </div>
+      {confirm && (
+        <div className="mt-4 space-y-3">
+          <p className="text-white/50 text-xs">
+            Toutes tes cartes, ta progression et ton profil seront supprimés <strong className="text-red-400">définitivement</strong>. Cette action est irréversible.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirm(false)}
+              disabled={loading}
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-white/50 text-sm font-bold hover:bg-white/[0.1] transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg,#ff4757,#c0392b)' }}
+            >
+              {loading ? 'Suppression...' : 'Confirmer'}
+            </button>
           </div>
         </div>
       )}

@@ -54,79 +54,71 @@
   </div>
 
   <script>
-    const TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'
+    var TWITCH_CLIENT_ID = 'cqxwy2c8tbocyx5lsbzi2iblgyow5j'
 
     function showError(msg) {
-      document.getElementById('card').innerHTML = `
-        <div class="icon">⚠️</div>
-        <h1 class="error">Échec de la liaison</h1>
-        <p>${msg}</p>
-        <a class="btn" href="/profil">Retour au profil</a>
-      `
+      document.getElementById('card').innerHTML =
+        '<div class="icon">⚠️</div>' +
+        '<h1 class="error">Echec de la liaison</h1>' +
+        '<p>' + msg + '</p>' +
+        '<a class="btn" href="/profil">Retour au profil</a>'
     }
 
     function showSuccess(login) {
-      document.getElementById('card').innerHTML = `
-        <div class="icon">✅</div>
-        <h1 class="success">Compte lié !</h1>
-        <p>Ton compte Twitch <strong>${login}</strong> est maintenant lié à VOID Pack.</p>
-        <a class="btn" href="/profil">Retour au profil</a>
-      `
+      document.getElementById('card').innerHTML =
+        '<div class="icon">✅</div>' +
+        '<h1 class="success">Compte lie !</h1>' +
+        '<p>Ton compte Twitch <strong>' + login + '</strong> est maintenant lie a VOID Pack.</p>' +
+        '<a class="btn" href="/profil">Retour au profil</a>'
     }
 
     async function run() {
-      // Twitch renvoie le token dans le hash (#access_token=...)
-      const hash   = window.location.hash.substring(1)
-      const params = new URLSearchParams(hash)
-      const accessToken = params.get('access_token')
-      const state  = params.get('state')
-      const savedState  = sessionStorage.getItem('twitch_oauth_state')
+      var hash = window.location.hash.substring(1)
+      var params = new URLSearchParams(hash)
+      var accessToken = params.get('access_token')
+      var state = params.get('state')
+      var savedState = sessionStorage.getItem('twitch_oauth_state')
 
       if (params.get('error')) {
-        showError(params.get('error_description') || 'Autorisation refusée.')
+        showError(params.get('error_description') || 'Autorisation refusee.')
         return
       }
       if (!accessToken) {
-        showError('Token Twitch manquant dans la réponse.')
+        showError('Token Twitch manquant dans la reponse.')
         return
       }
       if (state !== savedState) {
-        showError('State OAuth invalide. Réessaie depuis le profil.')
+        showError('State OAuth invalide. Reessaie depuis le profil.')
         return
       }
       sessionStorage.removeItem('twitch_oauth_state')
 
-      // Récupérer l'identité Twitch
-      let twitchUser
+      var twitchUser
       try {
-        const res = await fetch('https://api.twitch.tv/helix/users', {
+        var r1 = await fetch('https://api.twitch.tv/helix/users', {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Client-Id': TWITCH_CLIENT_ID,
-          },
+            'Authorization': 'Bearer ' + accessToken,
+            'Client-Id': TWITCH_CLIENT_ID
+          }
         })
-        if (!res.ok) throw new Error(`Twitch API ${res.status}`)
-        const { data } = await res.json()
-        twitchUser = data && data[0]
+        if (!r1.ok) throw new Error('Twitch API ' + r1.status)
+        var d1 = await r1.json()
+        twitchUser = d1.data && d1.data[0]
         if (!twitchUser) throw new Error('Profil Twitch introuvable.')
       } catch (e) {
-        showError('Impossible de récupérer ton profil Twitch : ' + e.message)
+        showError('Impossible de recuperer ton profil Twitch : ' + e.message)
         return
       }
 
-      // Appeler la route API Next.js pour lier le compte (gère les cookies de session)
       try {
-        const res = await fetch('/api/twitch/link', {
+        var r2 = await fetch('/api/twitch/link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            twitch_id:    twitchUser.id,
-            twitch_login: twitchUser.login,
-          }),
+          body: JSON.stringify({ twitch_id: twitchUser.id, twitch_login: twitchUser.login })
         })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}))
-          throw new Error(err.error || `HTTP ${res.status}`)
+        if (!r2.ok) {
+          var e2 = await r2.json().catch(function() { return {} })
+          throw new Error(e2.error || 'HTTP ' + r2.status)
         }
       } catch (e) {
         showError('Impossible de lier le compte dans VOID Pack : ' + e.message)

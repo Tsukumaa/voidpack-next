@@ -19,6 +19,9 @@ interface Player {
   owned_arenas:        string[]
   role: UserRole
   is_subscriber?: boolean
+  is_banned?: boolean
+  ban_reason?: string | null
+  ban_appeal?: string | null
 }
 
 interface Family {
@@ -253,6 +256,12 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [arenaModal, setArenaModal] = useState<Player | null>(null)
   const [savingArenas, setSavingArenas] = useState(false)
   const [arenas, setArenas] = useState<Arena[]>([])
+  const [banModal, setBanModal] = useState<Player | null>(null)
+  const [banReason, setBanReason] = useState('')
+  const [banning, setBanning] = useState(false)
+  const [deleteModal, setDeleteModal] = useState<Player | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [appealModal, setAppealModal] = useState<Player | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -329,6 +338,48 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     finally { setSavingArenas(false) }
   }
 
+  async function banUser() {
+    if (!banModal) return
+    setBanning(true)
+    try {
+      const res = await fetch('/api/admin/players', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ban_user', userId: banModal.user_id, data: { reason: banReason || null } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setPlayers(ps => ps.map(p => p.user_id === banModal.user_id ? { ...p, is_banned: true, ban_reason: banReason || null, ban_appeal: null } : p))
+      onMsg(`🚫 ${banModal.username} banni`)
+      setBanModal(null); setBanReason('')
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setBanning(false) }
+  }
+
+  async function unbanUser(p: Player) {
+    const res = await fetch('/api/admin/players', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'unban_user', userId: p.user_id }),
+    })
+    if (!res.ok) { onMsg('Erreur', false); return }
+    setPlayers(ps => ps.map(q => q.user_id === p.user_id ? { ...q, is_banned: false, ban_reason: null, ban_appeal: null } : q))
+    onMsg(`✅ ${p.username} débanni`)
+  }
+
+  async function deleteUser() {
+    if (!deleteModal) return
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/players', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_user', userId: deleteModal.user_id }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setPlayers(ps => ps.filter(p => p.user_id !== deleteModal.user_id))
+      onMsg(`🗑 ${deleteModal.username} supprimé`)
+      setDeleteModal(null)
+    } catch (e: unknown) { onMsg(e instanceof Error ? e.message : 'Erreur', false) }
+    finally { setDeleting(false) }
+  }
+
   const filtered = players.filter(p => !search || (p.username ?? '').toLowerCase().includes(search.toLowerCase()))
 
   return (
@@ -390,6 +441,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     <span className="font-medium">{p.username ?? '-'}</span>
                     <SubscriberBadge isSubscriber={p.is_subscriber} />
                     <RoleBadge role={p.role} />
+                    {p.is_banned && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: 'rgba(220,38,38,0.2)', color: '#fca5a5', border: '1px solid rgba(220,38,38,0.3)' }}>BANNI</span>}
                   </div>
                 </td>
                 <td className="px-4 py-3 font-bold" style={{ color: '#a78bfa' }}>{p.level}</td>
@@ -457,6 +509,41 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     >
                       {p.is_subscriber ? '★ Abonné' : 'Abonné'}
                     </button>
+                    {p.ban_appeal && (
+                      <button
+                        onClick={() => setAppealModal(p)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', color: '#fcd34d' }}
+                        title="Demande d'annulation en attente"
+                      >
+                        Appeal
+                      </button>
+                    )}
+                    {p.is_banned ? (
+                      <button
+                        onClick={() => unbanUser(p)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        style={{ background: 'rgba(74,158,106,0.12)', border: '1px solid rgba(74,158,106,0.3)', color: '#6ee7a0' }}
+                      >
+                        Débannir
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setBanModal(p); setBanReason('') }}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                        style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5' }}
+                      >
+                        Bannir
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDeleteModal(p)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
+                      title="Supprimer le compte"
+                    >
+                      <Trash2 size={11} />
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -490,6 +577,7 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   <span className="font-semibold truncate">{p.username ?? '-'}</span>
                   <SubscriberBadge isSubscriber={p.is_subscriber} />
                   <RoleBadge role={p.role} />
+                  {p.is_banned && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: 'rgba(220,38,38,0.2)', color: '#fca5a5', border: '1px solid rgba(220,38,38,0.3)' }}>BANNI</span>}
                 </div>
                 <div className="flex gap-3 text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   <span>Niv <span style={{ color: '#a78bfa' }}>{p.level}</span></span>
@@ -519,6 +607,39 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
               >
                 Arènes
+              </button>
+              {p.ban_appeal && (
+                <button
+                  onClick={() => setAppealModal(p)}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', color: '#fcd34d' }}
+                >
+                  Appeal
+                </button>
+              )}
+              {p.is_banned ? (
+                <button
+                  onClick={() => unbanUser(p)}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: 'rgba(74,158,106,0.12)', border: '1px solid rgba(74,158,106,0.3)', color: '#6ee7a0' }}
+                >
+                  Débannir
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setBanModal(p); setBanReason('') }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
+                  style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5' }}
+                >
+                  Bannir
+                </button>
+              )}
+              <button
+                onClick={() => setDeleteModal(p)}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
+              >
+                <Trash2 size={11} />
               </button>
             </div>
           </div>
@@ -610,6 +731,70 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 </button>
               )
             })}
+          </div>
+        </Modal>
+      )}
+
+      {banModal && (
+        <Modal title="Bannir un joueur" onClose={() => setBanModal(null)}>
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Joueur : <span className="text-white font-semibold">{banModal.username}</span>
+          </p>
+          <Field label="Raison (optionnelle)">
+            <input
+              value={banReason}
+              onChange={e => setBanReason(e.target.value)}
+              placeholder="Ex: comportement toxique, triche…"
+              className={inputCls}
+            />
+          </Field>
+          <p className="text-xs mt-2" style={{ color: 'rgba(255,100,100,0.6)' }}>
+            Le joueur verra un overlay "Compte banni" et ne pourra plus accéder au site.
+          </p>
+          <ModalActions onCancel={() => setBanModal(null)} onConfirm={banUser} loading={banning} label="Bannir" />
+        </Modal>
+      )}
+
+      {deleteModal && (
+        <Modal title="Supprimer le compte" onClose={() => setDeleteModal(null)}>
+          <p className="text-sm mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Joueur : <span className="text-white font-semibold">{deleteModal.username}</span>
+          </p>
+          <p className="text-xs mb-4" style={{ color: 'rgba(255,100,100,0.6)' }}>
+            Cette action est irréversible. Toutes les données du joueur seront supprimées définitivement.
+          </p>
+          <ModalActions onCancel={() => setDeleteModal(null)} onConfirm={deleteUser} loading={deleting} label="Supprimer définitivement" />
+        </Modal>
+      )}
+
+      {appealModal && (
+        <Modal title="Demande d'annulation de ban" onClose={() => setAppealModal(null)}>
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Joueur : <span className="text-white font-semibold">{appealModal.username}</span>
+          </p>
+          {appealModal.ban_reason && (
+            <div className="mb-4 p-3 rounded-xl text-xs" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }}>
+              <span style={{ color: 'rgba(255,100,100,0.7)', fontWeight: 600 }}>Raison du ban :</span> {appealModal.ban_reason}
+            </div>
+          )}
+          <div className="p-3 rounded-xl text-sm" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', color: 'rgba(255,220,100,0.8)', lineHeight: 1.6 }}>
+            {appealModal.ban_appeal}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => { unbanUser(appealModal); setAppealModal(null) }}
+              className="flex-1 py-2 rounded-xl text-sm font-bold"
+              style={{ background: 'rgba(74,158,106,0.15)', border: '1px solid rgba(74,158,106,0.3)', color: '#6ee7a0' }}
+            >
+              Accepter (débannir)
+            </button>
+            <button
+              onClick={() => setAppealModal(null)}
+              className="flex-1 py-2 rounded-xl text-sm font-bold"
+              style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)', color: '#fca5a5' }}
+            >
+              Refuser
+            </button>
           </div>
         </Modal>
       )}
@@ -1068,7 +1253,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
       } else {
-        const newId = form.name.toLowerCase().replace(/\s+/g, '-')
+        const newId = 'void-' + String(Math.floor(Math.random() * 90000) + 10000) + '-' + form.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
         await adminDb('insert', 'custom_cards', { id: newId, ...fields })
       }
       onMsg(`✅ Carte "${form.name}" sauvegardée`)
@@ -1432,6 +1617,7 @@ function BoostersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
 // ─── Onglet Paramètres (via API route service role) ───────────────────────────
 const FEATURE_FLAGS = [
+  { key: 'maintenance_mode',           label: 'Mode maintenance',    desc: 'Seuls les admins accèdent au site',   icon: '🔧' },
   { key: 'feature_combat_multiplayer', label: 'Combat multijoueur',  desc: 'Matchmaking + défis entre joueurs',   icon: '⚔️' },
   { key: 'feature_combat_training',    label: 'Combat entraînement', desc: 'Combat contre le bot',                icon: '🤖' },
   { key: 'feature_pack_opening',       label: 'Ouverture de packs',  desc: 'Ouvrir des boosters',                 icon: '📦' },
@@ -1736,6 +1922,8 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   const [loading, setLoading]   = useState(true)
   const [newKey, setNewKey]     = useState('')
   const [newVal, setNewVal]     = useState('')
+  const [revealDate, setRevealDate] = useState('')
+  const [savingReveal, setSavingReveal] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1745,10 +1933,16 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
       const map: Record<string, boolean> = {}
       for (const f of FEATURE_FLAGS) {
         const row = (data ?? []).find((s: Setting) => s.key === f.key)
-        // Par défaut activé si pas de valeur en base
-        map[f.key] = row ? row.value !== 'false' : true
+        // maintenance_mode désactivé par défaut, autres flags activés par défaut
+        const defaultVal = f.key === 'maintenance_mode' ? false : true
+        map[f.key] = row ? row.value === 'true' || (row.value !== 'false' && defaultVal) : defaultVal
       }
       setFeatures(map)
+      const rd = (data ?? []).find((s: Setting) => s.key === 'reveal_date')
+      if (rd?.value) {
+        // Convertir ISO → format datetime-local (YYYY-MM-DDTHH:MM)
+        setRevealDate(rd.value.slice(0, 16))
+      }
     } finally { setLoading(false) }
   }, [])
 
@@ -1762,7 +1956,11 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
   async function toggleFeature(key: string, val: boolean) {
     setFeatures(f => ({ ...f, [key]: val }))
-    await adminDb('upsert', 'settings', { key, value: val ? 'true' : 'false' }, { col: 'key', val: key, onConflict: 'key' })
+    if (key === 'maintenance_mode') {
+      await fetch('/api/admin/maintenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: val }) })
+    } else {
+      await adminDb('upsert', 'settings', { key, value: val ? 'true' : 'false' }, { col: 'key', val: key, onConflict: 'key' })
+    }
     onMsg(val ? `✅ ${FEATURE_FLAGS.find(f => f.key === key)?.label} activé` : `⛔ ${FEATURE_FLAGS.find(f => f.key === key)?.label} désactivé`)
   }
 
@@ -1772,8 +1970,38 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     setNewKey(''); setNewVal('')
   }
 
+  async function saveRevealDate() {
+    setSavingReveal(true)
+    try {
+      const iso = revealDate ? new Date(revealDate).toISOString() : ''
+      await adminDb('upsert', 'settings', { key: 'reveal_date', value: iso }, { col: 'key', val: 'reveal_date', onConflict: 'key' })
+      onMsg('✅ Date de reveal sauvegardée')
+    } finally { setSavingReveal(false) }
+  }
+
   return (
     <div className="space-y-8">
+      {/* ── Reveal ── */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Reveal du site</h3>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Date et heure du reveal public. La page <span className="font-mono text-purple-400">/reveal</span> affiche un countdown jusqu'à cette date, puis lance la vidéo.
+        </p>
+        <div className="flex flex-wrap items-end gap-3 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Field label="Date et heure du reveal">
+            <input
+              type="datetime-local"
+              value={revealDate}
+              onChange={e => setRevealDate(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          <button onClick={saveRevealDate} disabled={savingReveal} className={primaryBtnCls + ' flex-shrink-0'}>
+            {savingReveal ? 'Sauvegarde…' : 'Sauvegarder'}
+          </button>
+        </div>
+      </div>
+
       {/* ── Fonctionnalités ── */}
       <div>
         <h3 className="text-sm font-bold text-white mb-1">Fonctionnalités</h3>

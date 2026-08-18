@@ -27,6 +27,9 @@ export const playerProfiles = sqliteTable('player_profiles', {
   subscriberUntil: text('subscriber_until'),          // ISO date d'expiration de l'abonnement
   musicVolume:   text('music_volume'),                // volume musique (0.0–1.0, null = défaut)
   musicMuted:    integer('music_muted', { mode: 'boolean' }).notNull().default(false),
+  isBanned:      integer('is_banned', { mode: 'boolean' }).notNull().default(false),
+  banReason:     text('ban_reason'),
+  banAppeal:     text('ban_appeal'),                  // demande d'annulation (1 seule autorisée)
   createdAt:     text('created_at').notNull().default(now),
   updatedAt:     text('updated_at').notNull().default(now),
 })

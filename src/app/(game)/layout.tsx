@@ -1,12 +1,20 @@
+import Link from 'next/link'
 import { StatusBar } from '@/components/layout/StatusBar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 import { AuthProvider } from '@/components/layout/AuthProvider'
 import { GlobalOverlay } from '@/components/layout/GlobalOverlay'
+import { CookieBanner } from '@/components/layout/CookieBanner'
+import { MaintenanceOverlay } from '@/components/layout/MaintenanceOverlay'
+import { BannedOverlay } from '@/components/layout/BannedOverlay'
+import { RevealOverlay } from '@/components/layout/RevealOverlay'
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
+      <RevealOverlay />
+      <MaintenanceOverlay />
+      <BannedOverlay />
       <ParticlesCanvas />
 
       <div className="flex flex-col min-h-svh">
@@ -16,6 +24,15 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
 
+        <footer className="fixed bottom-[88px] left-0 right-0 flex justify-center gap-4 text-[11px] text-white/20 z-40 pointer-events-none">
+          <Link href="/mentions-legales" className="hover:text-white/50 transition-colors pointer-events-auto">Mentions légales</Link>
+          <span className="text-white/10">·</span>
+          <Link href="/cgu" className="hover:text-white/50 transition-colors pointer-events-auto">CGU</Link>
+          <span className="text-white/10">·</span>
+          <Link href="/confidentialite" className="hover:text-white/50 transition-colors pointer-events-auto">Confidentialité</Link>
+        </footer>
+
+        <CookieBanner />
         <BottomNav />
         <GlobalOverlay />
       </div>

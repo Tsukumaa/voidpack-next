@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerProfiles, boosterCredits, settings } from '@/lib/db/schema'
-import { ilike, or, desc, eq, inArray } from 'drizzle-orm'
+import { desc, eq, inArray } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import { isSubscriberActive } from '@/lib/kofi/grant'
 
 export async function GET(req: NextRequest) {
@@ -43,6 +44,9 @@ export async function GET(req: NextRequest) {
     is_subscriber:       isSubscriberActive(p),
     unlocked_card_backs: null,
     owned_arenas:        (arenaMap[`owned_arenas:${p.userId}`] ?? []) as string[],
+    is_banned:           p.isBanned,
+    ban_reason:          p.banReason ?? null,
+    ban_appeal:          p.banAppeal ?? null,
   }))
 
   return NextResponse.json(filtered)
@@ -97,6 +101,34 @@ export async function POST(req: NextRequest) {
       .insert(settings)
       .values({ key, value: JSON.stringify(ownedArenas) })
       .onConflictDoUpdate({ target: settings.key, set: { value: JSON.stringify(ownedArenas) } })
+    return NextResponse.json({ ok: true })
+  }
+
+  if (action === 'ban_user') {
+    const reason = (data?.reason as string | undefined) ?? null
+    await db.update(playerProfiles)
+      .set({ isBanned: true, banReason: reason, banAppeal: null, updatedAt: new Date().toISOString() })
+      .where(eq(playerProfiles.userId, userId))
+    return NextResponse.json({ ok: true })
+  }
+
+  if (action === 'unban_user') {
+    await db.update(playerProfiles)
+      .set({ isBanned: false, banReason: null, banAppeal: null, updatedAt: new Date().toISOString() })
+      .where(eq(playerProfiles.userId, userId))
+    return NextResponse.json({ ok: true })
+  }
+
+  if (action === 'delete_user') {
+    await db.run(sql.raw(`DELETE FROM booster_credits WHERE user_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM player_daily_rewards WHERE user_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM player_daily_missions WHERE user_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM friendships WHERE user_id = '${userId}' OR friend_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM trade_offers WHERE sender_id = '${userId}' OR receiver_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM player_profiles WHERE user_id = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM sessions WHERE "userId" = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM accounts WHERE "userId" = '${userId}'`))
+    await db.run(sql.raw(`DELETE FROM users WHERE id = '${userId}'`))
     return NextResponse.json({ ok: true })
   }
 
