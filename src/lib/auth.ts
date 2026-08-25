@@ -62,15 +62,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, account, profile }) {
       if (account?.provider === 'twitch') {
-        // profile.sub = id Twitch ; sinon token.sub (= user.id) déjà posé par NextAuth
         token.uid = (profile?.sub as string) ?? (token.sub as string)
+        if (token.uid) {
+          const admin = await db.query.adminUsers.findFirst({
+            where: eq(adminUsers.discordId, token.uid as string),
+          })
+          token.isAdmin = !!admin
+        }
       }
-      if (token.uid) {
-        const admin = await db.query.adminUsers.findFirst({
-          where: eq(adminUsers.discordId, token.uid as string),
-        })
-        token.isAdmin = !!admin
-      }
+      // Les appels suivants retournent le token tel quel, zéro DB query
       return token
     },
     async session({ session, token }) {

@@ -5,16 +5,12 @@ import { ParticlesCanvas } from '@/components/layout/ParticlesCanvas'
 import { AuthProvider } from '@/components/layout/AuthProvider'
 import { GlobalOverlay } from '@/components/layout/GlobalOverlay'
 import { CookieBanner } from '@/components/layout/CookieBanner'
-import { MaintenanceOverlay } from '@/components/layout/MaintenanceOverlay'
-import { BannedOverlay } from '@/components/layout/BannedOverlay'
-import { RevealOverlay } from '@/components/layout/RevealOverlay'
+import { LayoutGuard } from '@/components/layout/LayoutGuard'
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <RevealOverlay />
-      <MaintenanceOverlay />
-      <BannedOverlay />
+      <LayoutGuard />
       <ParticlesCanvas />
 
       <div className="flex flex-col min-h-svh">

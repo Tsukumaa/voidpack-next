@@ -5,6 +5,23 @@ import { useGameStore } from '@/store/game'
 import { useSettingsStore } from '@/store/settings'
 import { useSocialStore } from '@/store/social'
 
+const PROFILE_CACHE_KEY = 'void_profile_cache'
+
+function readCachedProfile() {
+  try {
+    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function writeCachedProfile(data: unknown) {
+  try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data)) } catch {}
+}
+
+function clearCachedProfile() {
+  try { sessionStorage.removeItem(PROFILE_CACHE_KEY) } catch {}
+}
+
 export function useAuth() {
   const { data: session, status } = useSession()
   const { setUser, setProfile, setAuthStatus } = useGameStore(s => ({
@@ -19,6 +36,16 @@ export function useAuth() {
   }))
   const syncFromProfile = useSettingsStore(s => s.syncFromProfile)
   const addToast = useSocialStore(s => s.addToast)
+
+  // Hydrate immédiatement depuis le cache sessionStorage
+  useEffect(() => {
+    if (useGameStore.getState().profile) return
+    const cached = readCachedProfile()
+    if (cached) {
+      setProfile(cached)
+      syncFromProfile(cached.music_volume ?? null, cached.music_muted ?? null)
+    }
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     if (status === 'loading') {
@@ -35,6 +62,7 @@ export function useAuth() {
         .then(data => {
           if (data) {
             setProfile(data)
+            writeCachedProfile(data)
             syncFromProfile(data.music_volume ?? null, data.music_muted ?? null)
             if (data.welcome_booster) {
               addToast({
@@ -49,6 +77,7 @@ export function useAuth() {
     } else {
       setUser(null)
       setProfile(null)
+      clearCachedProfile()
       setAuthStatus('unauthenticated')
     }
   }, [status, session?.user?.id]) // eslint-disable-line
