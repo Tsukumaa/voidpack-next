@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
   // collection ladder: XP en premier, nombre de cartes en égalité
   const rows = await db
     .select({
-      userId:          playerCards.userId,
-      total:           sql<number>`SUM(${playerCards.count})`,
+      userId:          playerProfiles.userId,
+      total:           sql<number>`COALESCE(SUM(${playerCards.count}), 0)`,
       unique:          sql<number>`COUNT(DISTINCT ${playerCards.cardId})`,
       xp:              playerProfiles.xp,
       level:           playerProfiles.level,
@@ -51,10 +51,10 @@ export async function GET(req: NextRequest) {
       isSubscriber:    playerProfiles.isSubscriber,
       subscriberUntil: playerProfiles.subscriberUntil,
     })
-    .from(playerCards)
-    .leftJoin(playerProfiles, eq(playerCards.userId, playerProfiles.userId))
-    .groupBy(playerCards.userId)
-    .orderBy(desc(playerProfiles.xp), desc(sql`SUM(${playerCards.count})`))
+    .from(playerProfiles)
+    .leftJoin(playerCards, eq(playerProfiles.userId, playerCards.userId))
+    .groupBy(playerProfiles.userId)
+    .orderBy(desc(playerProfiles.xp), desc(sql`COALESCE(SUM(${playerCards.count}), 0)`))
     .limit(limit)
 
   return NextResponse.json(rows.map(r => ({
