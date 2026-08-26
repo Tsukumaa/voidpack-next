@@ -358,7 +358,7 @@ export default function PlayerProfilePage() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 p-8">
                         {group.map(card => (
                           !card.owned ? (
-                            <div key={card.card_id} className="flex flex-col cursor-pointer" onClick={() => setSelected(card)}>
+                            <div key={card.card_id} className="flex flex-col">
                               <div className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40 active:scale-95 transition-transform" style={{ aspectRatio: '0.714' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/assets/dos.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />

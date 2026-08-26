@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { CardMedia } from '@/components/game/CardMedia'
@@ -131,9 +132,9 @@ export function FavoriteShowcase({
       </div>
 
       {/* Picker */}
-      {editable && picker && (
+      {editable && picker && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm sm:p-4"
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm sm:p-4"
           onClick={() => setPicker(false)}
         >
           <div
@@ -200,7 +201,8 @@ export function FavoriteShowcase({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
