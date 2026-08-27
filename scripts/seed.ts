@@ -147,7 +147,27 @@ async function main() {
       .onConflictDoNothing()
   }
 
-  // 4. Friendship (user 1 & 2 amis, user 3 a envoyé une demande à user 1)
+  // 4. Trade offers
+  console.log('  → trade_offers')
+  const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+  const ME = '188539138' // b_alvd — ton vrai user ID
+  const trades = [
+    // AkiraStorm t'envoie un trade (reçu)
+    { senderId: uid(3), receiverId: ME,     offeredCardId: 'card_boulder', offeredCardKey: 'card_boulder', offeredRarity: 'rare',      wantedCardKey: 'card_void',   wantedCardName: 'Void Reaper',    wantedRarity: 'void',      message: 'PTDDDDDR Donne moi ça il me revient de droit' },
+    // LunaWolf t'envoie un trade (reçu)
+    { senderId: uid(4), receiverId: ME,     offeredCardId: 'card_tidal',   offeredCardKey: 'card_tidal',   offeredRarity: 'uncommon',  wantedCardKey: 'card_shadow', wantedCardName: 'Shadow Stalker', wantedRarity: 'legendary', message: null },
+    // Tu envoies un trade à tsu_kuma (envoyé)
+    { senderId: ME,     receiverId: uid(1), offeredCardId: 'card_ember',   offeredCardKey: 'card_ember',   offeredRarity: 'common',    wantedCardKey: 'card_zephyr', wantedCardName: 'Zephyr Blade',   wantedRarity: 'epic',      message: 'Caca' },
+    // Tu envoies un trade à VoidSeeker (envoyé)
+    { senderId: ME,     receiverId: uid(8), offeredCardId: 'card_frost',   offeredCardKey: 'card_frost',   offeredRarity: 'rare',      wantedCardKey: 'card_gale',   wantedCardName: 'Gale Hawk',      wantedRarity: 'epic',      message: 'Deal ?' },
+  ]
+  for (const t of trades) {
+    await db.insert(schema.tradeOffers)
+      .values({ ...t, expiresAt })
+      .onConflictDoNothing()
+  }
+
+  // 6. Friendship (user 1 & 2 amis, user 3 a envoyé une demande à user 1)
   console.log('  → friendships')
   await db.insert(schema.friendships)
     .values({ senderId: uid(1), receiverId: uid(2), status: 'accepted' })
@@ -156,13 +176,13 @@ async function main() {
     .values({ senderId: uid(3), receiverId: uid(1), status: 'pending' })
     .onConflictDoNothing()
 
-  // 5. Settings
+  // 7. Settings
   console.log('  → settings')
   await db.insert(schema.settings)
     .values({ key: 'maintenance_mode', value: 'false' })
     .onConflictDoNothing()
 
-  console.log('✅ Done! 10 users, 10 cards, friendships.')
+  console.log('✅ Done! 10 users, 10 cards, 4 trades, friendships.')
   console.log('\nUser IDs for testing:')
   for (const u of FAKE_USERS) {
     console.log(`  ${uid(u.n).padEnd(14)} → ${u.username} (lv.${u.level})`)

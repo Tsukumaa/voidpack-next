@@ -394,12 +394,12 @@ function TradeContent() {
                 {/* Cards */}
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <div className="flex-1">
-                    <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu offres' : 'Ils offrent'}</p>
+                    <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu offres' : `${otherName} offre`}</p>
                     <CardThumb name={offeredDef?.name ?? trade.offeredCardKey} imageUrl={offeredDef?.image_url} rarity={trade.offeredRarity} />
                   </div>
                   <ArrowLeftRight size={16} className="text-white/20 flex-shrink-0" />
                   <div className="flex-1 text-right">
-                    <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu veux' : 'Ils veulent'}</p>
+                    <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu veux' : `${otherName} veut`}</p>
                     <div className="flex flex-col items-end">
                       <CardThumb name={wantedDef?.name ?? trade.wantedCardName ?? trade.wantedCardKey} imageUrl={wantedDef?.image_url} rarity={trade.wantedRarity ?? 'common'} />
                     </div>

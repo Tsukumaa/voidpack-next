@@ -41,6 +41,10 @@ interface Trade {
   id: string
   senderId: string
   receiverId: string
+  senderUsername: string
+  senderAvatarUrl: string | null
+  receiverUsername: string
+  receiverAvatarUrl: string | null
   offeredCardKey: string
   offeredRarity: string
   wantedCardKey: string
@@ -638,17 +642,30 @@ function CommunauteContent() {
                   {displayed.map(trade => {
                     const offeredDef = cardDefs[trade.offeredCardKey]
                     const wantedDef  = cardDefs[trade.wantedCardKey]
-                    const isSender   = trade.senderId === user.id
+                    const isSender    = trade.senderId === user.id
+                    const otherName   = isSender ? trade.receiverUsername : trade.senderUsername
+                    const otherAvatar = isSender ? trade.receiverAvatarUrl : trade.senderAvatarUrl
                     return (
-                      <div key={trade.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <div key={trade.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm p-4">
+                        {/* Counterpart */}
+                        <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-white/[0.06]">
+                          {otherAvatar
+                            ? <img src={otherAvatar} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                            : <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">{otherName[0]?.toUpperCase()}</div>
+                          }
+                          <span className="text-white/50 text-xs">
+                            {isSender ? 'Proposé à' : 'Reçu de'}{' '}
+                            <span className="text-white font-bold">{otherName}</span>
+                          </span>
+                        </div>
                         <div className="flex items-center justify-between gap-4 mb-3">
                           <div className="flex-1">
-                            <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu offres' : 'Ils offrent'}</p>
+                            <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu offres' : `${otherName} offre`}</p>
                             <CardThumb name={offeredDef?.name ?? trade.offeredCardKey} imageUrl={offeredDef?.image_url} rarity={trade.offeredRarity} />
                           </div>
                           <ArrowLeftRight size={16} className="text-white/20 flex-shrink-0" />
                           <div className="flex-1 text-right">
-                            <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu veux' : 'Ils veulent'}</p>
+                            <p className="text-white/30 text-[10px] mb-1.5">{isSender ? 'Tu veux' : `${otherName} veut`}</p>
                             <div className="flex flex-col items-end">
                               <CardThumb name={wantedDef?.name ?? trade.wantedCardName ?? trade.wantedCardKey} imageUrl={wantedDef?.image_url} rarity={trade.wantedRarity ?? 'common'} />
                             </div>
