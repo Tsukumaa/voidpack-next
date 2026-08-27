@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { tradeOffers, playerCards } from '@/lib/db/schema'
-import { eq, or, and } from 'drizzle-orm'
+import { tradeOffers, playerCards, playerProfiles } from '@/lib/db/schema'
+import { eq, or, and, inArray } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
 
 export async function GET(req: NextRequest) {
@@ -20,7 +20,21 @@ export async function GET(req: NextRequest) {
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   })
 
-  return NextResponse.json(rows)
+  // Enrichir avec username + avatarUrl des deux parties
+  const userIds = [...new Set(rows.flatMap(r => [r.senderId, r.receiverId]))]
+  const profiles = userIds.length
+    ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
+        .from(playerProfiles).where(inArray(playerProfiles.userId, userIds))
+    : []
+  const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p]))
+
+  return NextResponse.json(rows.map(r => ({
+    ...r,
+    senderUsername:   profileMap[r.senderId]?.username   ?? r.senderId,
+    senderAvatarUrl:  profileMap[r.senderId]?.avatarUrl  ?? null,
+    receiverUsername: profileMap[r.receiverId]?.username ?? r.receiverId,
+    receiverAvatarUrl: profileMap[r.receiverId]?.avatarUrl ?? null,
+  })))
 }
 
 export async function POST(req: NextRequest) {
