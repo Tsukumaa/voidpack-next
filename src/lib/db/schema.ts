@@ -171,6 +171,7 @@ export const boosterCredits = sqliteTable('booster_credits', {
   sourceRef:   text('source_ref').unique(),
   claimed:     integer('claimed', { mode: 'boolean' }).notNull().default(false),
   claimedAt:   text('claimed_at'),
+  openedCards: text('opened_cards'),
   createdAt:   text('created_at').notNull().default(now),
   createdBy:   text('created_by'),
 }, (t) => [
@@ -297,6 +298,27 @@ export const tradeOffers = sqliteTable('trade_offers', {
   expiresAt:       text('expires_at'),
   respondedAt:     text('responded_at'),
 })
+
+// ── market_offers ─────────────────────────────────────────────────────────────
+// Échanges publics : "j'offre X contre Y", n'importe qui peut accepter.
+export const marketOffers = sqliteTable('market_offers', {
+  id:             text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sellerId:       text('seller_id').notNull(),
+  offeredCardKey: text('offered_card_key').notNull(),
+  offeredRarity:  text('offered_rarity').notNull(),
+  wantedCardKey:  text('wanted_card_key').notNull(),
+  wantedRarity:   text('wanted_rarity'),
+  wantedCardName: text('wanted_card_name'),
+  message:        text('message'),
+  status:         text('status').notNull().default('open'),  // open | accepted | cancelled
+  buyerId:        text('buyer_id'),
+  createdAt:      text('created_at').notNull().default(now),
+  expiresAt:      text('expires_at'),
+  acceptedAt:     text('accepted_at'),
+}, (t) => [
+  index('market_offers_seller_idx').on(t.sellerId),
+  index('market_offers_status_idx').on(t.status),
+])
 
 // ── twitch_pending_codes ──────────────────────────────────────────────────────
 export const twitchPendingCodes = sqliteTable('twitch_pending_codes', {

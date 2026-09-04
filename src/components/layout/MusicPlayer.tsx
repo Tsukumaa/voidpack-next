@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
+import { useIdleDetection } from '@/hooks/useIdleDetection'
 import { useSettingsStore } from '@/store/settings'
 
 const MUSIC_MENU   = 'https://imgg.fr/r/UsSEL3zY.mp3'
@@ -102,6 +103,14 @@ export function MusicPlayer() {
   const volume   = useSettingsStore(s => s.musicVolume)
   const muted    = useSettingsStore(s => s.musicMuted)
   const ready    = useRef(false)
+  const idle     = useIdleDetection()
+
+  // Fade out quand idle, fade in quand actif
+  useEffect(() => {
+    if (!ready.current) return
+    if (idle) fadeSiteMusicOut(800)
+    else fadeSiteMusicIn(800)
+  }, [idle, volume])
 
   const targetUrl = isCombatRoute(pathname) ? MUSIC_COMBAT : MUSIC_MENU
 

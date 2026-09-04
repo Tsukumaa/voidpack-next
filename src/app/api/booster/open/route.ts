@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { customCards, families } from '@/lib/db/schema'
+import { customCards, families, boosterCredits } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
 
@@ -30,9 +30,28 @@ export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { booster_type = 'void', count = 5 } = await req.json()
+  const uid = session.user.id
+  const { booster_type = 'void', count = 5, creditId } = await req.json()
 
-  // Pour le VOID pack, exclure les cartes des familles inactives
+  // Si un creditId est fourni, vérifier le crédit et retourner les cartes déjà rollées si disponibles
+  if (creditId != null) {
+    const credit = await db.query.boosterCredits.findFirst({
+      where: and(eq(boosterCredits.id, Number(creditId)), eq(boosterCredits.userId, uid)),
+    })
+
+    if (!credit) return NextResponse.json({ error: 'Crédit introuvable.' }, { status: 404 })
+
+    // Déjà ouvert → retourner les mêmes cartes (idempotent)
+    if (credit.openedCards) {
+      return NextResponse.json({ cards: JSON.parse(credit.openedCards) })
+    }
+
+    if (credit.claimed) {
+      return NextResponse.json({ error: 'Ce booster a déjà été réclamé.' }, { status: 400 })
+    }
+  }
+
+  // Construire le pool
   const activeFamilies = (await db.select({ key: families.key }).from(families).where(eq(families.active, true))).map(f => f.key)
 
   const pool = booster_type === 'void'
@@ -65,11 +84,18 @@ export async function POST(req: NextRequest) {
     if (goodPool.length) picked[picked.length - 1] = goodPool[Math.floor(Math.random() * goodPool.length)]
   }
 
-  return NextResponse.json({
-    cards: picked.map(c => ({
-      id: c.id, name: c.name, rarity: c.rarity, family: c.family,
-      artUrl: c.imageUrl ?? null, description: c.description ?? null,
-      artist: c.artist ?? null, artistUrl: c.artistUrl ?? null,
-    }))
-  })
+  const cards = picked.map(c => ({
+    id: c.id, name: c.name, rarity: c.rarity, family: c.family,
+    artUrl: c.imageUrl ?? null, description: c.description ?? null,
+    artist: c.artist ?? null, artistUrl: c.artistUrl ?? null,
+  }))
+
+  // Verrouiller les cartes dans le crédit pour éviter le re-roll au refresh
+  if (creditId != null) {
+    await db.update(boosterCredits)
+      .set({ openedCards: JSON.stringify(cards) })
+      .where(and(eq(boosterCredits.id, Number(creditId)), eq(boosterCredits.userId, uid)))
+  }
+
+  return NextResponse.json({ cards })
 }

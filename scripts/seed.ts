@@ -167,6 +167,27 @@ async function main() {
       .onConflictDoNothing()
   }
 
+  // 5. Market offers
+  console.log('  → market_offers')
+  const marketExpires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+  const marketOffers = [
+    // tsu_kuma offre un Void Reaper contre un Zephyr Blade
+    { sellerId: uid(1), offeredCardKey: 'card_void',    offeredRarity: 'void',      wantedCardKey: 'card_zephyr',  wantedCardName: 'Zephyr Blade',   wantedRarity: 'epic',      message: 'Le Void pour un Zephyr, qui veut ?' },
+    // AkiraStorm offre un Boulder Golem contre un Shadow Stalker
+    { sellerId: uid(3), offeredCardKey: 'card_boulder', offeredRarity: 'rare',      wantedCardKey: 'card_shadow',  wantedCardName: 'Shadow Stalker', wantedRarity: 'legendary', message: null },
+    // LunaWolf offre un Frost Drake contre n'importe quel légendaire
+    { sellerId: uid(4), offeredCardKey: 'card_frost',   offeredRarity: 'rare',      wantedCardKey: 'card_shadow',  wantedCardName: 'Shadow Stalker', wantedRarity: 'legendary', message: 'Frost contre légendaire, open !' },
+    // VoidSeeker offre un Gale Hawk contre un Void Reaper
+    { sellerId: uid(8), offeredCardKey: 'card_gale',    offeredRarity: 'epic',      wantedCardKey: 'card_void',    wantedCardName: 'Void Reaper',    wantedRarity: 'void',      message: 'Qui a un Void ? Je donne mon Gale' },
+    // GaleRider offre un Tidal Serpent contre un Spark Imp (échange simple)
+    { sellerId: uid(10), offeredCardKey: 'card_tidal',  offeredRarity: 'uncommon',  wantedCardKey: 'card_spark',   wantedCardName: 'Spark Imp',      wantedRarity: 'common',    message: null },
+  ]
+  for (const o of marketOffers) {
+    await db.insert(schema.marketOffers)
+      .values({ ...o, status: 'open', expiresAt: marketExpires })
+      .onConflictDoNothing()
+  }
+
   // 6. Friendship (user 1 & 2 amis, user 3 a envoyé une demande à user 1)
   console.log('  → friendships')
   await db.insert(schema.friendships)
@@ -182,7 +203,7 @@ async function main() {
     .values({ key: 'maintenance_mode', value: 'false' })
     .onConflictDoNothing()
 
-  console.log('✅ Done! 10 users, 10 cards, 4 trades, friendships.')
+  console.log('✅ Done! 10 users, 10 cards, 4 trades, 5 market offers, friendships.')
   console.log('\nUser IDs for testing:')
   for (const u of FAKE_USERS) {
     console.log(`  ${uid(u.n).padEnd(14)} → ${u.username} (lv.${u.level})`)

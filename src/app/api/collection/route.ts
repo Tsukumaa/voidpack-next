@@ -4,14 +4,16 @@ import { db } from '@/lib/db'
 import { playerCards } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json([], { status: 401 })
+
+  const targetId = req.nextUrl.searchParams.get('userId') ?? session.user.id
 
   const rows = await db
     .select()
     .from(playerCards)
-    .where(eq(playerCards.userId, session.user.id))
+    .where(eq(playerCards.userId, targetId))
     .orderBy(desc(playerCards.lastObtainedAt))
 
   return NextResponse.json(rows, {

@@ -178,7 +178,16 @@ export default function PlayerProfilePage() {
     if (isSelf || !profile) return null
     const s = friendship.status
     if (s === 'accepted') return (
-      <div className="relative flex-shrink-0">
+      <div className="relative flex-shrink-0 flex items-center gap-1.5">
+        <button
+          onClick={() => {
+            sessionStorage.setItem('challenge_friend', JSON.stringify({ id: profile!.userId, username: profile!.username }))
+            router.push('/combat/draft?mode=friendly')
+          }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#7b2bff]/15 border border-[#7b2bff]/40 text-[#a78bfa] hover:bg-[#7b2bff]/25 transition-colors flex-shrink-0"
+          title="Défier en duel">
+          <Sword size={12} /> Défier
+        </button>
         <button onClick={() => setConfirmRemove(true)} disabled={busy}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-[#4a9e6a]/15 border border-[#4a9e6a]/40 text-[#4a9e6a] hover:bg-[#4a9e6a]/25 transition-colors disabled:opacity-50">
           <Check size={12} /> Amis

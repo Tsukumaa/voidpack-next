@@ -61,6 +61,17 @@ export function PackScreen() {
   const activeCount = activeCredits.length
   const hasCredits = pendingCredits.length > 0
 
+  // Si un crédit a déjà été ouvert (openedCards stocké) mais pas encore réclamé → rouvrir automatiquement
+  useEffect(() => {
+    if (openedCards) return // déjà en cours d'affichage
+    const alreadyOpened = pendingCredits.find(c => c.opened_cards && c.opened_cards.length > 0)
+    if (!alreadyOpened) return
+    setOpenedCards(alreadyOpened.opened_cards as CardResult[])
+    setOpenedCreditId(String(alreadyOpened.id))
+    setOpenedType(alreadyOpened.booster_type)
+    setOpenSeq(n => n + 1)
+  }, [pendingCredits]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!types.length) return
 
@@ -119,7 +130,7 @@ export function PackScreen() {
       const res = await fetch('/api/booster/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booster_type: type, count: 5 }),
+        body: JSON.stringify({ booster_type: type, count: 5, creditId: credit.id }),
       })
 
       if (!res.ok) throw new Error('open error')

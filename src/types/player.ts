@@ -28,6 +28,7 @@ export interface BoosterCredit {
   booster_type: string
   source: string
   created_at: string
+  opened_cards?: { id: string; name: string; rarity: string; family: string; artUrl?: string | null }[] | null
 }
 
 export interface ProgressionSummary {

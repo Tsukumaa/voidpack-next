@@ -272,10 +272,11 @@ export default function ProfilPage() {
   }
 
   async function saveFavorites(ids: string[]) {
-    if (profile) setProfile({ ...profile, favorite_cards: ids })
+    const validIds = ids.filter(id => ownedIds.includes(id))
+    if (profile) setProfile({ ...profile, favorite_cards: validIds })
     await fetch('/api/profile', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ favoriteCards: ids }),
+      body: JSON.stringify({ favoriteCards: validIds }),
     }).catch(() => {})
   }
 

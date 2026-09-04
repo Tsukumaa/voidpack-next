@@ -56,7 +56,10 @@ export function FavoriteShowcase({
       .catch(() => {})
   }, [])
 
-  const favCards = favoriteIds.map(id => defs[id]).filter(Boolean) as CardDef[]
+  const validFavIds = editable && ownedIds.length > 0
+    ? favoriteIds.filter(id => ownedIds.includes(id))
+    : favoriteIds
+  const favCards = validFavIds.map(id => defs[id]).filter(Boolean) as CardDef[]
 
   function toggleDraft(id: string) {
     setDraft(d =>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { Settings, Volume2, VolumeX, Music } from 'lucide-react'
+import { Settings, Volume2, VolumeX, Music, Megaphone } from 'lucide-react'
 import { useSettingsStore } from '@/store/settings'
 
 export function SettingsButton() {
@@ -34,6 +34,19 @@ export function SettingsButton() {
           </div>
 
           <div className="px-3.5 py-3 space-y-3">
+            {/* Dernière annonce */}
+            <button
+              onClick={() => {
+                try { localStorage.removeItem('announcement_seen') } catch { /* */ }
+                setOpen(false)
+                window.dispatchEvent(new CustomEvent('show-announcement'))
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors"
+              style={{ background: 'rgba(123,43,255,0.1)', border: '1px solid rgba(123,43,255,0.2)', color: '#a78bfa' }}>
+              <Megaphone size={13} />
+              Dernière annonce
+            </button>
+            <div className="border-t border-white/[0.06]" />
             {/* Musique */}
             <div>
               <div className="flex items-center justify-between mb-2">

@@ -1,5 +1,5 @@
 'use client'
-import { Users, MessageCircle, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon, Eye } from 'lucide-react'
+import { Users, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon, Eye } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -45,6 +45,22 @@ interface Trade {
   senderAvatarUrl: string | null
   receiverUsername: string
   receiverAvatarUrl: string | null
+  offeredCardKey: string
+  offeredRarity: string
+  wantedCardKey: string
+  wantedCardName: string | null
+  wantedRarity: string | null
+  message: string | null
+  status: string
+  createdAt: string
+  expiresAt: string | null
+}
+
+interface MarketOffer {
+  id: string
+  sellerId: string
+  sellerUsername: string
+  sellerAvatarUrl: string | null
   offeredCardKey: string
   offeredRarity: string
   wantedCardKey: string
@@ -122,24 +138,29 @@ function CardThumb({ name, imageUrl, rarity }: { name: string; imageUrl?: string
 }
 
 // ── Modal création de trade ───────────────────────────────────────────────────
-function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [step, setStep] = useState<'offer' | 'want' | 'friend' | 'confirm'>('offer')
-  const [myCards, setMyCards]     = useState<MyCard[]>([])
-  const [allCards, setAllCards]   = useState<AllCard[]>([])
-  const [friends, setFriends]     = useState<SimpleFriend[]>([])
-  const [search, setSearch]       = useState('')
-  const [offered, setOffered]     = useState<MyCard | null>(null)
-  const [wanted, setWanted]       = useState<AllCard | null>(null)
-  const [receiver, setReceiver]   = useState<SimpleFriend | null>(null)
-  const [message, setMessage]     = useState('')
-  const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState('')
+// Flux normal : friend → want (collection ami) → offer (mes cartes) → confirm
+// Flux marché : want (toutes cartes) → offer (mes cartes) → confirm
+function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose: () => void; onCreated: () => void; marketMode?: boolean }) {
+  const firstStep = marketMode ? 'want' : 'friend'
+  const [step, setStep]             = useState<'friend' | 'want' | 'offer' | 'confirm'>(firstStep)
+  const [myCards, setMyCards]       = useState<MyCard[]>([])
+  const [allCards, setAllCards]     = useState<AllCard[]>([])
+  const [friendCards, setFriendCards] = useState<AllCard[]>([])
+  const [loadingFriend, setLoadingFriend] = useState(false)
+  const [friends, setFriends]       = useState<SimpleFriend[]>([])
+  const [search, setSearch]         = useState('')
+  const [offered, setOffered]       = useState<MyCard | null>(null)
+  const [wanted, setWanted]         = useState<AllCard | null>(null)
+  const [receiver, setReceiver]     = useState<SimpleFriend | null>(null)
+  const [message, setMessage]       = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState('')
 
   useEffect(() => {
     Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/cards').then(r => r.ok ? r.json() : []),
-      fetch('/api/social/friends').then(r => r.ok ? r.json() : []),
+      ...(marketMode ? [] : [fetch('/api/social/friends').then(r => r.ok ? r.json() : [])]),
     ]).then(([col, cards, fr]) => {
       const defs: Record<string, AllCard> = {}
       for (const c of cards ?? []) {
@@ -152,27 +173,51 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
         const def = defs[key]
         return { cardId: key, rarity: c.rarity, family: c.family, count: c.count, name: def?.name ?? key, image_url: def?.image_url ?? null }
       }).filter((c: MyCard) => c.count >= 1))
-      setFriends((fr ?? []).map((f: Record<string, unknown>) => ({
-        friend_id: f.userId ?? f.friend_id,
-        username: f.username ?? null,
-        avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
-      })))
+      if (!marketMode && fr) {
+        setFriends((fr ?? []).map((f: Record<string, unknown>) => ({
+          friend_id: f.userId ?? f.friend_id,
+          username: f.username ?? null,
+          avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
+        })))
+      }
     })
-  }, [])
+  }, [marketMode])
+
+  async function selectFriend(f: SimpleFriend) {
+    setReceiver(f)
+    setSearch('')
+    setLoadingFriend(true)
+    try {
+      const [col, cards] = await Promise.all([
+        fetch(`/api/collection?userId=${f.friend_id}`).then(r => r.ok ? r.json() : []),
+        fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      ])
+      const defs: Record<string, AllCard> = {}
+      for (const c of cards ?? []) {
+        const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
+        defs[c.id] = { id: c.id, name: c.name, rarity: c.rarity ?? 'common', image_url: c.imageUrl ?? c.image_url ?? meta?.image_url ?? null }
+      }
+      const fc = (col ?? []).map((c: { cardId?: string; card_id?: string; rarity: string; count: number }) => {
+        const key = c.cardId ?? c.card_id ?? ''
+        return { ...defs[key], id: key, rarity: c.rarity }
+      }).filter((c: AllCard) => c.id && c.name)
+      setFriendCards(fc)
+    } finally {
+      setLoadingFriend(false)
+      setStep('want')
+    }
+  }
 
   async function submit() {
-    if (!offered || !wanted || !receiver) return
+    if (!offered || !wanted) return
+    if (!marketMode && !receiver) return
     setSaving(true); setError('')
     try {
-      const res = await fetch('/api/trade', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiverId: receiver.friend_id,
-          offeredCardKey: offered.cardId, offeredRarity: offered.rarity,
-          wantedCardKey: wanted.id, wantedCardName: wanted.name, wantedRarity: wanted.rarity,
-          message: message || null,
-        }),
-      })
+      const endpoint = marketMode ? '/api/market' : '/api/trade'
+      const body = marketMode
+        ? { offeredCardKey: offered.cardId, offeredRarity: offered.rarity, wantedCardKey: wanted.id, wantedCardName: wanted.name, wantedRarity: wanted.rarity, message: message || null }
+        : { receiverId: receiver!.friend_id, offeredCardKey: offered.cardId, offeredRarity: offered.rarity, wantedCardKey: wanted.id, wantedCardName: wanted.name, wantedRarity: wanted.rarity, message: message || null }
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erreur'); return }
       onCreated()
@@ -180,10 +225,22 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
     finally { setSaving(false) }
   }
 
-  const filteredCards = (step === 'offer'
-    ? myCards.map(c => ({ id: c.cardId, name: c.name, rarity: c.rarity, image_url: c.image_url, count: c.count }))
-    : allCards.map(c => ({ ...c, count: undefined }))
-  ).filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+  const normalSteps = ['friend', 'want', 'offer', 'confirm'] as const
+  const marketSteps = ['want', 'offer', 'confirm'] as const
+  const steps = marketMode ? marketSteps : normalSteps
+
+  const stepLabel: Record<string, string> = {
+    friend: 'Choisir un joueur',
+    want: receiver ? `Collection de ${receiver.username}` : 'Carte voulue',
+    offer: 'Ta carte à offrir',
+    confirm: 'Confirmer',
+  }
+
+  const wantList = (marketMode ? allCards : friendCards)
+    .filter(c => c.name?.toLowerCase().includes(search.toLowerCase()))
+
+  const offerList = myCards
+    .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -191,27 +248,70 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
         className="w-full sm:w-[500px] max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-[#0a0612] border border-white/10 overflow-hidden">
 
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/[0.06] flex-shrink-0">
-          <h3 className="text-white font-black flex items-center gap-2"><ArrowLeftRight size={16} /> Proposer un trade</h3>
+          <h3 className="text-white font-black flex items-center gap-2"><ArrowLeftRight size={16} /> {marketMode ? 'Publier une offre' : 'Proposer un trade'}</h3>
           <button onClick={onClose} className="text-white/40 hover:text-white"><X size={16} /></button>
         </div>
 
         <div className="flex items-center gap-1 px-5 py-3 flex-shrink-0">
-          {(['offer', 'want', 'friend', 'confirm'] as const).map((s, i) => (
+          {steps.map((s, i) => (
             <div key={s} className="flex items-center gap-1">
               <div className={cn('w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center transition-all',
-                step === s ? 'bg-[#7b2bff] text-white' : ((['offer', 'want', 'friend', 'confirm'].indexOf(step) > i) ? 'bg-[#7b2bff]/40 text-white/60' : 'bg-white/5 text-white/30'))}>
+                step === s ? 'bg-[#7b2bff] text-white' : (steps.indexOf(step) > i ? 'bg-[#7b2bff]/40 text-white/60' : 'bg-white/5 text-white/30'))}>
                 {i + 1}
               </div>
-              {i < 3 && <div className="w-6 h-px bg-white/10" />}
+              {i < steps.length - 1 && <div className="w-6 h-px bg-white/10" />}
             </div>
           ))}
-          <span className="ml-2 text-xs text-white/40">
-            {step === 'offer' ? 'Carte à offrir' : step === 'want' ? 'Carte voulue' : step === 'friend' ? 'Destinataire' : 'Confirmer'}
-          </span>
+          <span className="ml-2 text-xs text-white/40">{stepLabel[step]}</span>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {(step === 'offer' || step === 'want') && (
+          {/* Étape 1 (normal) : choisir un ami */}
+          {step === 'friend' && (
+            <div className="px-4 pb-4 space-y-2">
+              {friends.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucun ami — ajoute des amis d&apos;abord</p>}
+              {friends.map(f => (
+                <button key={f.friend_id} onClick={() => selectFriend(f)}
+                  className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
+                    receiver?.friend_id === f.friend_id ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20')}>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                    {f.username?.[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-white font-bold text-sm">{f.username}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Étape want : collection de l'ami (ou toutes cartes en mode marché) */}
+          {step === 'want' && (
+            <div className="px-4 pb-4">
+              <div className="relative mb-3">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Rechercher une carte…"
+                  className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
+              </div>
+              {loadingFriend ? (
+                <p className="text-center text-white/30 text-sm py-8">Chargement…</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {wantList.slice(0, 50).map(c => (
+                    <button key={c.id} onClick={() => { setWanted(c); setSearch(''); setStep('offer') }}
+                      className={cn('w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all text-left',
+                        wanted?.id === c.id ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.03]')}>
+                      <CardThumb name={c.name} imageUrl={c.image_url} rarity={c.rarity} />
+                      {wanted?.id === c.id && <Check size={14} className="text-[#7b2bff] flex-shrink-0" />}
+                    </button>
+                  ))}
+                  {wantList.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucune carte trouvée</p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Étape offer : mes cartes */}
+          {step === 'offer' && (
             <div className="px-4 pb-4">
               <div className="relative mb-3">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
@@ -220,48 +320,24 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                   className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm focus:border-[#7b2bff]/60 focus:outline-none text-white" />
               </div>
               <div className="space-y-1.5">
-                {filteredCards.slice(0, 50).map(c => {
-                  const selected = step === 'offer' ? offered?.cardId === c.id : wanted?.id === c.id
-                  return (
-                    <button key={c.id} onClick={() => {
-                      if (step === 'offer') { setOffered({ cardId: c.id, rarity: c.rarity, family: '', count: (c as { count?: number }).count ?? 1, name: c.name, image_url: c.image_url ?? null }); setStep('want'); setSearch('') }
-                      else { setWanted({ id: c.id, name: c.name, rarity: c.rarity, image_url: c.image_url ?? null }); setStep('friend') }
-                    }}
-                      className={cn('w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all text-left',
-                        selected ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.03]')}>
-                      <CardThumb name={c.name} imageUrl={c.image_url} rarity={c.rarity} />
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {(c as { count?: number }).count !== undefined && (
-                          <span className="text-xs text-white/30">x{(c as { count?: number }).count}</span>
-                        )}
-                        {selected && <Check size={14} className="text-[#7b2bff]" />}
-                      </div>
-                    </button>
-                  )
-                })}
-                {filteredCards.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucune carte trouvée</p>}
+                {offerList.slice(0, 50).map(c => (
+                  <button key={c.cardId} onClick={() => { setOffered(c); setSearch(''); setStep('confirm') }}
+                    className={cn('w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all text-left',
+                      offered?.cardId === c.cardId ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.03]')}>
+                    <CardThumb name={c.name} imageUrl={c.image_url} rarity={c.rarity} />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs text-white/30">x{c.count}</span>
+                      {offered?.cardId === c.cardId && <Check size={14} className="text-[#7b2bff]" />}
+                    </div>
+                  </button>
+                ))}
+                {offerList.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucune carte dans ta collection</p>}
               </div>
             </div>
           )}
 
-          {step === 'friend' && (
-            <div className="px-4 pb-4 space-y-2">
-              {friends.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucun ami - ajoute des amis d&apos;abord</p>}
-              {friends.map(f => (
-                <button key={f.friend_id} onClick={() => { setReceiver(f); setStep('confirm') }}
-                  className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all',
-                    receiver?.friend_id === f.friend_id ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20')}>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                    {f.username?.[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-white font-bold text-sm">{f.username}</span>
-                  {receiver?.friend_id === f.friend_id && <Check size={14} className="text-[#7b2bff] ml-auto" />}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {step === 'confirm' && offered && wanted && receiver && (
+          {/* Étape confirm */}
+          {step === 'confirm' && offered && wanted && (marketMode || receiver) && (
             <div className="px-4 pb-4 space-y-4">
               <div className="rounded-2xl border border-white/[0.06] p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -275,12 +351,19 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
                     <CardThumb name={wanted.name} imageUrl={wanted.image_url} rarity={wanted.rarity} />
                   </div>
                 </div>
-                <div className="border-t border-white/[0.06] pt-3 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold text-white">
-                    {receiver.username?.[0]?.toUpperCase()}
+                {!marketMode && receiver && (
+                  <div className="border-t border-white/[0.06] pt-3 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-xs font-bold text-white">
+                      {receiver.username?.[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-white/60 text-sm">Proposé à <span className="text-white font-bold">{receiver.username}</span></span>
                   </div>
-                  <span className="text-white/60 text-sm">Proposé à <span className="text-white font-bold">{receiver.username}</span></span>
-                </div>
+                )}
+                {marketMode && (
+                  <div className="border-t border-white/[0.06] pt-3">
+                    <span className="text-white/40 text-xs">Visible par tous — quelqu&apos;un peut accepter ce trade</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -296,11 +379,11 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
         </div>
 
         <div className="flex gap-3 px-5 py-4 border-t border-white/[0.06] flex-shrink-0">
-          {step !== 'offer' && (
+          {step !== firstStep && (
             <button onClick={() => {
-              if (step === 'want') setStep('offer')
-              else if (step === 'friend') setStep('want')
-              else setStep('friend')
+              setSearch('')
+              const idx = steps.indexOf(step as typeof steps[number])
+              if (idx > 0) setStep(steps[idx - 1] as typeof step)
             }} className="px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm font-bold hover:bg-white/5">
               Retour
             </button>
@@ -309,7 +392,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
             <button onClick={submit} disabled={saving}
               className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-              {saving ? 'Envoi…' : 'Envoyer la proposition'}
+              {saving ? 'Envoi…' : marketMode ? 'Publier sur le marché' : 'Envoyer la proposition'}
             </button>
           )}
         </div>
@@ -322,11 +405,10 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 function CommunauteContent() {
   const { user } = useGameStore(s => ({ user: s.user }))
   const router = useRouter()
-  const setChatFriend = useSocialStore(s => s.setChatFriend)
   const unreadMessageCount = useSocialStore(s => s.unreadMessageCount)
   const unreadBySender = useSocialStore(s => s.unreadBySender)
   const clearUnreadMessages = useSocialStore(s => s.clearUnreadMessages)
-  const [ladder, setLadder]           = useState<'xp' | 'combat' | 'trades'>('xp')
+  const [ladder, setLadder]           = useState<'xp' | 'combat' | 'trades' | 'marche'>('xp')
   const [entries, setEntries]         = useState<LadderEntry[]>([])
   const [loading, setLoading]         = useState(true)
   const [showFriends, setShowFriends] = useState(false)
@@ -343,9 +425,18 @@ function CommunauteContent() {
   const [actioning, setActioning]   = useState<string | null>(null)
   const [tradeMsg, setTradeMsg]     = useState('')
 
+  // Marché state
+  const [market, setMarket]           = useState<MarketOffer[]>([])
+  const [myOffers, setMyOffers]       = useState<MarketOffer[]>([])
+  const [marketTab, setMarketTab]     = useState<'browse' | 'mine'>('browse')
+  const [showMarketCreate, setShowMarketCreate] = useState(false)
+  const [marketActioning, setMarketActioning]   = useState<string | null>(null)
+  const [marketMsg, setMarketMsg]     = useState('')
+
   const loadLadder = useCallback(async () => {
     setLoading(true)
-    const data = await fetch('/api/ladder?type=collection&limit=50').then(r => r.ok ? r.json() : [])
+    const type = ladder === 'combat' ? 'combat' : 'collection'
+    const data = await fetch(`/api/ladder?type=${type}&limit=50`).then(r => r.ok ? r.json() : [])
     setEntries(data.map((e: Record<string, unknown>) => ({
       user_id:       e.userId ?? e.user_id,
       username:      e.username,
@@ -409,9 +500,32 @@ function CommunauteContent() {
     setCardDefs(defs)
   }, [user])
 
-  useEffect(() => { loadLadder() }, [loadLadder])
+  const loadMarket = useCallback(async () => {
+    if (!user) return
+    const [browse, mine] = await Promise.all([
+      fetch('/api/market').then(r => r.ok ? r.json() : []),
+      fetch('/api/market?mine=1').then(r => r.ok ? r.json() : []),
+    ])
+    setMarket(browse)
+    setMyOffers(mine.filter((o: MarketOffer) => o.status === 'open'))
+  }, [user])
+
+  async function marketAction(offerId: string, act: 'accept' | 'cancel') {
+    setMarketActioning(offerId)
+    try {
+      const res = await fetch(`/api/market/${offerId}/${act}`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { setMarketMsg(data.error ?? 'Erreur'); setTimeout(() => setMarketMsg(''), 4000); return }
+      setMarketMsg(act === 'accept' ? 'Échange effectué !' : 'Offre annulée.')
+      setTimeout(() => setMarketMsg(''), 3000)
+      loadMarket()
+    } finally { setMarketActioning(null) }
+  }
+
+  useEffect(() => { loadLadder() }, [loadLadder, ladder])
   useEffect(() => { if (user) { loadFriends(); loadPendingRequests(); loadSentPending() } }, [loadFriends, loadPendingRequests, loadSentPending, user])
   useEffect(() => { if (user && ladder === 'trades') loadTrades() }, [user, ladder, loadTrades])
+  useEffect(() => { if (user && ladder === 'marche') loadMarket() }, [user, ladder, loadMarket])
 
   const myRank = user ? entries.findIndex(e => e.user_id === user.id) + 1 : 0
 
@@ -484,11 +598,11 @@ function CommunauteContent() {
         {/* Tabs */}
         <div className="flex items-center gap-2">
           <div className="flex flex-1 gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06]">
-            {(['xp', 'combat', 'trades'] as const).map(tab => (
+            {(['xp', 'combat', 'trades', 'marche'] as const).map(tab => (
               <button key={tab} onClick={() => setLadder(tab)}
                 className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all relative',
                   ladder === tab ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60')}>
-                {tab === 'xp' ? 'Ladder XP' : tab === 'combat' ? 'Combat' : 'Trades'}
+                {tab === 'xp' ? 'XP' : tab === 'combat' ? 'Combat' : tab === 'trades' ? 'Trades' : 'Marché'}
                 {tab === 'trades' && incoming.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#ff4757] text-white text-[9px] font-bold flex items-center justify-center">
                     {incoming.length > 9 ? '9+' : incoming.length}
@@ -713,8 +827,130 @@ function CommunauteContent() {
         </div>
       )}
 
+      {/* Marché */}
+      {ladder === 'marche' && (
+        <div>
+          {user && (
+            <button onClick={() => setShowMarketCreate(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 rounded-xl text-white text-sm font-bold"
+              style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
+              <Plus size={14} /> Proposer un échange
+            </button>
+          )}
+          {marketMsg && (
+            <div className="mb-3 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-sm text-white text-center">{marketMsg}</div>
+          )}
+          <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] backdrop-blur-sm border border-white/[0.06] mb-4">
+            {(['browse', 'mine'] as const).map(t => (
+              <button key={t} onClick={() => setMarketTab(t)}
+                className={cn('flex-1 py-1.5 rounded-lg text-xs font-bold transition-all',
+                  marketTab === t ? 'bg-[#7b2bff] text-white' : 'text-white/40 hover:text-white/60')}>
+                {t === 'browse' ? 'Offres disponibles' : 'Mes offres'}
+              </button>
+            ))}
+          </div>
+          {!user ? (
+            <p className="text-white/30 text-sm text-center py-10">Connecte-toi pour voir le marché.</p>
+          ) : marketTab === 'browse' ? (
+            market.length === 0
+              ? <p className="text-white/30 text-sm text-center py-10">Aucune offre disponible pour l'instant.</p>
+              : <div className="space-y-3">
+                {market.map(offer => {
+                  const offeredDef = cardDefs[offer.offeredCardKey]
+                  const wantedDef  = cardDefs[offer.wantedCardKey]
+                  return (
+                    <div key={offer.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm p-4">
+                      <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-white/[0.06]">
+                        {offer.sellerAvatarUrl
+                          ? <img src={offer.sellerAvatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                          : <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7b2bff] to-[#4a1fa8] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">{offer.sellerUsername[0]?.toUpperCase()}</div>
+                        }
+                        <span className="text-white/50 text-xs">Offert par <span className="text-white font-bold">{offer.sellerUsername}</span></span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 mb-3">
+                        <div className="flex-1">
+                          <p className="text-white/30 text-[10px] mb-1.5">{offer.sellerUsername} offre</p>
+                          <CardThumb name={offeredDef?.name ?? offer.offeredCardKey} imageUrl={offeredDef?.image_url} rarity={offer.offeredRarity} />
+                        </div>
+                        <ArrowLeftRight size={16} className="text-white/20 flex-shrink-0" />
+                        <div className="flex-1 text-right">
+                          <p className="text-white/30 text-[10px] mb-1.5">{offer.sellerUsername} veut</p>
+                          <div className="flex flex-col items-end">
+                            <CardThumb name={wantedDef?.name ?? offer.wantedCardName ?? offer.wantedCardKey} imageUrl={wantedDef?.image_url} rarity={offer.wantedRarity ?? 'common'} />
+                          </div>
+                        </div>
+                      </div>
+                      {offer.message && (
+                        <p className="text-white/40 text-xs italic border-t border-white/[0.06] pt-2 mb-2">&ldquo;{offer.message}&rdquo;</p>
+                      )}
+                      <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2">
+                        <div className="flex items-center gap-1 text-white/30 text-[10px]">
+                          <Clock size={11} />
+                          {offer.expiresAt ? `Expire le ${formatDate(offer.expiresAt)}` : formatDate(offer.createdAt)}
+                        </div>
+                        {user && (
+                          <button onClick={() => marketAction(offer.id, 'accept')} disabled={!!marketActioning}
+                            className="px-3 py-1.5 rounded-xl text-white text-xs font-bold disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
+                            {marketActioning === offer.id ? '…' : 'Accepter'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+          ) : (
+            myOffers.length === 0
+              ? <p className="text-white/30 text-sm text-center py-10">Aucune offre active.</p>
+              : <div className="space-y-3">
+                {myOffers.map(offer => {
+                  const offeredDef = cardDefs[offer.offeredCardKey]
+                  const wantedDef  = cardDefs[offer.wantedCardKey]
+                  return (
+                    <div key={offer.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm p-4">
+                      <div className="flex items-center justify-between gap-4 mb-3">
+                        <div className="flex-1">
+                          <p className="text-white/30 text-[10px] mb-1.5">Tu offres</p>
+                          <CardThumb name={offeredDef?.name ?? offer.offeredCardKey} imageUrl={offeredDef?.image_url} rarity={offer.offeredRarity} />
+                        </div>
+                        <ArrowLeftRight size={16} className="text-white/20 flex-shrink-0" />
+                        <div className="flex-1 text-right">
+                          <p className="text-white/30 text-[10px] mb-1.5">Tu veux</p>
+                          <div className="flex flex-col items-end">
+                            <CardThumb name={wantedDef?.name ?? offer.wantedCardName ?? offer.wantedCardKey} imageUrl={wantedDef?.image_url} rarity={offer.wantedRarity ?? 'common'} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-2">
+                        <div className="flex items-center gap-1 text-white/30 text-[10px]">
+                          <Clock size={11} />
+                          {offer.expiresAt ? `Expire le ${formatDate(offer.expiresAt)}` : formatDate(offer.createdAt)}
+                        </div>
+                        <button onClick={() => marketAction(offer.id, 'cancel')} disabled={!!marketActioning}
+                          className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-xs font-bold hover:bg-white/10 disabled:opacity-50">
+                          {marketActioning === offer.id ? '…' : 'Annuler'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+          )}
+        </div>
+      )}
+
       </div>
       </div>
+
+      {/* Modal marché */}
+      {showMarketCreate && (
+        <CreateTradeModal
+          onClose={() => setShowMarketCreate(false)}
+          onCreated={() => { setShowMarketCreate(false); loadMarket() }}
+          marketMode
+        />
+      )}
 
       {/* Modal amis */}
       {showFriends && (
@@ -724,7 +960,6 @@ function CommunauteContent() {
           pendingRequests={pendingRequests}
           unreadBySender={unreadBySender}
           onClose={() => setShowFriends(false)}
-          onChat={(f) => { setChatFriend({ friend_id: f.friend_id, username: f.username, avatar_url: f.avatar_url }); setShowFriends(false) }}
           onChallenge={(f) => {
             sessionStorage.setItem('challenge_friend', JSON.stringify({ id: f.friend_id, username: f.username }))
             setShowFriends(false)
@@ -748,13 +983,12 @@ function CommunauteContent() {
 }
 
 // ─── Modal Amis ───────────────────────────────────────────────────────────────
-function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose, onChat, onChallenge, onSpectate, onRefresh }: {
+function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose, onChallenge, onSpectate, onRefresh }: {
   user: { id: string } | null
   friends: Friend[]
   pendingRequests: Friend[]
   unreadBySender: Record<string, number>
   onClose: () => void
-  onChat: (f: Friend) => void
   onChallenge: (f: Friend) => void
   onSpectate: (f: Friend) => void
   onRefresh: () => void
@@ -906,10 +1140,7 @@ function FriendsModal({ user, friends, pendingRequests, unreadBySender, onClose,
                   title="Défier en partie amicale">
                   <Sword size={13} />
                 </button>
-                <button onClick={() => onChat(f)}
-                  className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">
-                  <MessageCircle size={13} />
-                </button>
+
                 <button onClick={() => removeFriend(f.id)}
                   className="px-2 py-1 rounded-lg bg-red-900/20 hover:bg-red-900/40 text-red-400 text-xs">
                   <X size={13} />

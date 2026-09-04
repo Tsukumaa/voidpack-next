@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus } from 'lucide-react'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone } from 'lucide-react'
 import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1924,6 +1924,10 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   const [newVal, setNewVal]     = useState('')
   const [revealDate, setRevealDate] = useState('')
   const [savingReveal, setSavingReveal] = useState(false)
+  const [popupTitle, setPopupTitle]   = useState('')
+  const [popupSections, setPopupSections] = useState<{ subtitle: string; text: string }[]>([{ subtitle: '', text: '' }])
+  const [popupActive, setPopupActive] = useState(false)
+  const [savingPopup, setSavingPopup] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1939,10 +1943,18 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
       }
       setFeatures(map)
       const rd = (data ?? []).find((s: Setting) => s.key === 'reveal_date')
-      if (rd?.value) {
-        // Convertir ISO → format datetime-local (YYYY-MM-DDTHH:MM)
-        setRevealDate(rd.value.slice(0, 16))
+      if (rd?.value) setRevealDate(rd.value.slice(0, 16))
+      const pt = (data ?? []).find((s: Setting) => s.key === 'announcement_title')
+      const pb = (data ?? []).find((s: Setting) => s.key === 'announcement_body')
+      const pa = (data ?? []).find((s: Setting) => s.key === 'announcement_active_since')
+      if (pt?.value) setPopupTitle(pt.value)
+      if (pb?.value) {
+        try {
+          const parsed = JSON.parse(pb.value)
+          if (Array.isArray(parsed)) setPopupSections(parsed)
+        } catch { /* ancien format texte */ }
       }
+      setPopupActive(!!pa?.value)
     } finally { setLoading(false) }
   }, [])
 
@@ -1970,6 +1982,19 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     setNewKey(''); setNewVal('')
   }
 
+  async function savePopup(activate: boolean) {
+    setSavingPopup(true)
+    try {
+      await adminDb('upsert', 'settings', { key: 'announcement_title', value: popupTitle }, { col: 'key', val: 'announcement_title', onConflict: 'key' })
+      await adminDb('upsert', 'settings', { key: 'announcement_body', value: JSON.stringify(popupSections.filter(s => s.subtitle || s.text)) }, { col: 'key', val: 'announcement_body', onConflict: 'key' })
+      const since = activate ? new Date().toISOString() : ''
+      await adminDb('upsert', 'settings', { key: 'announcement_active_since', value: since }, { col: 'key', val: 'announcement_active_since', onConflict: 'key' })
+      setPopupActive(activate)
+      onMsg(activate ? '✅ Popup activée' : '⛔ Popup désactivée')
+      load()
+    } finally { setSavingPopup(false) }
+  }
+
   async function saveRevealDate() {
     setSavingReveal(true)
     try {
@@ -1981,6 +2006,104 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
   return (
     <div className="space-y-8">
+      {/* ── Popup d'annonce ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-sm font-bold text-white">Popup d&apos;annonce</h3>
+          {popupActive
+            ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-green-500/20 text-green-400">Active</span>
+            : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 text-white/30">Inactive</span>}
+        </div>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Affichée <strong className="text-white/60">une seule fois</strong> à chaque joueur à son arrivée sur le site, depuis la date d&apos;activation.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Formulaire */}
+          <div className="space-y-4 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Field label="Titre principal">
+              <input value={popupTitle} onChange={e => setPopupTitle(e.target.value)} placeholder="Titre de l'annonce" className={inputCls} />
+            </Field>
+
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Sections</p>
+              {popupSections.map((s, i) => (
+                <div key={i} className="space-y-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex items-center gap-2">
+                    <input value={s.subtitle} onChange={e => setPopupSections(prev => prev.map((p, j) => j === i ? { ...p, subtitle: e.target.value } : p))}
+                      placeholder="Sous-titre"
+                      className={inputCls + ' flex-1'} />
+                    {popupSections.length > 1 && (
+                      <button onClick={() => setPopupSections(prev => prev.filter((_, j) => j !== i))}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors flex-shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                  <textarea value={s.text} onChange={e => setPopupSections(prev => prev.map((p, j) => j === i ? { ...p, text: e.target.value } : p))}
+                    placeholder="Texte de cette section" rows={3}
+                    className={inputCls + ' resize-none'} />
+                </div>
+              ))}
+              <button onClick={() => setPopupSections(prev => [...prev, { subtitle: '', text: '' }])}
+                className="flex items-center gap-1.5 text-xs font-bold text-[#a78bfa] hover:text-white transition-colors">
+                <Plus size={12} /> Ajouter une section
+              </button>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => savePopup(true)} disabled={savingPopup || !popupTitle.trim()}
+                className={primaryBtnCls}>
+                {savingPopup ? 'Sauvegarde…' : popupActive ? 'Réactiver' : 'Activer la popup'}
+              </button>
+              {popupActive && (
+                <button onClick={() => savePopup(false)} disabled={savingPopup}
+                  className="px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                  style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171' }}>
+                  Désactiver
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Prévisualisation */}
+          <div className="p-4 rounded-2xl flex flex-col" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Aperçu</p>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full rounded-2xl border border-[#7b2bff]/30 p-5 flex flex-col gap-4"
+                style={{ background: '#0b0816', boxShadow: '0 0 40px rgba(123,43,255,0.15)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
+                    <Megaphone size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-white font-black text-sm leading-tight">
+                    {popupTitle || <span className="text-white/20">Titre de l&apos;annonce</span>}
+                  </h2>
+                </div>
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {popupSections.filter(s => s.subtitle || s.text).length === 0 && (
+                    <p className="text-white/20 text-xs italic">Les sections apparaîtront ici…</p>
+                  )}
+                  {popupSections.map((s, i) => (
+                    (s.subtitle || s.text) ? (
+                      <div key={i}>
+                        {s.subtitle && <p className="text-white font-bold text-xs mb-1">{s.subtitle}</p>}
+                        {s.text && <p className="text-white/55 text-xs leading-relaxed whitespace-pre-wrap">{s.text}</p>}
+                      </div>
+                    ) : null
+                  ))}
+                </div>
+                <div className="w-full py-2 rounded-xl text-white text-xs font-bold text-center"
+                  style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
+                  J&apos;ai compris !
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── Reveal ── */}
       <div>
         <h3 className="text-sm font-bold text-white mb-1">Reveal du site</h3>
