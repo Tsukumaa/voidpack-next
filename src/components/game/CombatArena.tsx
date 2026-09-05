@@ -2,7 +2,8 @@
 import './combat-arena.css'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { CardFrame } from './CardFrame'
-import { Gem, Sword, Shield as ShieldIcon } from 'lucide-react'
+import { Gem, Sword, Shield as ShieldIcon, BookOpen } from 'lucide-react'
+import { CombatRulesModal } from './CombatRulesModal'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
@@ -192,6 +193,7 @@ export function CombatArena({
   const [dmgPopups,  setDmgPopups]  = useState<DmgPopup[]>([])
   const [impacts,    setImpacts]    = useState<ImpactPop[]>([])
   const [timeLeft,   setTimeLeft]   = useState(60)
+  const [showRules,  setShowRules]  = useState(false)
   const [flashUids,  setFlashUids]  = useState<Map<string | number, string>>(new Map())
   const [healFlash,     setHealFlash]     = useState(false)
   const [oppHealFlash,  setOppHealFlash]  = useState(false)
@@ -460,6 +462,23 @@ export function CombatArena({
     >
       <div className="ca-stars" />
 
+      {showRules && <CombatRulesModal onClose={() => setShowRules(false)} />}
+
+      <button
+        onClick={onSurrender}
+        style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(255,100,100,0.3)', background: 'rgba(10,5,20,0.7)', color: 'rgba(255,100,100,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap' }}
+      >
+        ✕ Quitter
+      </button>
+
+      <button
+        onClick={() => setShowRules(true)}
+        style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(168,85,247,0.35)', background: 'rgba(10,5,20,0.7)', color: '#c084fc', cursor: 'pointer', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap' }}
+      >
+        <BookOpen size={14} /> Règles
+      </button>
+
+
       {/* Tooltip effets — rendu dans ca-root hors de ca-arena (overflow:hidden) */}
       {cardTip && cardTip.card.effects && cardTip.card.effects.length > 0 && (
         <div className="ca-tooltip--portal" style={{ left: cardTip.x, top: cardTip.y }}>
@@ -583,7 +602,6 @@ export function CombatArena({
 
         {/* ── PLAYER HERO BAR ── */}
         <div className="ca-hero-bar ca-hero-bar--player">
-          <button className="ca-quit-btn" onClick={onSurrender} title="Quitter">✕</button>
 
           <div className="ca-hero-inner">
             <div className={`ca-hero-portrait ca-hero-portrait--player${healFlash ? ' ca-heal-flash' : ''}`} data-face-player>

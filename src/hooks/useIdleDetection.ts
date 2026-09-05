@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 
-const IDLE_MS = 10_000
+const IDLE_MS = 30_000
 
 export function useIdleDetection() {
   const [idle, setIdle] = useState(false)

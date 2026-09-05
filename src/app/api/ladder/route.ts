@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
   if (type === 'combat') {
     const rows = await db
       .select({
-        userId:     combatStats.userId,
-        wins:       combatStats.wins,
-        losses:     combatStats.losses,
-        rankPoints: combatStats.rankPoints,
+        userId:        combatStats.userId,
+        wins:          combatStats.wins,
+        losses:        combatStats.losses,
+        rankPoints:    combatStats.rankPoints,
+        currentStreak: combatStats.currentStreak,
+        bestStreak:    combatStats.bestStreak,
         username:     playerProfiles.username,
         avatarUrl:    playerProfiles.avatarUrl,
         role:         playerProfiles.role,
@@ -39,17 +41,18 @@ export async function GET(req: NextRequest) {
   // collection ladder: XP en premier, nombre de cartes en égalité
   const rows = await db
     .select({
-      userId:          playerProfiles.userId,
-      total:           sql<number>`COALESCE(SUM(${playerCards.count}), 0)`,
-      unique:          sql<number>`COUNT(DISTINCT ${playerCards.cardId})`,
-      xp:              playerProfiles.xp,
-      level:           playerProfiles.level,
-      username:        playerProfiles.username,
-      avatarUrl:       playerProfiles.avatarUrl,
-      highestRarity:   playerProfiles.highestRarity,
-      role:            playerProfiles.role,
-      isSubscriber:    playerProfiles.isSubscriber,
-      subscriberUntil: playerProfiles.subscriberUntil,
+      userId:           playerProfiles.userId,
+      total:            sql<number>`COALESCE(SUM(${playerCards.count}), 0)`,
+      unique:           sql<number>`COUNT(DISTINCT ${playerCards.cardId})`,
+      xp:               playerProfiles.xp,
+      level:            playerProfiles.level,
+      username:         playerProfiles.username,
+      avatarUrl:        playerProfiles.avatarUrl,
+      highestRarity:    playerProfiles.highestRarity,
+      role:             playerProfiles.role,
+      isSubscriber:     playerProfiles.isSubscriber,
+      subscriberUntil:  playerProfiles.subscriberUntil,
+      packsOpened: playerProfiles.packsOpened,
     })
     .from(playerProfiles)
     .leftJoin(playerCards, eq(playerProfiles.userId, playerCards.userId))
@@ -59,9 +62,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(rows.map(r => ({
     ...r,
-    xp:              r.xp    ?? 0,
-    level:           r.level ?? 1,
+    xp:               r.xp    ?? 0,
+    level:            r.level ?? 1,
     collectionComplete: totalAvailable > 0 && (r.unique ?? 0) >= totalAvailable,
-    is_subscriber:   isSubscriberActive(r),
+    is_subscriber: isSubscriberActive(r),
+    packsOpened:   r.packsOpened ?? 0,
   })), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }

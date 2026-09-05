@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, Plus, Minus, X, ShoppingBag, Search } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
 import { useGameStore } from '@/store/game'
+import { useCards } from '@/hooks/useCards'
 import { StatePanel } from '@/components/game/StatePanel'
 import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
@@ -65,6 +66,7 @@ interface TradeModal { card: GroupedCard; qty: number }
 
 export default function CollectionPage() {
   const { user } = useGameStore(s => ({ user: s.user }))
+  const { fetchCards } = useCards()
   const [cards, setCards]         = useState<GroupedCard[]>([])
   const [loading, setLoading]     = useState(true)
   const [rarityFilter, setRarityFilter] = useState<string>('all')
@@ -108,7 +110,7 @@ export default function CollectionPage() {
 
     const [rawCards, cardDefs, famData, profileData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
       fetch('/api/profile').then(r => r.ok ? r.json() : null),
     ])

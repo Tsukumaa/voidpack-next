@@ -75,7 +75,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
     window.open(KOFI_URL, '_blank', 'noopener,noreferrer')
   }
 
-  const canUse = (skin: CardBack) => isSubscriber || unlocked.includes(skin.id)
+  const canUse = (skin: CardBack) => isSubscriber || skin.price === 0 || unlocked.includes(skin.id)
 
   return (
     <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm"
@@ -193,7 +193,7 @@ export function ShopModal({ onClose }: { onClose: () => void }) {
                   <div className="p-2.5 bg-white/[0.03]">
                     <p className="text-white text-xs font-bold">{skin.name}</p>
                     <div className="mt-1.5">
-                      {isDefault ? (
+                      {isDefault || skin.price === 0 ? (
                         <p className="text-white/30 text-[10px]">Gratuit</p>
                       ) : accessible ? (
                         <p className="text-[#4a9e6a] text-[10px]">{isSubscriber && !owned ? 'Via abonnement' : 'Débloqué'}</p>

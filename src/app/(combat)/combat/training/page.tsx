@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bot } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { useCards } from '@/hooks/useCards'
 import { useArenaBg } from '@/lib/game/useArenaBg'
 import { CombatArena, type ArenaCard } from '@/components/game/CombatArena'
 import { FeatureGate } from '@/components/FeatureGate'
@@ -99,6 +100,7 @@ function TrainingContent() {
   const router  = useRouter()
   const profile = useGameStore(s => s.profile)
   const arenaBg = useArenaBg()
+  const { fetchCards } = useCards()
   const [gs, setGs] = useState<GS | null>(null)
   const [botThinking, setBotThinking] = useState(false)
   const gsRef = useRef<GS | null>(null)
@@ -123,7 +125,7 @@ function TrainingContent() {
       const deckRaw = JSON.parse(raw) as (CardDef & { qty?: number })[]
       const playerCards = expandDeck(deckRaw)
 
-      const apiCards = await fetch('/api/cards').then(r => r.ok ? r.json() : []).catch(() => []) as { id: string; name: string; rarity: string; imageUrl?: string | null; image_url?: string | null; metadata: unknown }[]
+      const apiCards = await fetchCards().catch(() => []) as { id: string; name: string; rarity: string; imageUrl?: string | null; image_url?: string | null; metadata: unknown }[]
       const defs: CardDef[] = (apiCards ?? []).map(c => {
         const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
         return { id: c.id, name: c.name, rarity: c.rarity, image_url: c.imageUrl ?? c.image_url ?? null, metadata: meta as CardDef['metadata'] }

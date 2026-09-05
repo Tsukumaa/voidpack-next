@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Swords, X, Zap, Sword, Bot, Search, ChevronDown, Shuffle, Plus, Pencil, Trash2, Save, ChevronLeft, Gem, Shield } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { useCards } from '@/hooks/useCards'
 import { useFeatures } from '@/hooks/useFeatures'
 import { cn } from '@/lib/utils'
 import { CardFrame } from '@/components/game/CardFrame'
@@ -71,6 +72,7 @@ function DraftContent() {
     ? JSON.parse(sessionStorage.getItem('challenge_friend') ?? 'null') as { id: string; username: string } | null
     : null
   const { user } = useGameStore(s => ({ user: s.user }))
+  const { fetchCards } = useCards()
   const { isEnabled } = useFeatures()
 
   const [view, setView]                 = useState<'select' | 'builder'>('select')
@@ -116,7 +118,7 @@ function DraftContent() {
     setLoading(true)
     const [rawCards, cardDefs, famData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
     const defMap: Record<string, { name: string; image_url: string | null; metadata: Record<string, unknown> }> = {}

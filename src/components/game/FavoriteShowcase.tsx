@@ -5,6 +5,7 @@ import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { CardMedia } from '@/components/game/CardMedia'
 import { Star, X, Check, Pencil } from 'lucide-react'
+import { useCards } from '@/hooks/useCards'
 
 const RARITY_COLOR: Record<string, string> = {
   void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
@@ -34,12 +35,12 @@ export function FavoriteShowcase({
   const [picker, setPicker] = useState(false)
   const [draft, setDraft] = useState<string[]>(favoriteIds)
   const [saving, setSaving] = useState(false)
+  const { fetchCards } = useCards()
 
   useEffect(() => { setDraft(favoriteIds) }, [favoriteIds.join(',')]) // eslint-disable-line
 
   useEffect(() => {
-    fetch('/api/cards')
-      .then(r => (r.ok ? r.json() : []))
+    fetchCards()
       .then((cards: Array<Record<string, unknown>>) => {
         const m: Record<string, CardDef> = {}
         for (const d of cards) {

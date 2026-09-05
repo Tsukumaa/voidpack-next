@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Swords, Sword, Copy, Check } from 'lucide-react'
+import { ArrowLeft, Swords, Sword } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { joinMatchmaking, leaveMatchmaking } from '@/lib/game/combat-multiplayer'
 import { FeatureGate } from '@/components/FeatureGate'
@@ -24,7 +24,6 @@ function MatchmakingContent() {
   const [elapsed, setElapsed]   = useState(0)
   const [error, setError]       = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [copied, setCopied]     = useState(false)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const joined   = useRef(false)
 
@@ -71,43 +70,36 @@ function MatchmakingContent() {
     try {
       const friendRaw = sessionStorage.getItem('challenge_friend')
       const friend = friendRaw ? JSON.parse(friendRaw) as { id: string; username: string } : null
+      if (!friend) throw new Error('Ami introuvable.')
 
-      const res = await fetch('/api/combat/session', {
+      // Créer un défi via gameChallenges (visible dans la popup de l'ami)
+      const res = await fetch('/api/combat/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deck, ranked: false }),
+        body: JSON.stringify({ challengedId: friend.id, deck }),
       })
-      if (!res.ok) throw new Error('Impossible de créer la session')
-      const sess = await res.json()
+      if (!res.ok) throw new Error('Impossible de créer le défi')
+      const challenge = await res.json()
 
-      setSessionId(sess.id)
-
-      if (friend) {
-        // Message structuré rendu comme une carte avec boutons Accepter/Refuser dans le chat
-        await fetch('/api/social/messages', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ receiverId: friend.id, content: `[[duel:${sess.id}]]` }),
-        })
-      }
-
+      setSessionId(challenge.id)
       setStatus('waiting_friend')
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
 
-      // Polling pour détecter quand l'ami rejoint
+      // Polling : quand l'ami accepte, le challenge passe à 'accepted' et a un sessionId
       const pollJoin = setInterval(async () => {
-        const r = await fetch(`/api/combat/session/${sess.id}`)
+        const r = await fetch(`/api/combat/challenges/${challenge.id}`)
         if (r.ok) {
-          const s = await r.json()
-          if (s.status === 'active') {
+          const c = await r.json()
+          if (c.status === 'accepted' && c.sessionId) {
             clearInterval(pollJoin)
             clearInterval(timerRef.current!)
             sessionStorage.removeItem('draft_deck')
             sessionStorage.removeItem('challenge_friend')
             setStatus('matched')
-            setTimeout(() => router.push(`/combat/${sess.id}`), 800)
+            setTimeout(() => router.push(`/combat/${c.sessionId}`), 800)
           }
         }
-      }, 2000)
+      }, 3000)
 
     } catch (e: unknown) {
       setError((e as Error).message)
@@ -118,16 +110,9 @@ function MatchmakingContent() {
   async function cancel() {
     if (!isFriendly) await leaveMatchmaking()
     else if (sessionId) {
-      await fetch(`/api/combat/session/${sessionId}`, { method: 'DELETE' })
+      await fetch(`/api/combat/challenges/${sessionId}/decline`, { method: 'POST' }).catch(() => {})
     }
     router.back()
-  }
-
-  async function copyLink() {
-    if (!sessionId) return
-    await navigator.clipboard.writeText(`${window.location.origin}/combat/join/${sessionId}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
   }
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -172,13 +157,8 @@ function MatchmakingContent() {
           <div className="text-center">
             <span className="text-xs px-2 py-0.5 rounded-full bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] mb-3 inline-block">Partie amicale</span>
             <p className="text-white font-bold text-lg mt-2">En attente de ton ami…</p>
-            <p className="text-white/40 text-sm mt-1">{fmt(elapsed)} · Invitation envoyée par message</p>
+            <p className="text-white/40 text-sm mt-1">{fmt(elapsed)} · Défi envoyé, en attente de réponse…</p>
           </div>
-          <button onClick={copyLink}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-sm transition-colors">
-            {copied ? <Check size={14} className="text-[#4a9e6a]" /> : <Copy size={14} />}
-            {copied ? 'Lien copié !' : 'Copier le lien d\'invitation'}
-          </button>
           <button onClick={cancel}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white text-sm transition-colors">
             <ArrowLeft size={14} /> Annuler

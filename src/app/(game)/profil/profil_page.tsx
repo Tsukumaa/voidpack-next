@@ -149,7 +149,8 @@ export default function ProfilPage() {
       if (res.ok) {
         markMissionClaimed(user.id, missionId)
         if (data?.xp_gained && profile) {
-          setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
+          const manaDelta = data?.bonus_mana ?? 0
+          setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained, mana: (profile.mana ?? 0) + manaDelta })
         }
         const mission = todayMissions.find(m => m.id === missionId)
         addToast({
@@ -157,6 +158,9 @@ export default function ProfilPage() {
           title: `Mission complétée !`,
           body: mission ? `${mission.label} - +${mission.xp} XP` : `+${data?.xp_gained ?? 0} XP`,
         })
+        if (data?.bonus_mana) {
+          addToast({ type: 'info', title: '🎯 Toutes les missions !', body: `+${data.bonus_mana} mana bonus` })
+        }
         load()
       }
     } catch(e) { console.error(e) }

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { tradeOffers, playerCards } from '@/lib/db/schema'
+import { tradeOffers, playerCards, playerDailyMissions } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
+import { getTodayMissions } from '@/lib/game/achievements'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -60,17 +61,20 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .set({ status: 'accepted', respondedAt: new Date().toISOString() })
     .where(eq(tradeOffers.id, id))
 
-  // Missions & succès des deux parties (fire-and-forget)
-  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-  for (const uid of [session.user.id, trade.senderId]) {
-    fetch(`${base}/api/profile/missions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ missionId: 'make_trade', count: 1 }),
-    }).catch(() => {})
-    fetch(`${base}/api/achievements/check`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rarities: [], totalPacks: 0, uniqueCards: 0, level: 1, _uid: uid }),
-    }).catch(() => {})
+  // Incrémenter la mission "make_trade" pour les deux parties directement en DB
+  const todayMissions = getTodayMissions()
+  const tradeMission  = todayMissions.find(m => m.id === 'make_trade')
+  if (tradeMission) {
+    const date = new Date().toISOString().split('T')[0]
+    for (const targetUid of [uid, trade.senderId]) {
+      db.insert(playerDailyMissions)
+        .values({ userId: targetUid, date, missionId: 'make_trade', progress: 1 })
+        .onConflictDoUpdate({
+          target: [playerDailyMissions.userId, playerDailyMissions.date, playerDailyMissions.missionId],
+          set: { progress: sql`MIN(${playerDailyMissions.progress} + 1, ${tradeMission.goal})`, updatedAt: new Date().toISOString() },
+        })
+        .catch(() => {})
+    }
   }
 
   return NextResponse.json({ ok: true })

@@ -10,6 +10,7 @@ import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { RoleBadge, SubscriberBadge } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { cn } from '@/lib/utils'
+import { useCards } from '@/hooks/useCards'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
 const RARITY_COLOR: Record<string, string> = {
@@ -58,6 +59,7 @@ export default function PlayerProfilePage() {
   const params = useParams<{ id: string }>()
   const id = params?.id
   const router = useRouter()
+  const { fetchCards } = useCards()
 
   const [profile, setProfile]     = useState<PlayerProfile | null>(null)
   const [isSelf, setIsSelf]       = useState(false)
@@ -81,7 +83,7 @@ export default function PlayerProfilePage() {
     const player = await playerRes.json()
 
     const [cardDefs, _fam] = await Promise.all([
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
     ])
 

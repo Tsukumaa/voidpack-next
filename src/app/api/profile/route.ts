@@ -41,7 +41,7 @@ export async function GET() {
 
   const uid = session.user.id
 
-  const [profile, admin, [totalRow], [uniqueRow], ownedArenasRow, streamerRow, welcomeRow] = await Promise.all([
+  const [profile, admin, [totalRow], [uniqueRow], ownedArenasRow, streamerRow, welcomeRow, cardBackRow] = await Promise.all([
     db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, uid) }),
     db.query.adminUsers.findFirst({ where: eq(adminUsers.discordId, uid) }),
     db.select({ total: count() }).from(customCards),
@@ -50,19 +50,23 @@ export async function GET() {
     db.select({ value: settings.value }).from(settings).where(eq(settings.key, `owned_arenas:${uid}`)).limit(1),
     db.query.twitchStreamers.findFirst({ where: eq(twitchStreamers.userId, uid) }),
     db.query.boosterCredits.findFirst({ where: and(eq(boosterCredits.userId, uid), eq(boosterCredits.source, 'welcome'), eq(boosterCredits.claimed, false)) }),
+    db.select({ value: settings.value }).from(settings).where(eq(settings.key, `card_back:${uid}`)).limit(1),
   ])
   const collectionComplete = (totalRow?.total ?? 0) > 0 && (uniqueRow?.unique ?? 0) >= (totalRow?.total ?? 0)
   const ownedArenas: string[] = ownedArenasRow[0]?.value ? JSON.parse(ownedArenasRow[0].value) : []
 
+  const selectedCardBack = (cardBackRow as { value: string }[])[0]?.value ?? 'default'
+
   return NextResponse.json({
     ...toSnake(profile as unknown as Record<string, unknown>, !!admin),
+    selected_card_back:  selectedCardBack,
     collection_complete: collectionComplete,
     owned_arenas: ownedArenas,
     streamer_channel: streamerRow ? { login: streamerRow.broadcasterLogin, active: streamerRow.active } : null,
     music_volume: profile?.musicVolume != null ? Number(profile.musicVolume) : null,
     music_muted:  profile?.musicMuted ?? null,
     welcome_booster: !!welcomeRow,
-  }, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
+  }, { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function PATCH(req: NextRequest) {

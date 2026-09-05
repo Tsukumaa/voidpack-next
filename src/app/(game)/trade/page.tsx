@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ArrowLeftRight, Plus, X, Check, Clock, ChevronDown, Search } from 'lucide-react'
 import { useGameStore } from '@/store/game'
+import { useCards } from '@/hooks/useCards'
 import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
 
@@ -106,7 +107,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
   useEffect(() => {
     Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
       fetch('/api/social/friends').then(r => r.ok ? r.json() : []),
     ]).then(([col, cards, fr]) => {
       const defs: Record<string, AllCard> = {}
@@ -292,6 +293,7 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
 // ── Page principale ───────────────────────────────────────────────────────────
 function TradeContent() {
   const { user } = useGameStore(s => ({ user: s.user }))
+  const { fetchCards } = useCards()
   const [trades, setTrades]     = useState<Trade[]>([])
   const [tab, setTab]           = useState<'incoming' | 'outgoing'>('incoming')
   const [showCreate, setShowCreate] = useState(false)
@@ -302,7 +304,7 @@ function TradeContent() {
   const load = useCallback(async () => {
     const [pending, cards] = await Promise.all([
       fetch('/api/trade?status=pending').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
     ])
     setTrades(pending ?? [])
     const defs: Record<string, { name: string; image_url: string | null }> = {}

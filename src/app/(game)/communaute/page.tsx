@@ -1,5 +1,5 @@
 'use client'
-import { Users, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon, Eye } from 'lucide-react'
+import { Users, Search, X, Medal, BookOpen, Hexagon, Check, Swords, Sword, UserPlus, Clock, ArrowLeftRight, Plus, Link as LinkIcon, Eye, Package } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,8 @@ import { AvatarRing } from '@/components/game/AvatarRing'
 import { useSocialStore } from '@/store/social'
 import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
+import { CombatRulesModal } from '@/components/game/CombatRulesModal'
+import { useCards } from '@/hooks/useCards'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LadderEntry {
@@ -24,6 +26,13 @@ interface LadderEntry {
   role: UserRole
   collectionComplete?: boolean
   is_subscriber?: boolean
+  wins?: number
+  losses?: number
+  rankPoints?: number
+  currentStreak?: number
+  bestStreak?: number
+  packsOpened?: number
+  totalCards?: number
 }
 
 interface Friend {
@@ -159,7 +168,7 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
   useEffect(() => {
     Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
       ...(marketMode ? [] : [fetch('/api/social/friends').then(r => r.ok ? r.json() : [])]),
     ]).then(([col, cards, fr]) => {
       const defs: Record<string, AllCard> = {}
@@ -190,7 +199,7 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
     try {
       const [col, cards] = await Promise.all([
         fetch(`/api/collection?userId=${f.friend_id}`).then(r => r.ok ? r.json() : []),
-        fetch('/api/cards').then(r => r.ok ? r.json() : []),
+        fetchCards(),
       ])
       const defs: Record<string, AllCard> = {}
       for (const c of cards ?? []) {
@@ -404,11 +413,13 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
 // ─── Page principale ──────────────────────────────────────────────────────────
 function CommunauteContent() {
   const { user } = useGameStore(s => ({ user: s.user }))
+  const { fetchCards } = useCards()
   const router = useRouter()
   const unreadMessageCount = useSocialStore(s => s.unreadMessageCount)
   const unreadBySender = useSocialStore(s => s.unreadBySender)
   const clearUnreadMessages = useSocialStore(s => s.clearUnreadMessages)
   const [ladder, setLadder]           = useState<'xp' | 'combat' | 'trades' | 'marche'>('xp')
+  const [showRules, setShowRules]     = useState(false)
   const [entries, setEntries]         = useState<LadderEntry[]>([])
   const [loading, setLoading]         = useState(true)
   const [showFriends, setShowFriends] = useState(false)
@@ -444,14 +455,21 @@ function CommunauteContent() {
       xp:            e.xp ?? 0,
       level:         e.level ?? 1,
       highest_rarity: e.highestRarity ?? e.highest_rarity ?? null,
-      unique_cards:  e.total ?? e.unique_cards ?? 0,
+      unique_cards:      (e.unique ?? e.unique_cards ?? 0) as number,
+      totalCards:        (e.total ?? 0) as number,
+      packsOpened:       (e.packsOpened ?? 0) as number,
       role:               (e.role ?? null) as UserRole,
       void_cards:         e.void_cards ?? 0,
       collectionComplete: e.collectionComplete ?? false,
       is_subscriber:      (e.is_subscriber ?? false) as boolean,
+      wins:          (e.wins ?? 0) as number,
+      losses:        (e.losses ?? 0) as number,
+      rankPoints:    (e.rankPoints ?? 0) as number,
+      currentStreak: (e.currentStreak ?? 0) as number,
+      bestStreak:    (e.bestStreak ?? 0) as number,
     })))
     setLoading(false)
-  }, [])
+  }, [ladder])
 
   const loadFriends = useCallback(async () => {
     if (!user) return
@@ -489,7 +507,7 @@ function CommunauteContent() {
     if (!user) return
     const [pending, cards] = await Promise.all([
       fetch('/api/trade?status=pending').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
     ])
     setTrades(pending ?? [])
     const defs: Record<string, { name: string; image_url: string | null }> = {}
@@ -633,13 +651,22 @@ function CommunauteContent() {
         </div>
       </div>
 
-      {/* Bouton entrer dans l'arène */}
+      {/* Bouton entrer dans l'arène + règles */}
       {ladder === 'combat' && user && (
-        <Link href="/combat/draft"
-          className="flex items-center justify-center gap-2 w-full py-3 mb-4 rounded-2xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] font-bold text-sm hover:bg-[#7b2bff]/25 transition-colors">
-          <Swords size={16} /> Entrer dans l&apos;Arène
-        </Link>
+        <div className="flex gap-2 mb-4">
+          <Link href="/combat/draft"
+            className="flex items-center justify-center gap-2 flex-1 py-3 rounded-2xl bg-[#7b2bff]/15 border border-[#7b2bff]/30 text-[#a78bfa] font-bold text-sm hover:bg-[#7b2bff]/25 transition-colors">
+            <Swords size={16} /> Entrer dans l&apos;Arène
+          </Link>
+          <button
+            onClick={() => setShowRules(true)}
+            className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-white/50 font-bold text-sm hover:text-white hover:bg-white/[0.08] transition-colors"
+          >
+            <BookOpen size={15} /> Règles
+          </button>
+        </div>
       )}
+      {showRules && <CombatRulesModal onClose={() => setShowRules(false)} />}
 
       {/* Ladder XP / Combat */}
       {(ladder === 'xp' || ladder === 'combat') && (
@@ -680,20 +707,37 @@ function CommunauteContent() {
                       <RoleBadge role={entry.role} />
                       <SubscriberBadge isSubscriber={entry.is_subscriber} />
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
-                      <span className="flex items-center gap-1 text-white/30 text-[11px]"><BookOpen size={10} /> {entry.unique_cards} cartes</span>
-                      {entry.void_cards > 0 && (
-                        <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: RARITY_COLOR.void }}>
-                          <Hexagon size={10} /> {entry.void_cards} void
-                        </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {ladder === 'combat' ? (
+                        <>
+                          <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
+                          <span className="text-white/35 text-[11px]">{entry.wins ?? 0}V · {entry.losses ?? 0}D</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-white/40 text-[11px]">Niv. {entry.level}</span>
+                          <span className="flex items-center gap-1 text-white/30 text-[11px]"><BookOpen size={10} /> {entry.unique_cards} uniques · {entry.totalCards ?? 0} en tout</span>
+                          <span className="flex items-center gap-1 text-white/25 text-[11px]"><Package size={10} /> {entry.packsOpened ?? 0} boosters ouverts</span>
+                        </>
                       )}
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <p className="text-white font-bold text-sm">{entry.xp.toLocaleString('fr-FR')}</p>
-                    <p className="text-white/30 text-[10px]">XP</p>
+                    {ladder === 'combat' ? (
+                      <>
+                        <p className="text-white font-bold text-sm">{(entry.rankPoints ?? 0).toLocaleString('fr-FR')} <span className="text-white/30 text-[10px] font-normal">pts</span></p>
+                        {(entry.currentStreak ?? 0) > 1
+                          ? <p className="text-[#ff9a3d] text-[10px] font-bold">🔥 Streak : {entry.currentStreak} victoires</p>
+                          : <p className="text-white/20 text-[10px]">Meilleur streak : {entry.bestStreak ?? 0}</p>
+                        }
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-white font-bold text-sm">{entry.xp.toLocaleString('fr-FR')}</p>
+                        <p className="text-white/30 text-[10px]">XP</p>
+                      </>
+                    )}
                   </div>
 
                   {user && !isMe && (

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { gameSessions, combatStats } from '@/lib/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { gameSessions, combatStats, playerDailyMissions } from '@/lib/db/schema'
+import { eq, sql, and } from 'drizzle-orm'
+import { getTodayMissions } from '@/lib/game/achievements'
 
 const WIN_POINTS  = 25
 const LOSS_POINTS = -15
@@ -60,18 +61,19 @@ export async function POST(req: NextRequest) {
       },
     })
 
-  // Missions & succès du gagnant (fire-and-forget)
-  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-  Promise.all([
-    fetch(`${base}/api/profile/missions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ missionId: 'win_combat', count: 1 }),
-    }).catch(() => {}),
-    fetch(`${base}/api/achievements/check`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rarities: [], totalPacks: 0, uniqueCards: 0, level: 1 }),
-    }).catch(() => {}),
-  ])
+  // Incrémenter la mission "win_combat" du gagnant directement en DB
+  const todayMissions = getTodayMissions()
+  const combatMission = todayMissions.find(m => m.id === 'win_combat')
+  if (combatMission) {
+    const date = new Date().toISOString().split('T')[0]
+    db.insert(playerDailyMissions)
+      .values({ userId: winnerId, date, missionId: 'win_combat', progress: 1 })
+      .onConflictDoUpdate({
+        target: [playerDailyMissions.userId, playerDailyMissions.date, playerDailyMissions.missionId],
+        set: { progress: sql`MIN(${playerDailyMissions.progress} + 1, ${combatMission.goal})`, updatedAt: now },
+      })
+      .catch(() => {})
+  }
 
   return NextResponse.json({ ok: true })
 }

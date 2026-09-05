@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerDailyMissions, playerProfiles } from '@/lib/db/schema'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, sql, count } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
 
 function todayStr() {
@@ -48,6 +48,33 @@ export async function POST(req: NextRequest) {
       .set({ xp: sql`${playerProfiles.xp} + ${mission.xp}`, updatedAt: now })
       .where(eq(playerProfiles.userId, uid)),
   ])
+
+  // Vérifier si toutes les missions du jour sont maintenant réclamées → bonus 60 mana
+  const [claimedRow] = await db
+    .select({ total: count() })
+    .from(playerDailyMissions)
+    .where(and(
+      eq(playerDailyMissions.userId, uid),
+      eq(playerDailyMissions.date, date),
+      eq(playerDailyMissions.claimed, true),
+    ))
+
+  const allClaimed = (claimedRow?.total ?? 0) >= missions.length
+  if (allClaimed) {
+    // Vérifier qu'on n'a pas déjà accordé le bonus aujourd'hui
+    const bonusKey = `daily_bonus:${uid}:${date}`
+    const [existing] = await db.select().from(playerDailyMissions)
+      .where(and(eq(playerDailyMissions.userId, uid), eq(playerDailyMissions.date, date), eq(playerDailyMissions.missionId, bonusKey)))
+    if (!existing) {
+      await db.batch([
+        db.insert(playerDailyMissions).values({ userId: uid, date, missionId: bonusKey, progress: 1, claimed: true, claimedAt: now }),
+        db.update(playerProfiles)
+          .set({ mana: sql`${playerProfiles.mana} + 60`, updatedAt: now })
+          .where(eq(playerProfiles.userId, uid)),
+      ])
+      return NextResponse.json({ ok: true, xp_gained: mission.xp, bonus_mana: 60 })
+    }
+  }
 
   return NextResponse.json({ ok: true, xp_gained: mission.xp })
 }

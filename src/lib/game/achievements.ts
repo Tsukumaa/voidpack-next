@@ -57,7 +57,6 @@ export const DAILY_MISSIONS = [
   { id: 'open_void_pack', label: 'VOID Pack',        desc: 'Ouvrir un VOID Pack',            icon: '🌀', goal: 1,  xp: 90  },
   { id: 'win_combat',     label: 'Victoire',         desc: 'Gagner 1 combat',                icon: '⚔️', goal: 1,  xp: 130 },
   { id: 'make_trade',     label: 'Échange',          desc: 'Réaliser 1 échange',             icon: '🔄', goal: 1,  xp: 100 },
-  { id: 'add_friend',     label: 'Ami du jour',      desc: 'Ajouter 1 ami',                  icon: '🤝', goal: 1,  xp: 80  },
 ]
 
 // Sélectionner 3 missions pour aujourd'hui (déterministe selon la date)

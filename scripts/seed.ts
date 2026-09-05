@@ -133,16 +133,27 @@ async function main() {
         .onConflictDoNothing()
     }
 
+    // Pity state (boosters ouverts)
+    await db.insert(schema.playerPityState)
+      .values({ userId, totalPacksOpened: u.packs })
+      .onConflictDoNothing()
+
     // Combat stats
-    const wins   = Math.floor(u.xp / 300)
-    const losses = Math.floor(u.xp / 500)
+    const wins          = Math.floor(u.xp / 300)
+    const losses        = Math.floor(u.xp / 500)
+    const currentStreak = u.streak
+    const bestStreak    = u.streak + Math.floor(Math.random() * 4)
     await db.insert(schema.combatStats)
       .values({
         userId,
         wins,
         losses,
-        rankPoints: wins * 15 - losses * 10,
-        peakPoints: wins * 16,
+        rankPoints:    Math.max(0, wins * 15 - losses * 10),
+        peakPoints:    wins * 16,
+        currentStreak,
+        bestStreak,
+        seasonWins:   Math.floor(wins * 0.6),
+        seasonLosses: Math.floor(losses * 0.6),
       })
       .onConflictDoNothing()
   }

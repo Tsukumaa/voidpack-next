@@ -248,23 +248,22 @@
 /* Quit button in hero bar */
 .ca-quit-btn {
   position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 42px; height: 42px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255,60,60,.06);
+  left: 12px;
+  top: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 6px 12px;
+  background: rgba(10,5,20,.7);
   border: 1px solid rgba(255,100,100,.25);
   border-radius: 10px;
   color: rgba(255,100,100,.65);
-  font-size: 15px;
+  font-size: 12px; font-weight: 600;
   cursor: pointer;
   transition: all .12s;
-  z-index: 5;
+  z-index: 10;
+  backdrop-filter: blur(6px);
   white-space: nowrap;
-  flex-shrink: 0;
 }
-.ca-quit-btn:hover { background: rgba(255,60,60,.1); color: #ff6060; border-color: rgba(255,60,60,.38); }
+.ca-quit-btn:hover { background: rgba(255,60,60,.12); color: #ff6060; border-color: rgba(255,60,60,.45); }
 
 /* Touch — supprime le délai 300ms sur mobile */
 .ca-cw, .ca-end-btn, .ca-quit-btn, .ca-hero-bar { touch-action: manipulation; }
@@ -841,8 +840,7 @@
   .ca-mana-crystal      { width: 9px; height: 9px; }
   .ca-mana-lbl          { font-size: 9px; }
 
-  /* Bouton quitter — petit, coin gauche, ne chevauche plus */
-  .ca-quit-btn          { width: 28px; height: 28px; font-size: 11px; left: 6px; border-radius: 7px; }
+  .ca-quit-btn          { font-size: 11px; padding: 5px 10px; left: 8px; top: 8px; }
 
   /* Mid strip */
   .ca-mid-strip         { height: 34px; gap: 6px; padding: 0 8px; }
@@ -882,7 +880,7 @@
   .ca-mana-lbl          { font-size: 8px; }
   .ca-hero-right-col    { gap: 1px; }
 
-  .ca-quit-btn          { width: 26px; height: 26px; font-size: 10px; left: 4px; }
+  .ca-quit-btn          { font-size: 10px; padding: 4px 8px; left: 6px; top: 6px; }
 
   /* Mid strip minimal */
   .ca-mid-strip         { height: 28px; gap: 6px; padding: 0 6px; }

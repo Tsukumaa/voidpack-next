@@ -3,6 +3,7 @@ import React from 'react'
 import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit, Trash2 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
+import { useCards } from '@/hooks/useCards'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { RoleBadge, SubscriberBadge } from '@/components/game/RoleBadge'
@@ -93,6 +94,7 @@ interface MissionProgress {
 
 export default function ProfilPage() {
   const { user, profile, setProfile } = useGameStore(s => ({ user: s.user, profile: s.profile, setProfile: s.setProfile }))
+  const { fetchCards } = useCards()
   const addToast      = useSocialStore(s => s.addToast)
   const setProfilBadge = useSocialStore(s => s.setProfilBadge)
   const [stats, setStats]               = useState<{ totalCards: number; uniqueCards: number; byRarity: Record<string, number> } | null>(null)
@@ -154,7 +156,7 @@ export default function ProfilPage() {
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/profile/streak').then(r => r.ok ? r.json() : null),
       fetch('/api/achievements').then(r => r.ok ? r.json() : []),
-      fetch('/api/cards').then(r => r.ok ? r.json() : []),
+      fetchCards(),
     ])
     if (Array.isArray(allCards) && allCards.length > 0) setTotalAvailable(allCards.length)
 
