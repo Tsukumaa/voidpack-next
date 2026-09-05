@@ -151,6 +151,7 @@ function CardThumb({ name, imageUrl, rarity }: { name: string; imageUrl?: string
 // Flux marché : want (toutes cartes) → offer (mes cartes) → confirm
 function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose: () => void; onCreated: () => void; marketMode?: boolean }) {
   const firstStep = marketMode ? 'want' : 'friend'
+  const { fetchCards }              = useCards()
   const [step, setStep]             = useState<'friend' | 'want' | 'offer' | 'confirm'>(firstStep)
   const [myCards, setMyCards]       = useState<MyCard[]>([])
   const [allCards, setAllCards]     = useState<AllCard[]>([])
@@ -265,7 +266,7 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
           {steps.map((s, i) => (
             <div key={s} className="flex items-center gap-1">
               <div className={cn('w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center transition-all',
-                step === s ? 'bg-[#7b2bff] text-white' : (steps.indexOf(step) > i ? 'bg-[#7b2bff]/40 text-white/60' : 'bg-white/5 text-white/30'))}>
+                step === s ? 'bg-[#7b2bff] text-white' : (steps.indexOf(step as 'want' | 'offer' | 'confirm') > i ? 'bg-[#7b2bff]/40 text-white/60' : 'bg-white/5 text-white/30'))}>
                 {i + 1}
               </div>
               {i < steps.length - 1 && <div className="w-6 h-px bg-white/10" />}
@@ -391,8 +392,8 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
           {step !== firstStep && (
             <button onClick={() => {
               setSearch('')
-              const idx = steps.indexOf(step as typeof steps[number])
-              if (idx > 0) setStep(steps[idx - 1] as typeof step)
+              const idx = steps.indexOf(step as 'want' | 'offer' | 'confirm')
+              if (idx > 0) setStep(steps[idx - 1] as 'friend' | 'want' | 'offer' | 'confirm')
             }} className="px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm font-bold hover:bg-white/5">
               Retour
             </button>
