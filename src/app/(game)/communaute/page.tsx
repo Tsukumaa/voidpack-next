@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/game'
 import { StatePanel } from '@/components/game/StatePanel'
-import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { useSocialStore } from '@/store/social'
 import { FeatureGate } from '@/components/FeatureGate'
@@ -25,7 +25,6 @@ interface LadderEntry {
   highest_rarity: string | null
   role: UserRole
   collectionComplete?: boolean
-  is_subscriber?: boolean
   wins?: number
   losses?: number
   rankPoints?: number
@@ -43,7 +42,6 @@ interface Friend {
   status: string
   collectionComplete?: boolean
   activeSessionId?: string | null
-  is_subscriber?: boolean
 }
 
 interface Trade {
@@ -462,7 +460,6 @@ function CommunauteContent() {
       role:               (e.role ?? null) as UserRole,
       void_cards:         e.void_cards ?? 0,
       collectionComplete: e.collectionComplete ?? false,
-      is_subscriber:      (e.is_subscriber ?? false) as boolean,
       wins:          (e.wins ?? 0) as number,
       losses:        (e.losses ?? 0) as number,
       rankPoints:    (e.rankPoints ?? 0) as number,
@@ -521,10 +518,17 @@ function CommunauteContent() {
 
   const loadMarket = useCallback(async () => {
     if (!user) return
-    const [browse, mine] = await Promise.all([
+    const [browse, mine, cards] = await Promise.all([
       fetch('/api/market').then(r => r.ok ? r.json() : []),
       fetch('/api/market?mine=1').then(r => r.ok ? r.json() : []),
+      fetchCards(),
     ])
+    const defs: Record<string, { name: string; image_url: string | null }> = {}
+    for (const c of cards ?? []) {
+      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
+      defs[c.id] = { name: c.name, image_url: c.imageUrl ?? c.image_url ?? meta?.image_url ?? null }
+    }
+    setCardDefs(defs)
     setMarket(browse)
     setMyOffers(mine.filter((o: MarketOffer) => o.status === 'open'))
   }, [user])
@@ -706,7 +710,6 @@ function CommunauteContent() {
                         {isMe && <span className="text-xs text-white/40 font-normal ml-1">(toi)</span>}
                       </p>
                       <RoleBadge role={entry.role} />
-                      <SubscriberBadge isSubscriber={entry.is_subscriber} />
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {ladder === 'combat' ? (

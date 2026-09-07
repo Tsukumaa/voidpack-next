@@ -28,7 +28,7 @@ export async function GET() {
   // dernier message par ami (agrégé), non-lus par ami (agrégé)
   const [profileResult, [totalRow], uniqueRows, lastMsgs, unreadCounts] = await Promise.all([
     dbClient.execute({
-      sql: `SELECT user_id, username, avatar_url, last_seen_at, role, is_subscriber, subscriber_until FROM player_profiles WHERE user_id IN (${ph})`,
+      sql: `SELECT user_id, username, avatar_url, last_seen_at, role FROM player_profiles WHERE user_id IN (${ph})`,
       args: friendIds,
     }),
     db.select({ total: count() }).from(customCards),
@@ -56,7 +56,7 @@ export async function GET() {
     }),
   ])
 
-  type ProfileRow = { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null; role: string | null; is_subscriber: number | null; subscriber_until: string | null }
+  type ProfileRow = { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null; role: string | null }
   type MsgRow = { sender_id: string; receiver_id: string; content: string; created_at: string; read_at: string | null; rn: number }
   type UnreadRow = { sender_id: string; cnt: number }
 
@@ -65,8 +65,6 @@ export async function GET() {
   const unreadMap = Object.fromEntries((unreadCounts.rows as unknown as UnreadRow[]).map(r => [r.sender_id, Number(r.cnt)]))
   const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
   const totalAvailable = totalRow?.total ?? 0
-  const now = new Date()
-
   const previews = friendIds.map(fid => {
     const profile = profiles.find(p => p.user_id === fid)
     const msg = allMsgs.find(m => (m.sender_id === fid && m.receiver_id === uid) || (m.sender_id === uid && m.receiver_id === fid))
@@ -81,7 +79,6 @@ export async function GET() {
       lastSeenAt:         profile?.last_seen_at ?? null,
       role:               profile?.role ?? null,
       collectionComplete: totalAvailable > 0 && (uniqueMap[fid] ?? 0) >= totalAvailable,
-      is_subscriber:      !!profile?.is_subscriber && (!profile.subscriber_until || new Date(profile.subscriber_until) > now),
     }
   })
 

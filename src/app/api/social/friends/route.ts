@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 import { friendships, playerProfiles, gameSessions } from '@/lib/db/schema'
 import { eq, or, and, sql, count } from 'drizzle-orm'
 import { playerCards, customCards } from '@/lib/db/schema'
-import { isSubscriberActive } from '@/lib/kofi/grant'
 
 export async function GET() {
   const session = await auth()
@@ -52,7 +51,6 @@ export async function GET() {
       status: r.status,
       collectionComplete: totalAvailable > 0 && unique >= totalAvailable,
       activeSessionId: sessionOf(friendId),
-      is_subscriber: isSubscriberActive(profile ?? {}),
     }
   })
 

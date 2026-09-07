@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 import { playerProfiles, boosterCredits, settings } from '@/lib/db/schema'
 import { desc, eq, inArray } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
-import { isSubscriberActive } from '@/lib/kofi/grant'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest) {
     current_streak:      p.currentStreak,
     best_streak:         p.bestStreak,
     twitch_login:        p.twitchLogin,
-    is_subscriber:       isSubscriberActive(p),
     unlocked_card_backs: null,
     owned_arenas:        (arenaMap[`owned_arenas:${p.userId}`] ?? []) as string[],
     is_banned:           p.isBanned,
@@ -61,16 +59,6 @@ export async function POST(req: NextRequest) {
   if (action === 'update_role') {
     const role = data?.role ?? null
     await db.update(playerProfiles).set({ role }).where(eq(playerProfiles.userId, userId))
-    return NextResponse.json({ ok: true })
-  }
-
-  // Override manuel de l'abonnement (filet de sécurité hors Ko-fi)
-  if (action === 'set_subscriber') {
-    const active = !!data?.active
-    const until = active ? new Date(Date.now() + 34 * 24 * 3600 * 1000).toISOString() : null
-    await db.update(playerProfiles)
-      .set({ isSubscriber: active, subscriberUntil: until, updatedAt: new Date().toISOString() })
-      .where(eq(playerProfiles.userId, userId))
     return NextResponse.json({ ok: true })
   }
 

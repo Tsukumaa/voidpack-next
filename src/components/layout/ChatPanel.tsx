@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useSocialStore } from '@/store/social'
 import { useGameStore } from '@/store/game'
 import { Send, X, Search, ArrowLeft, MessageSquare, Swords } from 'lucide-react'
-import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -27,7 +27,6 @@ interface FriendPreview {
   lastSeenAt: string | null
   role?: UserRole
   collectionComplete?: boolean
-  is_subscriber?: boolean
 }
 
 function onlineStatus(lastSeenAt: string | null): { label: string; color: string } {
@@ -84,7 +83,6 @@ function FriendRow({ f, active, onClick }: { f: FriendPreview; active: boolean; 
               {f.username ?? '???'}
             </span>
             <RoleBadge role={f.role} />
-            <SubscriberBadge isSubscriber={f.is_subscriber} />
           </div>
           {f.lastAt && (
             <span className="text-[10px] flex-shrink-0" style={{ color: 'rgba(255,255,255,.2)' }}>

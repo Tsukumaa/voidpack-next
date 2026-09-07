@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { combatStats, playerCards, playerProfiles, customCards } from '@/lib/db/schema'
 import { eq, desc, sql, count } from 'drizzle-orm'
-import { isSubscriberActive } from '@/lib/kofi/grant'
 
 export async function GET(req: NextRequest) {
   const type  = req.nextUrl.searchParams.get('type') ?? 'combat'
@@ -21,24 +20,18 @@ export async function GET(req: NextRequest) {
         username:     playerProfiles.username,
         avatarUrl:    playerProfiles.avatarUrl,
         role:         playerProfiles.role,
-        isSubscriber: playerProfiles.isSubscriber,
-        subscriberUntil: playerProfiles.subscriberUntil,
       })
       .from(combatStats)
       .leftJoin(playerProfiles, eq(combatStats.userId, playerProfiles.userId))
       .orderBy(desc(combatStats.rankPoints))
       .limit(limit)
 
-    return NextResponse.json(rows.map(r => ({
-      ...r,
-      is_subscriber: isSubscriberActive(r),
-    })), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
+    return NextResponse.json(rows, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
   }
 
   const [totalCardsRow] = await db.select({ total: count() }).from(customCards)
   const totalAvailable = totalCardsRow?.total ?? 0
 
-  // collection ladder: XP en premier, nombre de cartes en égalité
   const rows = await db
     .select({
       userId:           playerProfiles.userId,
@@ -50,8 +43,6 @@ export async function GET(req: NextRequest) {
       avatarUrl:        playerProfiles.avatarUrl,
       highestRarity:    playerProfiles.highestRarity,
       role:             playerProfiles.role,
-      isSubscriber:     playerProfiles.isSubscriber,
-      subscriberUntil:  playerProfiles.subscriberUntil,
       packsOpened: playerProfiles.packsOpened,
     })
     .from(playerProfiles)
@@ -65,7 +56,6 @@ export async function GET(req: NextRequest) {
     xp:               r.xp    ?? 0,
     level:            r.level ?? 1,
     collectionComplete: totalAvailable > 0 && (r.unique ?? 0) >= totalAvailable,
-    is_subscriber: isSubscriberActive(r),
     packsOpened:   r.packsOpened ?? 0,
   })), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }

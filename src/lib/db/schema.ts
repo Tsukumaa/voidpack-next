@@ -21,10 +21,7 @@ export const playerProfiles = sqliteTable('player_profiles', {
   autoReveal:    integer('auto_reveal', { mode: 'boolean' }).notNull().default(false),
   role:          text('role').$type<'founder' | 'developer' | 'artist' | 'streamer'>(),
   favoriteCards: text('favorite_cards', { mode: 'json' }).$type<string[]>(),
-  email:         text('email'),                       // email Discord (matching Ko-fi auto)
-  kofiEmail:     text('kofi_email'),                  // email Ko-fi si différent (override)
-  isSubscriber:  integer('is_subscriber', { mode: 'boolean' }).notNull().default(false),
-  subscriberUntil: text('subscriber_until'),          // ISO date d'expiration de l'abonnement
+  email:         text('email'),
   musicVolume:   text('music_volume'),                // volume musique (0.0–1.0, null = défaut)
   musicMuted:    integer('music_muted', { mode: 'boolean' }).notNull().default(false),
   isBanned:      integer('is_banned', { mode: 'boolean' }).notNull().default(false),
@@ -32,21 +29,6 @@ export const playerProfiles = sqliteTable('player_profiles', {
   banAppeal:     text('ban_appeal'),                  // demande d'annulation (1 seule autorisée)
   createdAt:     text('created_at').notNull().default(now),
   updatedAt:     text('updated_at').notNull().default(now),
-})
-
-// ── kofi_events ───────────────────────────────────────────────────────────────
-// Journal des paiements Ko-fi (dédup + matching différé si email pas encore lié).
-export const kofiEvents = sqliteTable('kofi_events', {
-  id:            integer('id').primaryKey({ autoIncrement: true }),
-  transactionId: text('transaction_id').unique(),
-  type:          text('type'),                        // Subscription / Donation / Shop Order
-  email:         text('email'),
-  tierName:      text('tier_name'),
-  amount:        text('amount'),
-  isSubscription: integer('is_subscription', { mode: 'boolean' }).notNull().default(false),
-  matchedUserId: text('matched_user_id'),             // null = pas encore matché
-  processed:     integer('processed', { mode: 'boolean' }).notNull().default(false),
-  createdAt:     text('created_at').notNull().default(now),
 })
 
 // ── admin_users ───────────────────────────────────────────────────────────────

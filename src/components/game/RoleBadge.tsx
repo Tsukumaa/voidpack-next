@@ -27,15 +27,3 @@ export function RoleBadge({ role }: { role: UserRole }) {
   )
 }
 
-export function SubscriberBadge({ isSubscriber }: { isSubscriber?: boolean | null }) {
-  if (!isSubscriber) return null
-  return (
-    <span
-      className="inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
-      style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.45)' }}
-      title="Abonné VOID Pack"
-    >
-      <img src="/assets/branding/void-favicon.png" alt="Abonné" width={13} height={13} style={{ objectFit: 'contain' }} />
-    </span>
-  )
-}

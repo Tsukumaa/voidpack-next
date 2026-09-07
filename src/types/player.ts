@@ -9,9 +9,6 @@ export interface PlayerProfile {
   void_pulls: number
   is_admin: boolean
   role?: 'founder' | 'developer' | 'artist' | 'streamer' | null
-  is_subscriber?: boolean
-  subscriber_until?: string | null
-  kofi_email?: string | null
   created_at: string
   twitch_login: string | null
   selected_card_back: string | null

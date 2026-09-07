@@ -2,7 +2,7 @@
 
 import {
   Flame,
-  Coffee,
+  Palette,
   Shield,
   LogOut,
   Link as LinkIcon,
@@ -156,9 +156,9 @@ export function StatusBar() {
             className="flex items-center gap-1 px-3 py-2 rounded-full"
             style={{ background: 'rgba(123,43,255,.12)', border: '1px solid rgba(185,124,255,.28)' }}
           >
-            <Coffee size={13} style={{ color: '#b97cff' }} />
+            <Palette size={13} style={{ color: '#b97cff' }} />
             <span className="hidden sm:inline text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-cinzel)', color: '#b97cff', letterSpacing: '.06em' }}>
-              Soutien
+              Style
             </span>
           </button>
           )}

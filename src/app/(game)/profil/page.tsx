@@ -6,7 +6,7 @@ import { useGameStore } from '@/store/game'
 import { useCards } from '@/hooks/useCards'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
 import { AvatarRing } from '@/components/game/AvatarRing'
-import { RoleBadge, SubscriberBadge } from '@/components/game/RoleBadge'
+import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
@@ -325,7 +325,6 @@ export default function ProfilPage() {
             <div className="flex items-center gap-1.5">
               <p className="font-black text-white text-base truncate leading-tight">{profile?.username ?? 'Joueur'}</p>
               <RoleBadge role={profile?.role} />
-              <SubscriberBadge isSubscriber={profile?.is_subscriber} />
               {profile?.highest_rarity && (
                 <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold capitalize flex-shrink-0"
                   style={{ background: RARITY_COLOR[profile.highest_rarity]+'20', color: RARITY_COLOR[profile.highest_rarity] }}>

@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerProfiles, adminUsers, playerCards, customCards, settings, twitchStreamers, boosterCredits } from '@/lib/db/schema'
 import { eq, count, sql, and } from 'drizzle-orm'
-import { isSubscriberActive, consumePendingForUser } from '@/lib/kofi/grant'
 
 function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
   if (!p) return null
@@ -22,9 +21,6 @@ function toSnake(p: Record<string, unknown> | null, isAdmin: boolean) {
     twitch_id:           p.twitchId,
     twitch_login:        p.twitchLogin,
     is_admin:            isAdmin,
-    is_subscriber:       isSubscriberActive(p as { isSubscriber?: boolean | null; subscriberUntil?: string | null }),
-    subscriber_until:    p.subscriberUntil ?? null,
-    kofi_email:          p.kofiEmail ?? null,
     role:                p.role ?? null,
     selected_card_back:  p.selectedCardBack ?? null,
     unlocked_card_backs: null,
@@ -85,7 +81,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const allowed = ['username', 'avatarUrl', 'selectedCardBack', 'autoReveal', 'favoriteCards', 'kofiEmail'] as const
+  const allowed = ['username', 'avatarUrl', 'selectedCardBack', 'autoReveal', 'favoriteCards'] as const
   const safe: Record<string, unknown> = { updatedAt: new Date().toISOString() }
   for (const key of allowed) {
     if (key in patch) safe[key] = patch[key]
@@ -96,10 +92,6 @@ export async function PATCH(req: NextRequest) {
     .set(safe)
     .where(eq(playerProfiles.userId, uid))
     .returning()
-
-  if ('kofiEmail' in patch && typeof patch.kofiEmail === 'string' && patch.kofiEmail.trim()) {
-    await consumePendingForUser(uid, patch.kofiEmail).catch(e => console.error('consumePending error:', e))
-  }
 
   return NextResponse.json(updated ?? null)
 }

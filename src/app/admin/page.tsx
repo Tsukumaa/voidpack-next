@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone } from 'lucide-react'
-import { RoleBadge, SubscriberBadge, type UserRole } from '@/components/game/RoleBadge'
+import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -18,7 +18,6 @@ interface Player {
   unlocked_card_backs: string[] | null
   owned_arenas:        string[]
   role: UserRole
-  is_subscriber?: boolean
   is_banned?: boolean
   ban_reason?: string | null
   ban_appeal?: string | null
@@ -439,7 +438,6 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       {!p.avatar_url && (p.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
                     <span className="font-medium">{p.username ?? '-'}</span>
-                    <SubscriberBadge isSubscriber={p.is_subscriber} />
                     <RoleBadge role={p.role} />
                     {p.is_banned && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: 'rgba(220,38,38,0.2)', color: '#fca5a5', border: '1px solid rgba(220,38,38,0.3)' }}>BANNI</span>}
                   </div>
@@ -492,22 +490,6 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)', color: '#fcd34d' }}
                     >
                       Arènes
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const active = !p.is_subscriber
-                        setPlayers(ps => ps.map(q => q.user_id === p.user_id ? { ...q, is_subscriber: active } : q))
-                        await fetch('/api/admin/players', {
-                          method: 'POST', headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ action: 'set_subscriber', userId: p.user_id, data: { active } }),
-                        })
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                      style={p.is_subscriber
-                        ? { background: 'rgba(74,158,106,0.18)', border: '1px solid rgba(74,158,106,0.35)', color: '#6ee7a0' }
-                        : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
-                    >
-                      {p.is_subscriber ? '★ Abonné' : 'Abonné'}
                     </button>
                     {p.ban_appeal && (
                       <button
@@ -575,7 +557,6 @@ function PlayersTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold truncate">{p.username ?? '-'}</span>
-                  <SubscriberBadge isSubscriber={p.is_subscriber} />
                   <RoleBadge role={p.role} />
                   {p.is_banned && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ background: 'rgba(220,38,38,0.2)', color: '#fca5a5', border: '1px solid rgba(220,38,38,0.3)' }}>BANNI</span>}
                 </div>
