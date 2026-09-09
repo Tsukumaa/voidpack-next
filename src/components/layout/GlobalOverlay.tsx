@@ -161,7 +161,7 @@ export function GlobalOverlay() {
               }}
               className="w-full py-2.5 rounded-xl text-white text-sm font-bold"
               style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-              J&apos;ai compris !
+              Fermer
             </button>
           </div>
         </div>

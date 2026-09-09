@@ -2077,7 +2077,7 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
                 </div>
                 <div className="w-full py-2 rounded-xl text-white text-xs font-bold text-center"
                   style={{ background: 'linear-gradient(135deg,#7b2bff,#4a1fa8)' }}>
-                  J&apos;ai compris !
+                  Fermer
                 </div>
               </div>
             </div>
