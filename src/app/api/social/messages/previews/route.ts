@@ -28,7 +28,7 @@ export async function GET() {
   // dernier message par ami (agrégé), non-lus par ami (agrégé)
   const [profileResult, [totalRow], uniqueRows, lastMsgs, unreadCounts] = await Promise.all([
     dbClient.execute({
-      sql: `SELECT user_id, username, avatar_url, last_seen_at, role FROM player_profiles WHERE user_id IN (${ph})`,
+      sql: `SELECT user_id, username, avatar_url, role FROM player_profiles WHERE user_id IN (${ph})`,
       args: friendIds,
     }),
     db.select({ total: count() }).from(customCards),
@@ -56,7 +56,7 @@ export async function GET() {
     }),
   ])
 
-  type ProfileRow = { user_id: string; username: string | null; avatar_url: string | null; last_seen_at: string | null; role: string | null }
+  type ProfileRow = { user_id: string; username: string | null; avatar_url: string | null; role: string | null }
   type MsgRow = { sender_id: string; receiver_id: string; content: string; created_at: string; read_at: string | null; rn: number }
   type UnreadRow = { sender_id: string; cnt: number }
 
@@ -76,7 +76,6 @@ export async function GET() {
       lastAt:             msg?.created_at ?? null,
       lastFromMe:         msg?.sender_id === uid,
       unread:             unreadMap[fid] ?? 0,
-      lastSeenAt:         profile?.last_seen_at ?? null,
       role:               profile?.role ?? null,
       collectionComplete: totalAvailable > 0 && (uniqueMap[fid] ?? 0) >= totalAvailable,
     }

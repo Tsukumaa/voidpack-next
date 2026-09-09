@@ -18,6 +18,9 @@ export function GlobalOverlay() {
   const prevTradeRef     = useRef<number>(0)
   const seenChallenges   = useRef<Set<string>>(new Set())
   const [activeChallenge, setActiveChallenge] = useState<PendingChallenge | null>(null)
+  // Ref always pointing to latest callbacks so the poll effect never needs to re-run on store changes
+  const cb = useRef({ setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast, setActiveChallenge })
+  cb.current = { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast, setActiveChallenge }
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
   const idle = useIdleDetection()
 
@@ -48,6 +51,8 @@ export function GlobalOverlay() {
       const data = await fetch('/api/social/activity').then(r => r.ok ? r.json() : null).catch(() => null)
       if (!data) return
 
+      const { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast, setActiveChallenge } = cb.current
+
       setPendingFriendCount(data.pendingFriendCount)
       if (prevFriendsRef.current >= 0 && data.pendingFriendCount > prevFriendsRef.current) {
         addToast({ type: 'friend_request', title: "Demande d'ami reçue", action: { label: 'Voir', href: '/communaute' } })
@@ -73,10 +78,6 @@ export function GlobalOverlay() {
       if (data.streak) setStreak(data.streak.currentStreak)
     }
 
-    function pingPresence() {
-      fetch('/api/social/presence', { method: 'POST' }).catch(() => {})
-    }
-
     let pollTimer: ReturnType<typeof setTimeout>
     function scheduleNextPoll() {
       const delay = document.visibilityState === 'visible' ? 60_000 : 300_000
@@ -84,9 +85,7 @@ export function GlobalOverlay() {
     }
 
     poll()
-    pingPresence()
     scheduleNextPoll()
-    const i2 = setInterval(pingPresence, 60_000)
 
     function onVisibility() {
       if (document.visibilityState === 'visible') {
@@ -99,10 +98,9 @@ export function GlobalOverlay() {
 
     return () => {
       clearTimeout(pollTimer)
-      clearInterval(i2)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [user, setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast])
+  }, [user]) // eslint-disable-line
 
   return (
     <>

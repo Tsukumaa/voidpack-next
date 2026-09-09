@@ -447,7 +447,7 @@ function CommunauteContent() {
     setLoading(true)
     const type = ladder === 'combat' ? 'combat' : 'collection'
     const data = await fetch(`/api/ladder?type=${type}&limit=50`).then(r => r.ok ? r.json() : [])
-    setEntries(data.map((e: Record<string, unknown>) => ({
+    const mapped = data.map((e: Record<string, unknown>, i: number) => ({
       user_id:       e.userId ?? e.user_id,
       username:      e.username,
       avatar_url:    e.avatarUrl ?? e.avatar_url,
@@ -459,13 +459,15 @@ function CommunauteContent() {
       packsOpened:       (e.packsOpened ?? 0) as number,
       role:               (e.role ?? null) as UserRole,
       void_cards:         e.void_cards ?? 0,
-      collectionComplete: e.collectionComplete ?? false,
+      // Force collectionComplete sur les 3 premiers en dev pour tester le badge
+      collectionComplete: (e.collectionComplete ?? false) || (process.env.NODE_ENV === 'development' && i < 3),
       wins:          (e.wins ?? 0) as number,
       losses:        (e.losses ?? 0) as number,
       rankPoints:    (e.rankPoints ?? 0) as number,
       currentStreak: (e.currentStreak ?? 0) as number,
       bestStreak:    (e.bestStreak ?? 0) as number,
-    })))
+    }))
+    setEntries(mapped)
     setLoading(false)
   }, [ladder])
 
