@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { sql } from 'drizzle-orm'
@@ -40,6 +41,9 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
+    // Invalider le cache public des cartes si on touche custom_cards
+    if (table === 'custom_cards' && action !== 'select') revalidateTag('public-cards')
+
     return NextResponse.json({ data: result.rows })
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })

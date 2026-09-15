@@ -10,7 +10,7 @@ const getPublicCards = unstable_cache(
     return (await db.select().from(customCards)).filter(c => c.family === 'global' || activeFamilies.includes(c.family))
   },
   ['public-cards'],
-  { revalidate: 3600 }, // re-query DB max 1x/heure
+  { revalidate: 300, tags: ['public-cards'] },
 )
 
 export async function GET(req: NextRequest) {
@@ -21,6 +21,6 @@ export async function GET(req: NextRequest) {
   const cards = await getPublicCards()
 
   return NextResponse.json(cards, {
-    headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
+    headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' },
   })
 }
