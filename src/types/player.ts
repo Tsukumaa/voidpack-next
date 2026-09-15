@@ -16,6 +16,7 @@ export interface PlayerProfile {
   owned_arenas?: string[]
   auto_reveal?: boolean
   favorite_cards?: string[] | null
+  mana?: number
   collection_complete?: boolean
   streamer_channel?: { login: string; active: boolean } | null
 }

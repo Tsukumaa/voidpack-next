@@ -65,7 +65,7 @@ const BOOSTER_COST = 180
 interface TradeModal { card: GroupedCard; qty: number }
 
 export default function CollectionPage() {
-  const { user } = useGameStore(s => ({ user: s.user }))
+  const { user, profile: storeProfile } = useGameStore(s => ({ user: s.user, profile: s.profile }))
   const { fetchCards } = useCards()
   const [cards, setCards]         = useState<GroupedCard[]>([])
   const [loading, setLoading]     = useState(true)
@@ -108,13 +108,12 @@ export default function CollectionPage() {
     if (!user) return
     setLoading(true)
 
-    const [rawCards, cardDefs, famData, profileData] = await Promise.all([
+    const [rawCards, cardDefs, famData] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetchCards(),
       fetch('/api/families').then(r => r.ok ? r.json() : []),
-      fetch('/api/profile').then(r => r.ok ? r.json() : null),
     ])
-    if (profileData?.mana != null) setMana(profileData.mana)
+    if (storeProfile?.mana != null) setMana(storeProfile.mana)
 
     const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
     for (const d of cardDefs ?? []) {

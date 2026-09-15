@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Rochers flottants */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/assets/rochers.png"
+          src="/assets/rocks.png"
           alt=""
           aria-hidden="true"
           className="fixed inset-0 w-full h-full object-cover z-[1] pointer-events-none animate-[rockFloat_11s_ease-in-out_infinite]"

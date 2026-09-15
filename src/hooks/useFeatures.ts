@@ -9,7 +9,7 @@ let inflight: Promise<Features> | null = null
 
 // Fetcher partagé : cache 30s + dédup des appels simultanés
 export async function getFeatures(): Promise<Features> {
-  if (cache && Date.now() - lastFetch < 30_000) return cache
+  if (cache && Date.now() - lastFetch < 300_000) return cache
   if (inflight) return inflight
   inflight = fetch('/api/features')
     .then(r => r.json())
@@ -30,7 +30,7 @@ export function useFeatures() {
       if (mounted.current) setFeatures(data)
     }
     load()
-    const id = setInterval(load, 30_000)
+    const id = setInterval(load, 300_000)
     return () => { mounted.current = false; clearInterval(id) }
   }, [])
 

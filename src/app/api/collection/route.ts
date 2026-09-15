@@ -11,7 +11,13 @@ export async function GET(req: NextRequest) {
   const targetId = req.nextUrl.searchParams.get('userId') ?? session.user.id
 
   const rows = await db
-    .select()
+    .select({
+      cardId:        playerCards.cardId,
+      rarity:        playerCards.rarity,
+      family:        playerCards.family,
+      count:         playerCards.count,
+      lastObtainedAt: playerCards.lastObtainedAt,
+    })
     .from(playerCards)
     .where(eq(playerCards.userId, targetId))
     .orderBy(desc(playerCards.lastObtainedAt))

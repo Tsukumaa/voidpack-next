@@ -12,8 +12,6 @@ const FEATURE_KEYS = [
   'feature_shop',
 ]
 
-export const dynamic = 'force-dynamic'
-
 export async function GET() {
   const rows = await db.select().from(settings).where(inArray(settings.key, FEATURE_KEYS))
   const map: Record<string, boolean> = {}
@@ -22,5 +20,5 @@ export async function GET() {
   for (const row of rows) {
     if (FEATURE_KEYS.includes(row.key)) map[row.key] = row.value !== 'false'
   }
-  return NextResponse.json(map, { headers: { 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' } })
+  return NextResponse.json(map, { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' } })
 }

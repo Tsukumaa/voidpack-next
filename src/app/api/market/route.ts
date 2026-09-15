@@ -10,23 +10,29 @@ export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const uid  = session.user.id
-  const mine = req.nextUrl.searchParams.get('mine') === '1'
+  const uid   = session.user.id
+  const mine  = req.nextUrl.searchParams.get('mine') === '1'
+  const page  = Math.max(0, parseInt(req.nextUrl.searchParams.get('page') ?? '0', 10))
+  const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10)))
 
   let rows
   if (mine) {
     rows = await db.query.marketOffers.findMany({
       where: eq(marketOffers.sellerId, uid),
       orderBy: (t, { desc }) => [desc(t.createdAt)],
+      limit,
+      offset: page * limit,
     })
   } else {
     rows = await db.query.marketOffers.findMany({
       where: and(eq(marketOffers.status, 'open'), ne(marketOffers.sellerId, uid)),
       orderBy: (t, { desc }) => [desc(t.createdAt)],
+      limit,
+      offset: page * limit,
     })
   }
 
-  // Enrichir avec le profil du vendeur
+  // Enrichir avec le profil du vendeur (1 query groupée)
   const sellerIds = [...new Set(rows.map(r => r.sellerId))]
   const profiles = sellerIds.length
     ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
@@ -34,24 +40,26 @@ export async function GET(req: NextRequest) {
     : []
   const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p]))
 
-  // Filtrer les offres dont le vendeur ne possède plus la carte
   const withProfile = rows.map(r => ({
     ...r,
     sellerUsername:  profileMap[r.sellerId]?.username  ?? r.sellerId,
     sellerAvatarUrl: profileMap[r.sellerId]?.avatarUrl ?? null,
   }))
 
-  // Pour les offres ouvertes, vérifier que le vendeur possède encore la carte
-  if (!mine) {
-    const ownershipChecks = await Promise.all(
-      withProfile.map(r =>
-        db.query.playerCards.findFirst({
-          where: and(eq(playerCards.userId, r.sellerId), eq(playerCards.cardId, r.offeredCardKey)),
-        }).then(owned => ({ id: r.id, owned: !!(owned && owned.count > 0) }))
-      )
+  // Pour les offres ouvertes, vérifier ownership en 1 seule requête (au lieu de N)
+  if (!mine && withProfile.length > 0) {
+    const offeredKeys = [...new Set(withProfile.map(r => r.offeredCardKey))]
+    const ownedCards = await db
+      .select({ userId: playerCards.userId, cardId: playerCards.cardId, count: playerCards.count })
+      .from(playerCards)
+      .where(and(
+        inArray(playerCards.userId, sellerIds),
+        inArray(playerCards.cardId, offeredKeys),
+      ))
+    const ownedSet = new Set(
+      ownedCards.filter(c => c.count > 0).map(c => `${c.userId}:${c.cardId}`)
     )
-    const ownedSet = new Set(ownershipChecks.filter(c => c.owned).map(c => c.id))
-    return NextResponse.json(withProfile.filter(r => ownedSet.has(r.id)))
+    return NextResponse.json(withProfile.filter(r => ownedSet.has(`${r.sellerId}:${r.offeredCardKey}`)))
   }
 
   return NextResponse.json(withProfile)

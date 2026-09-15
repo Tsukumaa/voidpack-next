@@ -2,15 +2,23 @@
 import { useEffect } from 'react'
 import { useGameStore } from '@/store/game'
 
-export function useBoosterCredits() {
-  const { user, pendingCredits, setPendingCredits, removePendingCredit } = useGameStore()
+const CREDITS_TTL = 15_000
 
-  const loadCredits = async () => {
+export function useBoosterCredits() {
+  const { user, pendingCredits, setPendingCredits, removePendingCredit, creditsFetchedAt, creditsLoading, setCreditsLoading } = useGameStore()
+
+  const loadCredits = async (force = false) => {
     if (!user) return
-    const res = await fetch('/api/booster/credits')
-    if (res.ok) {
-      const data = await res.json()
-      setPendingCredits(data ?? [])
+    if (!force) {
+      if (creditsLoading) return
+      if (creditsFetchedAt && Date.now() - creditsFetchedAt < CREDITS_TTL) return
+    }
+    setCreditsLoading(true)
+    try {
+      const res = await fetch('/api/booster/credits')
+      if (res.ok) setPendingCredits(await res.json() ?? [])
+    } finally {
+      setCreditsLoading(false)
     }
   }
 

@@ -25,17 +25,15 @@ export async function POST(req: NextRequest) {
 
   if (!credit) return NextResponse.json({ error: 'Credit not found or already claimed' }, { status: 404 })
 
-  // Incrémenter packs_opened sur le profil
-  await db
+  // Incrémenter packs_opened et récupérer le profil en 1 seule query
+  const [profile] = await db
     .update(playerProfiles)
     .set({
       packsOpened: sql`${playerProfiles.packsOpened} + 1`,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(playerProfiles.userId, uid))
-
-  // Retourner le nouveau total pour que le client puisse vérifier les succès
-  const profile = await db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, uid) })
+    .returning()
 
   // Si le booster venait des Channel Points d'un streamer et qu'un void/légendaire
   // a été pull → félicitations dans le chat du streamer (best-effort).
