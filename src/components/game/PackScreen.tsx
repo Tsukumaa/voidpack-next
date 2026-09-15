@@ -44,7 +44,7 @@ export function PackScreen() {
   const [openedCreditId, setOpenedCreditId] = useState<string | null>(null)
   const [openSeq, setOpenSeq] = useState(0)
   const [openedType, setOpenedType] = useState<string>('void')
-  const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/dos.png')
+  const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/back.png')
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
   const [carouselIdx, setCarouselIdx] = useState(0)
 
@@ -138,7 +138,7 @@ export function PackScreen() {
       const { cards } = await res.json()
 
       setOpenedType(type)
-      setOpenedImageUrl(boosterImages[type] || '/assets/dos.png')
+      setOpenedImageUrl(boosterImages[type] || '/assets/back.png')
       setOpenedCards(cards as CardResult[])
       setOpenedCreditId(String(credit.id))
       setOpenSeq(n => n + 1)
@@ -160,7 +160,7 @@ export function PackScreen() {
     }
   }, [loading, user, loadCredits, boosterImages])
 
-  const imgFor = (type: string) => boosterImages[type] || '/assets/dos.png'
+  const imgFor = (type: string) => boosterImages[type] || '/assets/back.png'
 
   return (
     <>

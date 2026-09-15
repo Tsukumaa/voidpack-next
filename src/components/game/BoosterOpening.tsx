@@ -298,7 +298,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
                   {card.artUrl
                     ? <CardMedia src={card.artUrl} alt={card.name} />
                     // eslint-disable-next-line @next/next/no-img-element
-                    : <img src="/assets/dos.png" alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
+                    : <img src="/assets/back.png" alt={card.name} className="absolute inset-0 w-full h-full object-cover" />
                   }
                 </CardFrame>
 
@@ -413,7 +413,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const currentCard = cards[cardIndex]
   const isLast      = cardIndex === cards.length - 1
   const rarity      = currentCard?.rarity ?? 'common'
-  const packSrc     = boosterImageUrl || '/assets/dos.png'
+  const packSrc     = boosterImageUrl || '/assets/back.png'
 
   function later(fn: () => void, ms: number) {
     const t = setTimeout(fn, ms); timerRefs.current.push(t); return t

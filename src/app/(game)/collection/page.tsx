@@ -401,7 +401,7 @@ export default function CollectionPage() {
                           style={{ aspectRatio: '0.714' }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src="/assets/dos.png" alt="" draggable={false}
+                          <img src="/assets/back.png" alt="" draggable={false}
                             className="w-full h-full object-cover select-none"
                             style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center">

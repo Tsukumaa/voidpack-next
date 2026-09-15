@@ -371,7 +371,7 @@ export default function PlayerProfilePage() {
                             <div key={card.card_id} className="flex flex-col">
                               <div className="relative rounded-[12px] overflow-hidden border border-white/[0.06] bg-black/40 active:scale-95 transition-transform" style={{ aspectRatio: '0.714' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/assets/dos.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
+                                <img src="/assets/back.png" alt="" draggable={false} className="w-full h-full object-cover select-none" style={{ filter: 'grayscale(1) brightness(0.32) contrast(0.9)' }} />
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center">
                                   <Lock size={22} className="text-white/45" />
                                   <span className="text-white/75 text-[11px] font-bold leading-tight line-clamp-2 uppercase">{card.name}</span>
