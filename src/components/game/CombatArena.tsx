@@ -134,6 +134,9 @@ function CombatCard({
         ) : null}
       </CardFrame>
 
+      {/* Nom visible en main sur mobile */}
+      {isInHand && <span className="ca-hand-name">{card.name}</span>}
+
       {/* Stats en cadres — en bas de la carte */}
       <div className="ca-stat-badges">
         <span className="ca-stat-badge ca-stat-badge--cost" style={{ borderColor: `${RARITY_COLOR[card.rarity] ?? '#9ca3af'}55` }}>
@@ -464,20 +467,6 @@ export function CombatArena({
 
       {showRules && <CombatRulesModal onClose={() => setShowRules(false)} />}
 
-      <button
-        onClick={onSurrender}
-        style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(255,100,100,0.3)', background: 'rgba(10,5,20,0.7)', color: 'rgba(255,100,100,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap' }}
-      >
-        ✕ Quitter
-      </button>
-
-      <button
-        onClick={() => setShowRules(true)}
-        style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(168,85,247,0.35)', background: 'rgba(10,5,20,0.7)', color: '#c084fc', cursor: 'pointer', fontSize: 12, fontWeight: 600, backdropFilter: 'blur(6px)', whiteSpace: 'nowrap' }}
-      >
-        <BookOpen size={14} /> Règles
-      </button>
-
 
       {/* Tooltip effets — rendu dans ca-root hors de ca-arena (overflow:hidden) */}
       {cardTip && cardTip.card.effects && cardTip.card.effects.length > 0 && (
@@ -499,9 +488,9 @@ export function CombatArena({
         </div>
       )}
 
-      {topLabel && <div className="ca-top-badge">{topLabel}</div>}
 
       <div className="ca-arena">
+        {topLabel && <div className="ca-top-badge">{topLabel}</div>}
         {/* Damage floats */}
         {dmgPopups.map(d => (
           <div key={d.id} className="ca-dmg-float" style={{ left: d.x, top: d.y }}>-{d.value}</div>
@@ -515,6 +504,7 @@ export function CombatArena({
           className={`ca-hero-bar ca-hero-bar--opp${canFace ? ' ca-hero-bar--attackable' : ''}`}
           onClick={handleFaceClick}
         >
+          <button className="ca-quit-btn" onClick={e => { e.stopPropagation(); onSurrender() }}>✕ Quitter</button>
           <div className="ca-hero-inner">
             <div className={`ca-hero-portrait ca-hero-portrait--opp${oppHealFlash ? ' ca-heal-flash' : ''}`} data-face-enemy>
               {oppAvatar
@@ -531,6 +521,9 @@ export function CombatArena({
               {Math.max(0, oppHp)}<span className="ca-hero-hp-max">/30</span>
             </div>
           </div>
+          <button className="ca-rules-btn" onClick={e => { e.stopPropagation(); setShowRules(true) }}>
+            <BookOpen size={13} /> Règles
+          </button>
         </div>
 
         {/* ── OPP BOARD ── */}

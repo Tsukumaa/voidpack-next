@@ -26,6 +26,7 @@ export interface BoosterCredit {
   booster_type: string
   source: string
   created_at: string
+  gifted_from?: string | null
   opened_cards?: { id: string; name: string; rarity: string; family: string; artUrl?: string | null }[] | null
 }
 

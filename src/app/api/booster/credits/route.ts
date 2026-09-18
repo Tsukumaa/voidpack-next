@@ -18,6 +18,7 @@ export async function GET() {
     id:           c.id,
     booster_type: c.boosterType,
     source:       c.source,
+    gifted_from:  c.giftedFrom ?? null,
     created_at:   c.createdAt,
     opened_cards: c.openedCards ? JSON.parse(c.openedCards) : null,
   })))

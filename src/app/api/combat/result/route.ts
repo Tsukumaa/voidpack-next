@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { gameSessions, combatStats, playerDailyMissions } from '@/lib/db/schema'
-import { eq, sql, and } from 'drizzle-orm'
+import { gameSessions, combatStats, playerDailyMissions, boosterCredits } from '@/lib/db/schema'
+import { eq, sql } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
 
 const WIN_POINTS  = 25
@@ -60,6 +60,14 @@ export async function POST(req: NextRequest) {
         updatedAt:     now,
       },
     })
+
+  // Booster VOID au vainqueur en arène (ranked uniquement)
+  const sessionState = (() => { try { return JSON.parse(gameSession.state ?? '{}') } catch { return {} } })()
+  if (sessionState.ranked !== false) {
+    db.insert(boosterCredits)
+      .values({ userId: winnerId, boosterType: 'void', source: 'arena_win' })
+      .catch(() => {})
+  }
 
   // Incrémenter la mission "win_combat" du gagnant directement en DB
   const todayMissions = getTodayMissions()

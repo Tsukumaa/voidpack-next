@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { signIn } from 'next-auth/react'
-import { Link as LinkIcon, Coins } from 'lucide-react'
+import { Link as LinkIcon, Coins, ChevronLeft, ChevronRight, Gift, X } from 'lucide-react'
 import Image from 'next/image'
 import { useGameStore } from '@/store/game'
 import { useBoosterCredits } from '@/hooks/useBoosterCredits'
@@ -48,6 +48,12 @@ export function PackScreen() {
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
   const [carouselIdx, setCarouselIdx] = useState(0)
 
+  // ── Don de pack ────────────────────────────────────────────────────────────
+  const [giftOpen, setGiftOpen] = useState(false)
+  const [friends, setFriends] = useState<{ userId: string; username?: string; avatarUrl?: string }[]>([])
+  const [giftUsed, setGiftUsed] = useState(0)
+  const [gifting, setGifting] = useState<string | null>(null) // friendId en cours
+
   const touchStartX = useRef<number | null>(null)
 
   const { map: groups, order: types } = useMemo(
@@ -58,8 +64,46 @@ export function PackScreen() {
   const safeIdx = Math.min(carouselIdx, Math.max(0, types.length - 1))
   const activeType = types[safeIdx] ?? null
   const activeCredits = activeType ? (groups[activeType] ?? []) : []
+
+  const DAILY_GIFT_QUOTA = 10
+
+  const openGiftModal = useCallback(async () => {
+    setGiftOpen(true)
+    const [fr, qt] = await Promise.all([
+      fetch('/api/social/friends').then(r => r.json()).catch(() => []),
+      fetch('/api/booster/gift').then(r => r.json()).catch(() => ({ used: 0 })),
+    ])
+    setFriends(Array.isArray(fr) ? fr : [])
+    setGiftUsed(qt?.used ?? 0)
+  }, [])
+
+  const handleGift = useCallback(async (friendId: string) => {
+    const credit = activeCredits[0]
+    if (!credit || gifting) return
+    setGifting(friendId)
+    try {
+      const res = await fetch('/api/booster/gift', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId, boosterType: activeType, creditId: credit.id }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json()
+        alert(error ?? 'Erreur')
+        return
+      }
+      removePendingCredit(Number(credit.id))
+      setGiftUsed(u => u + 1)
+      setGiftOpen(false)
+    } finally {
+      setGifting(null)
+    }
+  }, [activeCredits, activeType, gifting, removePendingCredit])
   const activeCount = activeCredits.length
   const hasCredits = pendingCredits.length > 0
+
+  // Forcer un refresh à l'ouverture de la page pack
+  useEffect(() => { loadCredits(true) }, []) // eslint-disable-line
 
   // Si un crédit a déjà été ouvert (openedCards stocké) mais pas encore réclamé → rouvrir automatiquement
   useEffect(() => {
@@ -194,6 +238,7 @@ export function PackScreen() {
         "
       >
         {hasCredits ? (
+          <>
           <div
             className="flex flex-col items-center gap-4 w-full"
             onTouchStart={onTouchStart}
@@ -205,10 +250,10 @@ export function PackScreen() {
               {types.length > 1 && safeIdx > 0 && (
                 <button
                   onClick={() => setCarouselIdx(i => i - 1)}
-                  className="absolute left-1 sm:left-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full text-[#bf9fff] text-2xl font-bold transition-all hover:scale-110"
-                  style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.45)', boxShadow: '0 0 12px rgba(123,43,255,0.3)' }}
+                  className="absolute left-1 sm:left-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                  style={{ background: 'rgba(123,43,255,0.35)', border: '1px solid rgba(180,130,255,0.55)' }}
                 >
-                  ‹
+                  <ChevronLeft size={22} className="text-white" strokeWidth={2} />
                 </button>
               )}
 
@@ -265,10 +310,10 @@ export function PackScreen() {
               {types.length > 1 && safeIdx < types.length - 1 && (
                 <button
                   onClick={() => setCarouselIdx(i => i + 1)}
-                  className="absolute right-1 sm:right-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full text-[#bf9fff] text-2xl font-bold transition-all hover:scale-110"
-                  style={{ background: 'rgba(123,43,255,0.2)', border: '1px solid rgba(123,43,255,0.45)', boxShadow: '0 0 12px rgba(123,43,255,0.3)' }}
+                  className="absolute right-1 sm:right-3 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                  style={{ background: 'rgba(123,43,255,0.35)', border: '1px solid rgba(180,130,255,0.55)' }}
                 >
-                  ›
+                  <ChevronRight size={22} className="text-white" strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -293,11 +338,69 @@ export function PackScreen() {
               </div>
             )}
 
+            {/* Bouton offrir */}
+            <button
+              onClick={openGiftModal}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(123,43,255,0.18)', border: '1px solid rgba(180,130,255,0.35)', color: 'rgba(200,160,255,0.85)' }}
+            >
+              <Gift size={13} /> Offrir à un ami
+            </button>
+
             <p className="text-[#4a9e6a] text-xs">
               {pendingCredits.length} booster
               {pendingCredits.length > 1 ? 's' : ''} disponible
             </p>
           </div>
+
+          {/* ── Modal don ── */}
+          {giftOpen && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+              <div className="relative w-full max-w-sm rounded-2xl p-5 flex flex-col gap-4" style={{ background: 'rgba(14,8,24,0.98)', border: '1px solid rgba(180,130,255,0.25)', boxShadow: '0 0 60px rgba(123,43,255,0.25)' }}>
+                <button onClick={() => setGiftOpen(false)} className="absolute top-3 right-3 text-white/40 hover:text-white/80 transition-colors">
+                  <X size={18} />
+                </button>
+
+                <div>
+                  <p className="text-white font-bold text-sm">Offrir un {activeType === 'void' ? 'VOID Pack' : `${activeType} Pack`}</p>
+                  <p className="text-white/40 text-xs mt-0.5">
+                    Quota journalier : <span className={giftUsed >= DAILY_GIFT_QUOTA ? 'text-red-400' : 'text-[#a78bfa]'}>{giftUsed}/{DAILY_GIFT_QUOTA}</span> offerts aujourd&apos;hui
+                  </p>
+                </div>
+
+                {friends.length === 0 ? (
+                  <p className="text-white/30 text-sm text-center py-4">Aucun ami pour l&apos;instant</p>
+                ) : (
+                  <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
+                    {friends.map(f => {
+                      const quotaFull = giftUsed >= DAILY_GIFT_QUOTA
+                      return (
+                        <div key={f.userId} className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          {f.avatarUrl
+                            ? <img src={f.avatarUrl} className="w-8 h-8 rounded-full flex-shrink-0" alt={f.username} />
+                            : <div className="w-8 h-8 rounded-full bg-[#7b2bff]/40 flex-shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-xs font-semibold truncate">{f.username ?? f.userId}</p>
+                          </div>
+                          <button
+                            onClick={() => handleGift(f.userId)}
+                            disabled={quotaFull || !!gifting}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                            style={{ background: quotaFull ? 'rgba(255,255,255,0.06)' : 'rgba(123,43,255,0.5)', border: '1px solid rgba(180,130,255,0.4)', color: quotaFull ? 'rgba(255,255,255,0.3)' : '#e0d0ff' }}
+                          >
+                            {gifting === f.userId
+                              ? <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                              : <><Gift size={11} /> {quotaFull ? 'Max' : 'Offrir'}</>}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center gap-6 w-full">
             <div className="flex flex-col items-center gap-2">

@@ -65,9 +65,12 @@
   to   { opacity: 1; }
 }
 
-/* ── Top badge ─────────────────────────────────────────────────────── */
+/* ── Top badge
+ * Desktop : position:fixed centré en haut
+ * Mobile  : flex item dans ca-arena (première ligne)
+ */
 .ca-top-badge {
-  position: absolute;
+  position: fixed;
   top: 8px;
   left: 50%;
   transform: translateX(-50%);
@@ -121,7 +124,6 @@
   width: 100%;
   max-width: 380px;
 }
-/* Player hero centered like opp */
 .ca-hero-bar--player .ca-hero-inner {
   margin: 0 auto;
 }
@@ -245,25 +247,28 @@
   white-space: nowrap;
 }
 
-/* Quit button in hero bar */
-.ca-quit-btn {
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+/* Quit / Rules buttons
+ * Desktop : position:fixed → échappent du hero bar, flottent en haut de l'écran
+ * Mobile  : position:static → inline dans le flex row du hero bar
+ */
+.ca-quit-btn,
+.ca-rules-btn {
+  display: flex; align-items: center; gap: 6px;
   padding: 6px 12px;
-  background: rgba(10,5,20,.7);
-  border: 1px solid rgba(255,100,100,.25);
   border-radius: 10px;
-  color: rgba(255,100,100,.65);
   font-size: 12px; font-weight: 600;
   cursor: pointer;
   transition: all .12s;
-  z-index: 10;
-  backdrop-filter: blur(6px);
   white-space: nowrap;
+  backdrop-filter: blur(6px);
+  position: fixed;
+  top: 12px;
+  z-index: 100;
 }
-.ca-quit-btn:hover { background: rgba(255,60,60,.12); color: #ff6060; border-color: rgba(255,60,60,.45); }
+.ca-quit-btn  { left: 12px;  background: rgba(10,5,20,.7); border: 1px solid rgba(255,100,100,.25); color: rgba(255,100,100,.7); }
+.ca-quit-btn:hover  { background: rgba(255,60,60,.12); color: #ff6060; border-color: rgba(255,60,60,.45); }
+.ca-rules-btn { right: 12px; background: rgba(10,5,20,.7); border: 1px solid rgba(168,85,247,.35);  color: #c084fc; }
+.ca-rules-btn:hover { background: rgba(107,42,238,.15); border-color: rgba(168,85,247,.6); }
 
 /* Touch — supprime le délai 300ms sur mobile */
 .ca-cw, .ca-end-btn, .ca-quit-btn, .ca-hero-bar { touch-action: manipulation; }
@@ -543,6 +548,31 @@
   pointer-events: none;
 }
 
+/* ── Nom carte en main (mobile) ─────────────────────────────────────── */
+.ca-hand-name {
+  display: none;
+}
+@media (max-width: 640px) {
+  .ca-hand-name {
+    display: block;
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    color: rgba(220,200,140,.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+    pointer-events: none;
+    text-shadow: 0 1px 4px rgba(0,0,0,.9);
+    letter-spacing: .03em;
+  }
+}
+
 /* ── Hand ───────────────────────────────────────────────────────────── */
 .ca-hand {
   display: flex;
@@ -808,7 +838,7 @@
 /* Les cartes sont déjà gérées par la formule min(vw,vh) dans .ca-cw     */
 @media (max-height: 900px) and (min-height: 481px) {
   /* Hero bars — réduire la hauteur fixe pour libérer de l'espace plateau */
-  .ca-hero-bar          { height: 68px; padding: 5px 14px; }
+  .ca-hero-bar          { height: 62px; padding: 5px 12px; }
   .ca-hero-portrait     { width: 42px; height: 42px; font-size: 20px; }
   .ca-hero-hp-num       { font-size: 22px; min-width: 42px; padding: 2px 6px; border-radius: 9px; }
   .ca-hero-hp-max       { font-size: 10px; }
@@ -826,13 +856,13 @@
 
 /* ── Mobile portrait (≤ 640px) ──────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Hero bars */
-  .ca-hero-bar          { height: 60px; padding: 5px 10px; }
-  .ca-hero-inner        { gap: 8px; max-width: 100%; }
-  /* Pousser l'inner pour ne pas chevaucher le bouton quitter */
-  .ca-hero-bar--player .ca-hero-inner { margin-left: 44px; margin-right: 0; }
-  .ca-hero-portrait     { width: 36px; height: 36px; font-size: 16px; }
-  .ca-hero-hp-num       { font-size: 18px; min-width: 34px; padding: 2px 5px; border-radius: 7px; }
+  /* Hero bars — boutons Quitter/Règles inline (plus fixed) */
+  .ca-hero-bar          { height: 56px; padding: 5px 8px; gap: 6px; justify-content: flex-start; }
+  .ca-hero-inner        { gap: 8px; flex: 1; max-width: none; }
+  .ca-hero-bar--player  { justify-content: center; }
+  .ca-hero-bar--player .ca-hero-inner { flex: unset; max-width: 340px; }
+  .ca-hero-portrait     { width: 34px; height: 34px; font-size: 15px; }
+  .ca-hero-hp-num       { font-size: 17px; min-width: 30px; padding: 2px 5px; border-radius: 6px; }
   .ca-hero-hp-max       { font-size: 9px; }
   .ca-hero-hpbar        { height: 6px; }
   .ca-hero-name         { font-size: 9px; }
@@ -840,24 +870,34 @@
   .ca-mana-crystal      { width: 9px; height: 9px; }
   .ca-mana-lbl          { font-size: 9px; }
 
-  .ca-quit-btn          { font-size: 11px; padding: 5px 10px; left: 8px; top: 8px; }
+  /* Boutons inline dans le hero bar (annule le position:fixed du desktop) */
+  .ca-quit-btn,
+  .ca-rules-btn         { position: static; font-size: 10px; padding: 4px 8px; gap: 4px; border-radius: 7px; flex-shrink: 0; }
+
+  /* Top badge inline dans ca-arena (annule le position:fixed du desktop) */
+  .ca-top-badge         { position: static; transform: none; display: flex; align-items: center; justify-content: center; padding: 3px 0; font-size: 11px; }
 
   /* Mid strip */
   .ca-mid-strip         { height: 34px; gap: 6px; padding: 0 8px; }
-  .ca-end-btn           { padding: 6px 12px; font-size: 10px; }
+  .ca-end-btn           { padding: 6px 14px; font-size: 10px; }
   .ca-turn-lbl          { display: none; }
   .ca-timer-lbl         { font-size: 10px; min-width: 22px; }
 
-  /* Cartes plateau — max 5 par côté → 5×70 + 4×6 = 374px ≤ 382px dispo ✓ */
-  .ca-cw                { width: clamp(64px, 17vw, 78px); }
-  .ca-board             { gap: 6px; padding: 4px 6px; overflow: hidden; }
+  /* Boards */
+  .ca-cw                { width: clamp(60px, 16vw, 76px); }
+  .ca-board             { gap: 6px; padding: 6px; }
 
-  /* Main — badges fixes, cartes plus larges */
-  .ca-hand              { height: clamp(150px, 24vh, 190px); padding: 22px 8px 8px; }
-  /* 5 cartes × 88px avec -40px marge = 88 + 4×48 = 280px ✓ */
-  .ca-hand .ca-cw       { width: clamp(80px, 21vw, 100px); margin-left: clamp(-42px, -10vw, -26px); }
+  /* Main */
+  .ca-hand              { height: clamp(140px, 22vh, 180px); padding: 20px 8px 8px; }
+  .ca-hand .ca-cw       { width: clamp(78px, 20vw, 96px); margin-left: clamp(-40px, -9.5vw, -24px); }
   .ca-hand .ca-cw:first-child { margin-left: 0; }
   .ca-hand .ca-cw--playable:hover { transform: translateY(-28px) scale(1.12) !important; }
+
+  /* Badges corner (atk/def aux bords) → trop proches entre cartes adjacentes */
+  .ca-badge              { display: none; }
+  /* Badges centrés : réduits pour tenir dans la carte */
+  .ca-stat-badges        { gap: 1px; bottom: 3px; }
+  .ca-stat-badge         { font-size: 8px; padding: 1px 3px; border-radius: 3px; }
 
   .ca-log               { font-size: 9px; padding: 4px 8px; }
   .ca-board-empty       { font-size: 9px; }
@@ -865,39 +905,45 @@
 
 /* ── Mobile paysage (hauteur ≤ 480px) ──────────────────────────────── */
 @media (max-height: 480px) {
-  /* Hero bars compactes */
-  .ca-hero-bar          { height: 46px; padding: 3px 8px; }
+  /* Hero bars ultra-compactes */
+  .ca-hero-bar          { height: 38px; padding: 2px 8px; }
   .ca-hero-inner        { gap: 6px; max-width: 100%; }
-  .ca-hero-bar--player .ca-hero-inner { margin-left: 38px; margin-right: 0; }
-  .ca-hero-portrait     { width: 28px; height: 28px; font-size: 13px; }
-  .ca-hero-hp-num       { font-size: 15px; min-width: 28px; padding: 2px 4px; border-radius: 6px; }
-  .ca-hero-hp-max       { font-size: 8px; }
-  .ca-hero-hpbar        { height: 5px; }
+  /* Laisser de la place pour Quitter (gauche) et Règles (droite) dans l'opp bar */
+  .ca-hero-bar--opp .ca-hero-inner    { padding-left: 82px; padding-right: 78px; }
+  .ca-hero-bar--player .ca-hero-inner { margin-left: 0; margin-right: 0; }
+  .ca-hero-portrait     { width: 24px; height: 24px; font-size: 12px; }
+  .ca-hero-hp-num       { font-size: 14px; min-width: 26px; padding: 1px 4px; border-radius: 5px; }
+  .ca-hero-hp-max       { display: none; }
+  .ca-hero-hpbar        { height: 4px; }
   .ca-hero-name         { font-size: 8px; }
   .ca-hero-info         { gap: 2px; }
-  .ca-mana-row          { gap: 3px; }
-  .ca-mana-crystal      { width: 7px; height: 7px; }
-  .ca-mana-lbl          { font-size: 8px; }
+  .ca-mana-row          { gap: 2px; }
+  .ca-mana-crystal      { width: 6px; height: 6px; }
+  .ca-mana-lbl          { display: none; }
   .ca-hero-right-col    { gap: 1px; }
 
-  .ca-quit-btn          { font-size: 10px; padding: 4px 8px; left: 6px; top: 6px; }
+  .ca-quit-btn          { font-size: 10px; padding: 3px 7px; left: 5px; top: 5px; }
 
   /* Mid strip minimal */
-  .ca-mid-strip         { height: 28px; gap: 6px; padding: 0 6px; }
-  .ca-end-btn           { padding: 4px 10px; font-size: 9px; border-radius: 6px; }
+  .ca-mid-strip         { height: 26px; gap: 6px; padding: 0 6px; }
+  .ca-end-btn           { padding: 3px 10px; font-size: 9px; border-radius: 5px; }
   .ca-turn-lbl          { display: none; }
   .ca-timer-lbl         { font-size: 9px; min-width: 18px; }
 
-  /* Cartes plateau paysage — max 5, basé sur vh */
-  .ca-cw                { width: clamp(56px, 14vh, 72px); }
-  .ca-board             { gap: 5px; padding: 2px 6px; overflow: hidden; }
+  /*
+   * Cartes plateau paysage : on laisse overflow:visible pour que les cartes
+   * puissent dépasser le board container sans être coupées.
+   * Hauteur board = flex:1 sur le reste après hero bars + mid + hand + log.
+   */
+  .ca-cw                { width: clamp(48px, 11vh, 64px); }
+  .ca-board             { gap: 4px; padding: 2px 4px; overflow: visible; min-height: 60px; }
 
-  /* Main paysage */
-  .ca-hand              { height: clamp(112px, 28vh, 145px); padding: 16px 8px 6px; }
-  .ca-hand .ca-cw       { width: clamp(70px, 17vh, 90px); margin-left: clamp(-36px, -9vh, -22px); }
+  /* Main paysage — réduite pour laisser de la place aux boards */
+  .ca-hand              { height: clamp(88px, 22vh, 115px); padding: 12px 8px 4px; }
+  .ca-hand .ca-cw       { width: clamp(56px, 14vh, 72px); margin-left: clamp(-30px, -7vh, -18px); }
   .ca-hand .ca-cw:first-child { margin-left: 0; }
-  .ca-hand .ca-cw--playable:hover { transform: translateY(-20px) scale(1.1) !important; }
+  .ca-hand .ca-cw--playable:hover { transform: translateY(-16px) scale(1.08) !important; }
 
-  .ca-log               { font-size: 8px; padding: 2px 6px; }
+  .ca-log               { font-size: 8px; padding: 1px 6px; line-height: 1.4; }
   .ca-stars             { display: none; }
 }

@@ -10,6 +10,7 @@ import {
   initSession,
 } from '@/lib/game/combat-multiplayer'
 import type { OppAction } from '@/components/game/CombatArena'
+import { useBoosterCredits } from '@/hooks/useBoosterCredits'
 
 interface GameState {
   p1_hp: number; p2_hp: number
@@ -61,6 +62,7 @@ export default function CombatPage() {
   const [oppName, setOppName]     = useState('Adversaire')
   const [oppAvatar, setOppAvatar] = useState<string | null>(null)
   const [oppAction, setOppAction] = useState<OppAction | null>(null)
+  const { loadCredits } = useBoosterCredits()
 
   useEffect(() => { myTurnRef.current = myTurn }, [myTurn])
   const addLog = useCallback((msg: string) => setLog(l => [msg, ...l].slice(0, 30)), [])
@@ -75,8 +77,13 @@ export default function CombatPage() {
     // Si c'est encore mon tour côté serveur ET localement → état optimiste déjà à jour,
     // ne pas écraser (évite les rollbacks pendant les actions rapides)
     if (serverSaysMyTurn && myTurnRef.current) {
-      if (state?.winner) setGameOver({ winner: state.winner })
-      else if (sess.status === 'finished' && sess.winnerId) setGameOver({ winner: sess.winnerId as string })
+      if (state?.winner) {
+        setGameOver({ winner: state.winner })
+        if (state.winner === user.id && state.ranked !== false) loadCredits(true)
+      } else if (sess.status === 'finished' && sess.winnerId) {
+        setGameOver({ winner: sess.winnerId as string })
+        if (sess.winnerId === user.id && state?.ranked !== false) loadCredits(true)
+      }
       return
     }
 
@@ -84,9 +91,14 @@ export default function CombatPage() {
     setRole(sess.player1Id === user.id ? 'player1' : 'player2')
     myTurnRef.current = serverSaysMyTurn
     setMyTurn(serverSaysMyTurn)
-    if (state?.winner) setGameOver({ winner: state.winner })
-    else if (sess.status === 'finished' && sess.winnerId) setGameOver({ winner: sess.winnerId as string })
-  }, [user])
+    if (state?.winner) {
+      setGameOver({ winner: state.winner })
+      if (state.winner === user.id && state.ranked !== false) loadCredits(true)
+    } else if (sess.status === 'finished' && sess.winnerId) {
+      setGameOver({ winner: sess.winnerId as string })
+      if (sess.winnerId === user.id && state?.ranked !== false) loadCredits(true)
+    }
+  }, [user]) // eslint-disable-line
 
   useEffect(() => {
     if (!user) return
@@ -266,24 +278,38 @@ export default function CombatPage() {
     </div>
   )
 
-  if (gameOver) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#030308] gap-6 px-4"
-      style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #030308)' }}>
-      <div className={`text-5xl font-black ${gameOver.winner === user?.id ? 'text-[#4a9e6a]' : 'text-[#ff4757]'}`}>
-        {gameOver.winner === user?.id ? 'Victoire !' : 'Défaite'}
+  if (gameOver) {
+    const isWinner = gameOver.winner === user?.id
+    const isRanked = gameState?.ranked !== false
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#030308] gap-6 px-4"
+        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #1a0a3a44, #030308)' }}>
+        <div className={`text-5xl font-black ${isWinner ? 'text-[#4a9e6a]' : 'text-[#ff4757]'}`}>
+          {isWinner ? 'Victoire !' : 'Défaite'}
+        </div>
+        {isWinner && isRanked && (
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-[#7b2bff]/30"
+            style={{ background: 'rgba(123,43,255,0.12)' }}>
+            <span className="text-2xl">🎁</span>
+            <div>
+              <p className="text-white font-bold text-sm">1 VOID Pack gagné !</p>
+              <p className="text-white/45 text-xs">Disponible sur la page Boosters</p>
+            </div>
+          </div>
+        )}
+        <div className="flex gap-3">
+          <button onClick={() => router.push('/communaute')}
+            className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold hover:bg-white/10 transition-colors">
+            Communauté
+          </button>
+          <button onClick={() => router.push('/combat/draft')}
+            className="px-6 py-3 rounded-2xl bg-[#7b2bff] text-white font-bold hover:bg-[#6920e0] transition-colors">
+            Nouveau match
+          </button>
+        </div>
       </div>
-      <div className="flex gap-3">
-        <button onClick={() => router.push('/communaute')}
-          className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold hover:bg-white/10 transition-colors">
-          Communauté
-        </button>
-        <button onClick={() => router.push('/combat/draft')}
-          className="px-6 py-3 rounded-2xl bg-[#7b2bff] text-white font-bold hover:bg-[#6920e0] transition-colors">
-          Nouveau match
-        </button>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <CombatArena

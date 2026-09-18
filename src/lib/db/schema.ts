@@ -154,6 +154,7 @@ export const boosterCredits = sqliteTable('booster_credits', {
   claimed:     integer('claimed', { mode: 'boolean' }).notNull().default(false),
   claimedAt:   text('claimed_at'),
   openedCards: text('opened_cards'),
+  giftedFrom:  text('gifted_from'),
   createdAt:   text('created_at').notNull().default(now),
   createdBy:   text('created_by'),
 }, (t) => [
