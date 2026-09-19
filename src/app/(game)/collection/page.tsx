@@ -58,9 +58,9 @@ interface GroupedCard {
 }
 
 const MANA_PER_RARITY: Record<string, number> = {
-  common: 1, rare: 2, epic: 3, legendary: 4, void: 5,
+  common: 2, rare: 4, epic: 6, legendary: 30, void: 150,
 }
-const BOOSTER_COST = 180
+const BOOSTER_COST = 150
 
 interface TradeModal { card: GroupedCard; qty: number }
 
