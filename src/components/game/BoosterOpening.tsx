@@ -66,7 +66,7 @@ type Phase = 'idle'|'tearing'|'torn'|'cards'|'results'
 type CardPhase = 'back'|'suspense'|'void-video'|'revealed'|'hiding'
 
 // ── Overlay vidéo VOID ────────────────────────────────────────────────────────
-const VIDEO_VOLUME = 0.2
+const VIDEO_VOLUME = 1.0
 
 function fadeVideoIn(v: HTMLVideoElement, ms = 500) {
   v.volume = 0
