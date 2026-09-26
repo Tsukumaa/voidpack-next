@@ -459,8 +459,7 @@ function CommunauteContent() {
       packsOpened:       (e.packsOpened ?? 0) as number,
       role:               (e.role ?? null) as UserRole,
       void_cards:         e.void_cards ?? 0,
-      // Force collectionComplete sur les 3 premiers en dev pour tester le badge
-      collectionComplete: (e.collectionComplete ?? false) || (process.env.NODE_ENV === 'development' && i < 3),
+      collectionComplete: (e.collectionComplete ?? false) as boolean,
       wins:          (e.wins ?? 0) as number,
       losses:        (e.losses ?? 0) as number,
       rankPoints:    (e.rankPoints ?? 0) as number,
@@ -473,34 +472,24 @@ function CommunauteContent() {
 
   const loadFriends = useCallback(async () => {
     if (!user) return
-    const data = await fetch('/api/social/friends').then(r => r.ok ? r.json() : [])
-    setFriends(data.map((f: Record<string, unknown>) => ({
-      id:                 f.friendshipId ?? f.id,
-      friend_id:          f.userId ?? f.friend_id,
+    const data = await fetch('/api/social/friends?full=1').then(r => r.ok ? r.json() : {})
+    setFriends((data.accepted ?? []).map((f: Record<string, unknown>) => ({
+      id:                 f.friendshipId,
+      friend_id:          f.userId,
       username:           f.username ?? null,
-      avatar_url:         f.avatarUrl ?? f.avatar_url ?? null,
-      status:             f.status ?? 'accepted',
+      avatar_url:         f.avatarUrl ?? null,
+      status:             'accepted',
       collectionComplete: f.collectionComplete ?? false,
-      activeSessionId: f.activeSessionId ?? null,
+      activeSessionId:    f.activeSessionId ?? null,
     })))
-  }, [user])
-
-  const loadPendingRequests = useCallback(async () => {
-    if (!user) return
-    const data = await fetch('/api/social/friends/pending').then(r => r.ok ? r.json() : [])
-    setPendingRequests(data.map((f: Record<string, unknown>) => ({
-      id:         f.friendshipId ?? f.id,
-      friend_id:  f.senderId ?? f.friend_id,
+    setPendingRequests((data.pendingReceived ?? []).map((f: Record<string, unknown>) => ({
+      id:         f.friendshipId,
+      friend_id:  f.userId,
       username:   f.username ?? null,
-      avatar_url: f.avatarUrl ?? f.avatar_url ?? null,
+      avatar_url: f.avatarUrl ?? null,
       status:     'pending',
     })))
-  }, [user])
-
-  const loadSentPending = useCallback(async () => {
-    if (!user) return
-    const data = await fetch('/api/social/friends/pending?direction=sent').then(r => r.ok ? r.json() : [])
-    setSentPending(new Set(data.map((f: Record<string, unknown>) => (f.userId ?? f.receiverId) as string)))
+    setSentPending(new Set((data.pendingSent ?? []) as string[]))
   }, [user])
 
   const loadTrades = useCallback(async () => {
@@ -520,9 +509,8 @@ function CommunauteContent() {
 
   const loadMarket = useCallback(async () => {
     if (!user) return
-    const [browse, mine, cards] = await Promise.all([
-      fetch('/api/market').then(r => r.ok ? r.json() : []),
-      fetch('/api/market?mine=1').then(r => r.ok ? r.json() : []),
+    const [data, cards] = await Promise.all([
+      fetch('/api/market?combined=1').then(r => r.ok ? r.json() : { browse: [], mine: [] }),
       fetchCards(),
     ])
     const defs: Record<string, { name: string; image_url: string | null }> = {}
@@ -531,9 +519,9 @@ function CommunauteContent() {
       defs[c.id] = { name: c.name, image_url: c.imageUrl ?? c.image_url ?? meta?.image_url ?? null }
     }
     setCardDefs(defs)
-    setMarket(browse)
-    setMyOffers(mine.filter((o: MarketOffer) => o.status === 'open'))
-  }, [user])
+    setMarket(data.browse ?? [])
+    setMyOffers(data.mine ?? [])
+  }, [user, fetchCards])
 
   async function marketAction(offerId: string, act: 'accept' | 'cancel') {
     setMarketActioning(offerId)
@@ -548,7 +536,7 @@ function CommunauteContent() {
   }
 
   useEffect(() => { loadLadder() }, [loadLadder, ladder])
-  useEffect(() => { if (user) { loadFriends(); loadPendingRequests(); loadSentPending() } }, [loadFriends, loadPendingRequests, loadSentPending, user])
+  useEffect(() => { if (user) loadFriends() }, [loadFriends, user])
   useEffect(() => { if (user && ladder === 'trades') loadTrades() }, [user, ladder, loadTrades])
   useEffect(() => { if (user && ladder === 'marche') loadMarket() }, [user, ladder, loadMarket])
 
@@ -1019,7 +1007,7 @@ function CommunauteContent() {
             setShowFriends(false)
             router.push(`/combat/spectate/${f.activeSessionId}?p=${f.friend_id}`)
           }}
-          onRefresh={() => { loadFriends(); loadPendingRequests() }}
+          onRefresh={loadFriends}
         />
       )}
 

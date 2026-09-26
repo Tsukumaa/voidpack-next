@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit, Trash2 } from 'lucide-react'
+import { Target, Tv2, Flame, Gift, CheckCircle2, Check, Package, Sparkles, Gem, Zap, Crown, BookOpen, Archive, Landmark, Trophy, Star, TrendingUp, Award, LogIn, Inbox, Swords, ArrowLeftRight, Users, UserPlus, Shield, Medal, Rocket, CalendarCheck, Library, Telescope, Orbit, Trash2, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { useCards } from '@/hooks/useCards'
@@ -11,7 +11,6 @@ import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
 import { useSocialStore } from '@/store/social'
-import { Link as LinkIcon } from 'lucide-react'
 
 const ACHIEVEMENT_ICON: Record<string, React.ReactNode> = {
   // ── Succès boosters

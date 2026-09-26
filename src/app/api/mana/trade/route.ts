@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerCards, playerProfiles } from '@/lib/db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, gt } from 'drizzle-orm'
 
 export const MANA_PER_RARITY: Record<string, number> = {
   common:    2,
@@ -20,29 +20,29 @@ export async function POST(req: NextRequest) {
   const { cardId, quantity } = await req.json() as { cardId: string; quantity: number }
   if (!cardId || !quantity || quantity < 1) return NextResponse.json({ error: 'invalid_params' }, { status: 400 })
 
-  // Vérifier que le joueur possède la carte avec assez de copies
-  const [row] = await db.select()
-    .from(playerCards)
-    .where(and(eq(playerCards.userId, uid), eq(playerCards.cardId, cardId)))
-    .limit(1)
+  // Retire les copies et retourne la rareté en une seule requête
+  // La condition count > quantity garantit qu'on garde au moins 1 exemplaire
+  const [updated] = await db
+    .update(playerCards)
+    .set({ count: sql`${playerCards.count} - ${quantity}` })
+    .where(and(
+      eq(playerCards.userId, uid),
+      eq(playerCards.cardId, cardId),
+      gt(playerCards.count, quantity), // count - quantity >= 1
+    ))
+    .returning({ rarity: playerCards.rarity, newCount: playerCards.count })
 
-  if (!row) return NextResponse.json({ error: 'card_not_owned' }, { status: 404 })
-  if (row.count - quantity < 1) return NextResponse.json({ error: 'not_enough_copies', max: row.count - 1 }, { status: 400 })
+  if (!updated) {
+    return NextResponse.json({ error: 'not_enough_copies' }, { status: 400 })
+  }
 
-  const manaGain = (MANA_PER_RARITY[row.rarity] ?? 5) * quantity
+  const manaGain = (MANA_PER_RARITY[updated.rarity] ?? 5) * quantity
 
-  // Retirer les copies et ajouter le mana en une transaction
-  await db.batch([
-    db.update(playerCards)
-      .set({ count: sql`${playerCards.count} - ${quantity}` })
-      .where(and(eq(playerCards.userId, uid), eq(playerCards.cardId, cardId))),
-    db.update(playerProfiles)
-      .set({ mana: sql`${playerProfiles.mana} + ${manaGain}`, updatedAt: new Date().toISOString() })
-      .where(eq(playerProfiles.userId, uid)),
-  ])
+  const [updatedProfile] = await db
+    .update(playerProfiles)
+    .set({ mana: sql`${playerProfiles.mana} + ${manaGain}`, updatedAt: new Date().toISOString() })
+    .where(eq(playerProfiles.userId, uid))
+    .returning({ mana: playerProfiles.mana })
 
-  // Récupérer le nouveau total
-  const profile = await db.query.playerProfiles.findFirst({ where: eq(playerProfiles.userId, uid) })
-
-  return NextResponse.json({ ok: true, manaGain, manaTotal: profile?.mana ?? 0 })
+  return NextResponse.json({ ok: true, manaGain, manaTotal: updatedProfile?.mana ?? 0 })
 }

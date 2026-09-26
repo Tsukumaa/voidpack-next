@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { customCards, families, boosterCredits } from '@/lib/db/schema'
+import { boosterCredits } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
+import { getCachedActiveFamilies, getCachedAllCards } from '@/lib/cache/cards-cache'
 
 const RARITY_WEIGHTS: Record<string, number> = {
   common:    60,
@@ -51,13 +52,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Construire le pool
-  const activeFamilies = (await db.select({ key: families.key }).from(families).where(eq(families.active, true))).map(f => f.key)
+  // Construire le pool (depuis le cache)
+  const [activeFamilies, allCards] = await Promise.all([getCachedActiveFamilies(), getCachedAllCards()])
 
   const pool = booster_type === 'void'
-    ? await db.select().from(customCards).then(cards => cards.filter(c => activeFamilies.includes(c.family) || c.family === 'global'))
+    ? allCards.filter(c => activeFamilies.includes(c.family) || c.family === 'global')
     : activeFamilies.includes(booster_type)
-      ? await db.select().from(customCards).where(eq(customCards.family, booster_type))
+      ? allCards.filter(c => c.family === booster_type)
       : []
 
   if (!pool.length) {

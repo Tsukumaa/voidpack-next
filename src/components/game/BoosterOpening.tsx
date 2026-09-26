@@ -91,21 +91,7 @@ function fadeVideoOut(v: HTMLVideoElement, ms = 400, onDone?: () => void) {
 }
 
 // Overlay noir derrière la vidéo void (la <video> est dans le parent, toujours dans le DOM)
-function VoidVideoReveal({ videoRef, onReveal }: { videoRef: React.RefObject<HTMLVideoElement | null>; onReveal: () => void }) {
-  useEffect(() => {
-    // Fallback autoReveal : si la vidéo n'a pas été lancée par le tap handler
-    const v = videoRef.current
-    if (v && v.paused) {
-      v.currentTime = 0
-      v.volume = 0
-      v.muted = true
-      fadeSiteMusicOut(600)
-      v.play()
-        .then(() => { v.muted = false; setTimeout(() => fadeVideoIn(v, 500), 650) })
-        .catch(() => onReveal())
-    }
-  }, []) // eslint-disable-line
-
+function VoidVideoReveal() {
   return <div className="fixed inset-0 z-[110] bg-black" />
 }
 
@@ -519,6 +505,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
       later(() => {
         if (rarity === 'void') {
           // Lancer play() ici, dans le callback le plus proche du geste possible
+          // locked reste true pendant toute la vidéo — libéré dans triggerVoidReveal
           voidRevealFired.current = false
           const v = voidVideoRef.current
           if (v) {
@@ -530,7 +517,6 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
           fadeSiteMusicOut(600)
           setTimeout(() => { if (voidVideoRef.current) fadeVideoIn(voidVideoRef.current, 500) }, 650)
           setCardPhase('void-video')
-          locked.current = false
           return
         }
         const c = RARITY_COLOR[rarity] ?? '#9ca3af'
@@ -560,6 +546,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
   const triggerVoidReveal = useCallback(() => {
     if (voidRevealFired.current) return
     voidRevealFired.current = true
+    locked.current = false
     // Flash blanc : monte, révèle la carte au pic, puis redescend
     setWhiteFlash(1)
     setTimeout(() => {
@@ -628,7 +615,7 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
 
       {/* ── OVERLAY NOIR VOID VIDEO ── */}
       {phase === 'cards' && cardPhase === 'void-video' && (
-        <VoidVideoReveal videoRef={voidVideoRef} onReveal={triggerVoidReveal} />
+        <VoidVideoReveal />
       )}
 
       {/* ── FLASH BLANC post-vidéo VOID ── */}

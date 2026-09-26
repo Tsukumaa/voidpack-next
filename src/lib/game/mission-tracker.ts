@@ -24,7 +24,3 @@ export async function trackMissions(userId: string, events: { missionId: string;
   } catch { /* best-effort */ }
 }
 
-// Maintenu pour compatibilité — le profil charge directement depuis l'API maintenant.
-export function getMissionProgress(_userId: string, _eventType: string): number { return 0 }
-export function getClaimedMissions(_userId: string): string[] { return [] }
-export function markMissionClaimed(_userId: string, _missionId: string) {}

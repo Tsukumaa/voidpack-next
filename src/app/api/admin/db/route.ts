@@ -3,6 +3,8 @@ import { revalidateTag } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { sql } from 'drizzle-orm'
+import { invalidateCardsCache } from '@/lib/cache/cards-cache'
+import { invalidateFeaturesCache } from '@/lib/features'
 
 // Generic admin table operations via Drizzle raw SQL
 export async function POST(req: NextRequest) {
@@ -41,8 +43,12 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
-    // Invalider le cache public des cartes si on touche custom_cards
-    if (table === 'custom_cards' && action !== 'select') revalidateTag('public-cards')
+    if (table === 'custom_cards' && action !== 'select') {
+      revalidateTag('public-cards')
+      invalidateCardsCache()
+    }
+    if (table === 'families' && action !== 'select') invalidateCardsCache()
+    if (table === 'settings' && action !== 'select') invalidateFeaturesCache()
 
     return NextResponse.json({ data: result.rows })
   } catch (e: unknown) {

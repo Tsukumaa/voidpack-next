@@ -15,6 +15,31 @@ export async function GET(req: NextRequest) {
   const page  = Math.max(0, parseInt(req.nextUrl.searchParams.get('page') ?? '0', 10))
   const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10)))
 
+  const combined = req.nextUrl.searchParams.get('combined') === '1'
+  if (combined) {
+    const [browseRows, mineRows] = await Promise.all([
+      db.query.marketOffers.findMany({ where: and(eq(marketOffers.status, 'open'), ne(marketOffers.sellerId, uid)), orderBy: (t, { desc }) => [desc(t.createdAt)], limit }),
+      db.query.marketOffers.findMany({ where: eq(marketOffers.sellerId, uid), orderBy: (t, { desc }) => [desc(t.createdAt)], limit }),
+    ])
+    const sellerIds = [...new Set([...browseRows, ...mineRows].map(r => r.sellerId))]
+    const profiles = sellerIds.length
+      ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
+          .from(playerProfiles).where(inArray(playerProfiles.userId, sellerIds))
+      : []
+    const profileMap = Object.fromEntries(profiles.map(p => [p.userId, p]))
+    const enrich = (r: typeof browseRows[0]) => ({ ...r, sellerUsername: profileMap[r.sellerId]?.username ?? r.sellerId, sellerAvatarUrl: profileMap[r.sellerId]?.avatarUrl ?? null })
+    const browse = browseRows.map(enrich)
+    if (browse.length > 0) {
+      const offeredKeys = [...new Set(browse.map(r => r.offeredCardKey))]
+      const browseSellers = [...new Set(browse.map(r => r.sellerId))]
+      const ownedCards = await db.select({ userId: playerCards.userId, cardId: playerCards.cardId, count: playerCards.count })
+        .from(playerCards).where(and(inArray(playerCards.userId, browseSellers), inArray(playerCards.cardId, offeredKeys)))
+      const ownedSet = new Set(ownedCards.filter(c => c.count > 0).map(c => `${c.userId}:${c.cardId}`))
+      return NextResponse.json({ browse: browse.filter(r => ownedSet.has(`${r.sellerId}:${r.offeredCardKey}`)), mine: mineRows.map(enrich).filter(o => o.status === 'open') })
+    }
+    return NextResponse.json({ browse: [], mine: mineRows.map(enrich).filter(o => o.status === 'open') })
+  }
+
   let rows
   if (mine) {
     rows = await db.query.marketOffers.findMany({

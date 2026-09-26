@@ -1,11 +1,5 @@
 import { create } from 'zustand'
 
-export interface ChatFriend {
-  friend_id: string
-  username: string | null
-  avatar_url: string | null
-}
-
 export interface Toast {
   id: string
   type: 'friend_request' | 'mission' | 'streak' | 'info'
@@ -21,8 +15,6 @@ interface SocialStore {
   pendingTradeCount: number
   profilBadge: number
   streak: number
-  chatFriend: ChatFriend | null
-  chatPanelOpen: boolean
   toasts: Toast[]
 
   setPendingFriendCount: (n: number) => void
@@ -32,8 +24,6 @@ interface SocialStore {
   setPendingTradeCount: (n: number) => void
   setProfilBadge: (n: number) => void
   setStreak: (n: number) => void
-  setChatFriend: (f: ChatFriend | null) => void
-  setChatPanelOpen: (open: boolean) => void
   addToast: (t: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
 }
@@ -45,8 +35,6 @@ export const useSocialStore = create<SocialStore>((set) => ({
   pendingTradeCount: 0,
   profilBadge: 0,
   streak: 0,
-  chatFriend: null,
-  chatPanelOpen: false,
   toasts: [],
 
   setPendingFriendCount: (n) => set({ pendingFriendCount: n }),
@@ -56,8 +44,6 @@ export const useSocialStore = create<SocialStore>((set) => ({
   setPendingTradeCount: (n) => set({ pendingTradeCount: n }),
   setProfilBadge: (n) => set({ profilBadge: n }),
   setStreak: (n) => set({ streak: n }),
-  setChatFriend: (f) => set(s => ({ chatFriend: f, chatPanelOpen: f !== null ? true : s.chatPanelOpen })),
-  setChatPanelOpen: (open) => set({ chatPanelOpen: open, ...(open ? {} : { chatFriend: null }) }),
   addToast: (t) => set(s => ({
     toasts: [...s.toasts, { ...t, id: `${Date.now()}_${Math.random()}` }],
   })),
