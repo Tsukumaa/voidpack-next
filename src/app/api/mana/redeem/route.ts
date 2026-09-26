@@ -3,8 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerProfiles, boosterCredits } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
-
-export const BOOSTER_MANA_COST = 150
+import { BOOSTER_MANA_COST } from '@/lib/game/mana-constants'
 
 export async function POST(req: Request) {
   const session = await auth()

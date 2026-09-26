@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
+import { MANA_PER_RARITY } from '@/lib/game/mana-constants'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','common']
 const RARITY_COLOR: Record<string, string> = {
@@ -43,9 +44,6 @@ interface GroupedCard {
   artistUrl: string | null
 }
 
-export const MANA_PER_RARITY: Record<string, number> = {
-  common: 2, rare: 4, epic: 6, legendary: 30, void: 150,
-}
 const BOOSTER_COST = 150
 
 export default function CollectionPage() {

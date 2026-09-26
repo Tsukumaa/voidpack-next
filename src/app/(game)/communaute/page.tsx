@@ -472,8 +472,10 @@ function CommunauteContent() {
 
   const loadFriends = useCallback(async () => {
     if (!user) return
-    const data = await fetch('/api/social/friends?full=1').then(r => r.ok ? r.json() : {})
-    setFriends((data.accepted ?? []).map((f: Record<string, unknown>) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = await fetch('/api/social/friends?full=1').then(r => r.ok ? r.json() : {})
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setFriends((data.accepted ?? []).map((f: any) => ({
       id:                 f.friendshipId,
       friend_id:          f.userId,
       username:           f.username ?? null,
@@ -482,7 +484,8 @@ function CommunauteContent() {
       collectionComplete: f.collectionComplete ?? false,
       activeSessionId:    f.activeSessionId ?? null,
     })))
-    setPendingRequests((data.pendingReceived ?? []).map((f: Record<string, unknown>) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setPendingRequests((data.pendingReceived ?? []).map((f: any) => ({
       id:         f.friendshipId,
       friend_id:  f.userId,
       username:   f.username ?? null,

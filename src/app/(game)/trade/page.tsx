@@ -91,6 +91,7 @@ function CardThumb({ name, imageUrl, rarity }: { name: string; imageUrl?: string
 
 // ── Modal création de trade ───────────────────────────────────────────────────
 function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const { fetchCards } = useCards()
   const [step, setStep] = useState<'offer' | 'want' | 'friend' | 'confirm'>('offer')
   const [myCards, setMyCards]     = useState<MyCard[]>([])
   const [allCards, setAllCards]   = useState<AllCard[]>([])

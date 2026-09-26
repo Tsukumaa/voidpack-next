@@ -3,14 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { playerCards, playerProfiles } from '@/lib/db/schema'
 import { eq, and, sql, gt } from 'drizzle-orm'
-
-export const MANA_PER_RARITY: Record<string, number> = {
-  common:    2,
-  rare:      4,
-  epic:      6,
-  legendary: 30,
-  void:      150,
-}
+import { MANA_PER_RARITY } from '@/lib/game/mana-constants'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
