@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { combatStats, playerCards, playerProfiles, customCards } from '@/lib/db/schema'
-import { eq, desc, sql, count } from 'drizzle-orm'
+import { combatStats, playerCards, playerProfiles } from '@/lib/db/schema'
+import { eq, desc, sql } from 'drizzle-orm'
+import { getCompleteCollectionUsers } from '@/lib/game/collection-complete'
 
 export async function GET(req: NextRequest) {
   const type  = req.nextUrl.searchParams.get('type') ?? 'combat'
@@ -26,11 +26,13 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(combatStats.rankPoints))
       .limit(limit)
 
-    return NextResponse.json(rows, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
-  }
+    const complete = await getCompleteCollectionUsers(rows.map(r => r.userId))
 
-  const [totalCardsRow] = await db.select({ total: count() }).from(customCards)
-  const totalAvailable = totalCardsRow?.total ?? 0
+    return NextResponse.json(rows.map(r => ({
+      ...r,
+      collectionComplete: complete.has(r.userId),
+    })), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
+  }
 
   const rows = await db
     .select({
@@ -51,11 +53,13 @@ export async function GET(req: NextRequest) {
     .orderBy(desc(playerProfiles.xp), desc(sql`COALESCE(SUM(${playerCards.count}), 0)`))
     .limit(limit)
 
+  const complete = await getCompleteCollectionUsers(rows.map(r => r.userId))
+
   return NextResponse.json(rows.map(r => ({
     ...r,
     xp:               r.xp    ?? 0,
     level:            r.level ?? 1,
-    collectionComplete: totalAvailable > 0 && (r.unique ?? 0) >= totalAvailable,
+    collectionComplete: complete.has(r.userId),
     packsOpened:   r.packsOpened ?? 0,
   })), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }

@@ -15,7 +15,9 @@
     "db:import:prod": "dotenv -e .env.prod -- node scripts/import-seed.mjs",
     "ship": "git push origin main",
     "db:migrate:dev": "dotenv -e .env.local -- node scripts/migrate-cards-count.mjs",
-    "db:migrate:prod": "dotenv -e .env.prod -- node scripts/migrate-cards-count.mjs"
+    "db:migrate:prod": "dotenv -e .env.prod -- node scripts/migrate-cards-count.mjs",
+    "db:indexes:dev": "node scripts/add-social-indexes.mjs .env.local",
+    "db:indexes:prod": "node scripts/add-social-indexes.mjs .env.prod"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

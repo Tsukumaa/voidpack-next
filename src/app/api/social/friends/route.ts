@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { friendships, playerProfiles, gameSessions } from '@/lib/db/schema'
-import { eq, or, and, sql, count } from 'drizzle-orm'
-import { playerCards, customCards } from '@/lib/db/schema'
+import { eq, or, and, sql } from 'drizzle-orm'
+import { getCompleteCollectionUsers } from '@/lib/game/collection-complete'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -24,15 +24,9 @@ export async function GET(req: NextRequest) {
     const pendingOtherIds = [...pendingReceived.map(r => r.senderId), ...pendingSent.map(r => r.receiverId)]
     const allIds = [...new Set([...friendIds, ...pendingOtherIds])]
 
-    const [profiles, [totalRow], uniqueRows, activeSessions] = await Promise.all([
+    const [profiles, completeSet, activeSessions] = await Promise.all([
       allIds.length ? db.query.playerProfiles.findMany({ where: (t, { inArray }) => inArray(t.userId, allIds) }) : [],
-      db.select({ total: count() }).from(customCards),
-      friendIds.length
-        ? db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
-            .from(playerCards)
-            .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
-            .groupBy(playerCards.userId)
-        : [],
+      getCompleteCollectionUsers(friendIds),
       friendIds.length
         ? db.select({ id: gameSessions.id, player1Id: gameSessions.player1Id, player2Id: gameSessions.player2Id })
             .from(gameSessions)
@@ -43,8 +37,6 @@ export async function GET(req: NextRequest) {
         : [],
     ])
 
-    const totalAvailable = (totalRow as { total: number } | undefined)?.total ?? 0
-    const uniqueMap = Object.fromEntries((uniqueRows as { userId: string; unique: number }[]).map(r => [r.userId, r.unique]))
     const sessionOf = (id: string) => (activeSessions as { id: string; player1Id: string; player2Id: string }[]).find(s => s.player1Id === id || s.player2Id === id)?.id ?? null
     const profileOf = (id: string) => (profiles as { userId: string; username?: string | null; avatarUrl?: string | null }[]).find(p => p.userId === id)
 
@@ -53,7 +45,7 @@ export async function GET(req: NextRequest) {
         const friendId = r.senderId === uid ? r.receiverId : r.senderId
         const p = profileOf(friendId)
         return { friendshipId: r.id, userId: friendId, username: p?.username, avatarUrl: p?.avatarUrl, status: 'accepted',
-          collectionComplete: totalAvailable > 0 && (uniqueMap[friendId] ?? 0) >= totalAvailable,
+          collectionComplete: completeSet.has(friendId),
           activeSessionId: sessionOf(friendId) }
       }),
       pendingReceived: pendingReceived.map(r => {
@@ -75,13 +67,9 @@ export async function GET(req: NextRequest) {
   const friendIds = rows.map(r => r.senderId === uid ? r.receiverId : r.senderId)
   if (!friendIds.length) return NextResponse.json([])
 
-  const [profiles, [totalRow], uniqueRows, activeSessions] = await Promise.all([
+  const [profiles, completeSet, activeSessions] = await Promise.all([
     db.query.playerProfiles.findMany({ where: (t, { inArray }) => inArray(t.userId, friendIds) }),
-    db.select({ total: count() }).from(customCards),
-    db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
-      .from(playerCards)
-      .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
-      .groupBy(playerCards.userId),
+    getCompleteCollectionUsers(friendIds),
     db.select({ id: gameSessions.id, player1Id: gameSessions.player1Id, player2Id: gameSessions.player2Id })
       .from(gameSessions)
       .where(and(
@@ -89,21 +77,18 @@ export async function GET(req: NextRequest) {
         sql`(${gameSessions.player1Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}) OR ${gameSessions.player2Id} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}))`
       )),
   ])
-  const totalAvailable = totalRow?.total ?? 0
-  const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
   const sessionOf = (uid: string) => activeSessions.find(s => s.player1Id === uid || s.player2Id === uid)?.id ?? null
 
   const result = rows.map(r => {
     const friendId = r.senderId === uid ? r.receiverId : r.senderId
     const profile  = profiles.find(p => p.userId === friendId)
-    const unique   = uniqueMap[friendId] ?? 0
     return {
       friendshipId: r.id,
       userId: friendId,
       username: profile?.username,
       avatarUrl: profile?.avatarUrl,
       status: r.status,
-      collectionComplete: totalAvailable > 0 && unique >= totalAvailable,
+      collectionComplete: completeSet.has(friendId),
       activeSessionId: sessionOf(friendId),
     }
   })

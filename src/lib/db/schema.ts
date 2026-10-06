@@ -219,7 +219,9 @@ export const gameSessions = sqliteTable('game_sessions', {
   createdAt:   text('created_at').notNull().default(now),
   updatedAt:   text('updated_at').notNull().default(now),
   finishedAt:  text('finished_at'),
-})
+}, (t) => [
+  index('game_sessions_status_idx').on(t.status),
+])
 
 // ── matchmaking_queue ─────────────────────────────────────────────────────────
 export const matchmakingQueue = sqliteTable('matchmaking_queue', {
@@ -252,6 +254,8 @@ export const friendships = sqliteTable('friendships', {
   updatedAt:  text('updated_at').notNull().default(now),
 }, (t) => [
   uniqueIndex('friendships_unique').on(t.senderId, t.receiverId),
+  // Recherche par receveur seul (demandes reçues, OR sender/receiver) : l'unique ci-dessus ne sert pas
+  index('friendships_receiver_status_idx').on(t.receiverId, t.status),
 ])
 
 // ── direct_messages ───────────────────────────────────────────────────────────
@@ -262,7 +266,12 @@ export const directMessages = sqliteTable('direct_messages', {
   content:    text('content').notNull(),
   readAt:     text('read_at'),
   createdAt:  text('created_at').notNull().default(now),
-})
+}, (t) => [
+  // Non lus (receiver_id = ? AND read_at IS NULL) + poll par receveur
+  index('direct_messages_receiver_read_idx').on(t.receiverId, t.readAt),
+  // Conversation entre deux joueurs
+  index('direct_messages_sender_receiver_idx').on(t.senderId, t.receiverId),
+])
 
 // ── trade_offers ──────────────────────────────────────────────────────────────
 export const tradeOffers = sqliteTable('trade_offers', {
@@ -280,7 +289,10 @@ export const tradeOffers = sqliteTable('trade_offers', {
   createdAt:       text('created_at').notNull().default(now),
   expiresAt:       text('expires_at'),
   respondedAt:     text('responded_at'),
-})
+}, (t) => [
+  index('trade_offers_receiver_status_idx').on(t.receiverId, t.status),
+  index('trade_offers_sender_idx').on(t.senderId),
+])
 
 // ── market_offers ─────────────────────────────────────────────────────────────
 // Échanges publics : "j'offre X contre Y", n'importe qui peut accepter.

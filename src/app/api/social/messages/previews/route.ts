@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db, dbClient } from '@/lib/db'
 import { directMessages, friendships } from '@/lib/db/schema'
-import { eq, or, and, count } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
-import { playerCards, customCards } from '@/lib/db/schema'
+import { eq, or, and } from 'drizzle-orm'
+import { getCompleteCollectionUsers } from '@/lib/game/collection-complete'
 
 export async function GET() {
   const session = await auth()
@@ -26,16 +25,12 @@ export async function GET() {
 
   // Tout en parallèle : profils, total cartes, cartes uniques par ami,
   // dernier message par ami (agrégé), non-lus par ami (agrégé)
-  const [profileResult, [totalRow], uniqueRows, lastMsgs, unreadCounts] = await Promise.all([
+  const [profileResult, completeSet, lastMsgs, unreadCounts] = await Promise.all([
     dbClient.execute({
       sql: `SELECT user_id, username, avatar_url, role FROM player_profiles WHERE user_id IN (${ph})`,
       args: friendIds,
     }),
-    db.select({ total: count() }).from(customCards),
-    db.select({ userId: playerCards.userId, unique: sql<number>`COUNT(DISTINCT ${playerCards.cardId})` })
-      .from(playerCards)
-      .where(sql`${playerCards.userId} IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})`)
-      .groupBy(playerCards.userId),
+    getCompleteCollectionUsers(friendIds),
     // Dernier message par pair en une seule requête (window function)
     dbClient.execute({
       sql: `
@@ -63,8 +58,6 @@ export async function GET() {
   const profiles = profileResult.rows as unknown as ProfileRow[]
   const allMsgs  = (lastMsgs.rows as unknown as MsgRow[]).filter(r => Number(r.rn) === 1)
   const unreadMap = Object.fromEntries((unreadCounts.rows as unknown as UnreadRow[]).map(r => [r.sender_id, Number(r.cnt)]))
-  const uniqueMap = Object.fromEntries(uniqueRows.map(r => [r.userId, r.unique]))
-  const totalAvailable = totalRow?.total ?? 0
   const previews = friendIds.map(fid => {
     const profile = profiles.find(p => p.user_id === fid)
     const msg = allMsgs.find(m => (m.sender_id === fid && m.receiver_id === uid) || (m.sender_id === uid && m.receiver_id === fid))
@@ -77,7 +70,7 @@ export async function GET() {
       lastFromMe:         msg?.sender_id === uid,
       unread:             unreadMap[fid] ?? 0,
       role:               profile?.role ?? null,
-      collectionComplete: totalAvailable > 0 && (uniqueMap[fid] ?? 0) >= totalAvailable,
+      collectionComplete: completeSet.has(fid),
     }
   })
 
