@@ -30,8 +30,11 @@ export function useFeatures() {
       if (mounted.current) setFeatures(data)
     }
     load()
-    const id = setInterval(load, 300_000)
-    return () => { mounted.current = false; clearInterval(id) }
+    // Pas de requête quand l'onglet est caché ; rattrapage au retour (getFeatures respecte le cache 5 min)
+    const id = setInterval(() => { if (document.visibilityState === 'visible') load() }, 300_000)
+    const onVisibility = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { mounted.current = false; clearInterval(id); document.removeEventListener('visibilitychange', onVisibility) }
   }, [])
 
   function isEnabled(key: string) {

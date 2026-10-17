@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { tradeOffers, playerCards, playerDailyMissions } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
+import { contributeToRaid } from '@/lib/game/raids'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -76,6 +77,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         .catch(() => {})
     }
   }
+
+  // Raid : 1 échange = +1 sur la jauge, +1 de participation pour chacun des deux joueurs
+  await contributeToRaid('trades_completed', [{ userId: uid, amount: 1 }, { userId: trade.senderId, amount: 1 }], 1)
 
   return NextResponse.json({ ok: true })
 }

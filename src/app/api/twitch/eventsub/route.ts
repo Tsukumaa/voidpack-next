@@ -4,6 +4,7 @@ import { twitchStreamers, twitchRewards, boosterCredits, playerProfiles } from '
 import { and, eq } from 'drizzle-orm'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { EVENTSUB_SECRET, REDEMPTION_EVENT } from '@/lib/twitch/api'
+import { isVoidDayActive, VOID_DAY_REF_SUFFIX } from '@/lib/events'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -118,6 +119,11 @@ export async function POST(req: NextRequest) {
       sourceRef:   qty > 1 ? `${redemptionId}:${i}` : redemptionId,
       createdBy:   broadcasterId,
     }))
+    // Void Day : chaque booster acheté en offre un identique. Même source 'twitch' et même
+    // createdBy pour que les pulls rares du bonus soient aussi annoncés dans le chat du streamer.
+    if (await isVoidDayActive()) {
+      rows.push(...rows.map(r => ({ ...r, sourceRef: r.sourceRef + VOID_DAY_REF_SUFFIX })))
+    }
 
     try {
       await db.insert(boosterCredits).values(rows).onConflictDoNothing()
@@ -126,7 +132,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, error: 'credit_failed' })
     }
 
-    return NextResponse.json({ ok: true, credited: reward.boosterType, qty })
+    return NextResponse.json({ ok: true, credited: reward.boosterType, qty: rows.length })
   }
 
   return NextResponse.json({ ok: true })

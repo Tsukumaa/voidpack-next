@@ -421,3 +421,45 @@ export const kanbanCards = sqliteTable('kanban_cards', {
   createdAt:   text('created_at').notNull().default(now),
   updatedAt:   text('updated_at').notNull().default(now),
 })
+
+// ── raids ─────────────────────────────────────────────────────────────────────
+// Événement communautaire : tous les joueurs font progresser une jauge commune.
+// Les paliers (tiers, JSON RaidTier[]) débloquent des boosters à réclamer pour
+// les joueurs ayant contribué au moins min_contribution fois.
+export const raids = sqliteTable('raids', {
+  id:              integer('id').primaryKey({ autoIncrement: true }),
+  title:           text('title').notNull(),
+  description:     text('description'),
+  objectiveType:   text('objective_type').notNull(), // boosters_opened | combats_won | cards_recycled | trades_completed
+  goal:            integer('goal').notNull(),
+  progress:        integer('progress').notNull().default(0),
+  minContribution: integer('min_contribution').notNull().default(1),
+  tiers:           text('tiers').notNull().default('[]'), // JSON RaidTier[]
+  status:          text('status').notNull().default('active'), // active | ended
+  endsAt:          text('ends_at'),
+  completedAt:     text('completed_at'), // objectif atteint → ouvre la fenêtre de réclamation
+  createdAt:       text('created_at').notNull().default(now),
+}, (t) => [
+  index('raids_status_idx').on(t.status),
+])
+
+// ── raid_contributions ────────────────────────────────────────────────────────
+export const raidContributions = sqliteTable('raid_contributions', {
+  raidId:    integer('raid_id').notNull(),
+  userId:    text('user_id').notNull(),
+  amount:    integer('amount').notNull().default(0),
+  updatedAt: text('updated_at').notNull().default(now),
+}, (t) => [
+  primaryKey({ columns: [t.raidId, t.userId] }),
+])
+
+// ── raid_claims ───────────────────────────────────────────────────────────────
+// Une ligne par palier réclamé : la clé primaire empêche de réclamer deux fois.
+export const raidClaims = sqliteTable('raid_claims', {
+  raidId:    integer('raid_id').notNull(),
+  userId:    text('user_id').notNull(),
+  tier:      integer('tier').notNull(), // index dans raids.tiers
+  claimedAt: text('claimed_at').notNull().default(now),
+}, (t) => [
+  primaryKey({ columns: [t.raidId, t.userId, t.tier] }),
+])

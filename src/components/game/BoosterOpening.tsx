@@ -12,6 +12,7 @@ import { CardFrame } from '@/components/game/CardFrame'
 import { useAchievements } from '@/hooks/useAchievements'
 import { trackMissions } from '@/lib/game/mission-tracker'
 import { fadeSiteMusicOut, fadeSiteMusicIn } from '@/components/layout/MusicPlayer'
+import { notifyRaidActivity } from '@/lib/raid-events'
 
 interface Card {
   id: string
@@ -129,6 +130,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
         if (!claimRes.ok) throw new Error('claim error')
         const claimData = await claimRes.json()
         packsOpenedTotal = claimData.packs_opened ?? 1
+        notifyRaidActivity('boosters_opened')
       }
 
       // Track missions (batch en une seule requête)

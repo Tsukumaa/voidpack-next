@@ -247,7 +247,7 @@ export default function PlayerProfilePage() {
 
   return (
     <div className="pb-4 max-w-5xl mx-auto w-full">
-      <div className="sticky top-20 z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
+      <div className="sticky top-[var(--header-h,5rem)] z-20 mb-6 rounded-2xl border border-white/[0.07] px-4 pt-3 pb-3 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
         {/* Ligne 1 : retour + avatar + nom + ami */}

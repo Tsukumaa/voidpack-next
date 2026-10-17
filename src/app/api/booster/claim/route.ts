@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { boosterCredits, playerProfiles } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { announceRarePull } from '@/lib/twitch/announce'
+import { contributeToRaid } from '@/lib/game/raids'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest) {
     })
     .where(eq(playerProfiles.userId, uid))
     .returning()
+
+  await contributeToRaid('boosters_opened', [{ userId: uid, amount: 1 }])
 
   // Si le booster venait des Channel Points d'un streamer et qu'un void/légendaire
   // a été pull → félicitations dans le chat du streamer (best-effort).

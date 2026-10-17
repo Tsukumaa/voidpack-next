@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, X, ShoppingBag, Search, Trash2, CheckSquare, Square } from 'lucide-react'
+import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, X, ShoppingBag, Search, Trash2, CheckSquare, Square, Minus, Plus } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
+import { useFeatures } from '@/hooks/useFeatures'
 import { useGameStore } from '@/store/game'
 import { useCards } from '@/hooks/useCards'
 import { StatePanel } from '@/components/game/StatePanel'
@@ -10,6 +11,7 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { MANA_PER_RARITY } from '@/lib/game/mana-constants'
+import { notifyRaidActivity } from '@/lib/raid-events'
 
 const RARITY_ORDER = ['void','legendary','epic','rare','common']
 const RARITY_COLOR: Record<string, string> = {
@@ -71,6 +73,8 @@ export default function CollectionPage() {
   const [redeeming, setRedeeming]       = useState(false)
   const [familyPicker, setFamilyPicker] = useState(false)
   const famRef = useRef<HTMLDivElement>(null)
+  const { features } = useFeatures()
+  const voidDay = features.event_void_day === true
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -161,6 +165,18 @@ export default function CollectionPage() {
     })
   }
 
+  // Ajuste le nombre de copies à recycler (1 → count - 1) ; 0 désélectionne la carte
+  const setRecycleQty = (card: GroupedCard, qty: number) => {
+    const max = card.count - 1
+    setRecycleSelected(prev => {
+      if (qty < 1) {
+        const { [card.card_id]: _, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [card.card_id]: Math.min(qty, max) }
+    })
+  }
+
   const toggleRarity = (rarity: string) => {
     const group = recyclableCards.filter(c => c.rarity === rarity)
     const allSelected = group.every(c => recycleSelected[c.card_id])
@@ -185,6 +201,7 @@ export default function CollectionPage() {
     const data = await res.json()
     setRecycling(false)
     if (!res.ok) { showToast(data.error ?? 'Erreur', false); return }
+    notifyRaidActivity('cards_recycled')
     setMana(data.manaTotal)
     const recycledMap: Record<string, number> = {}
     items.forEach(({ cardId, quantity }) => { recycledMap[cardId] = quantity })
@@ -220,7 +237,7 @@ export default function CollectionPage() {
     setRedeeming(false)
     if (!res.ok) { showToast(data.error ?? 'Erreur', false); return }
     setMana(data.manaRemaining)
-    showToast('Booster ajouté à tes crédits !')
+    showToast(data.boosters > 1 ? `Void Day ! ${data.boosters} boosters ajoutés à tes crédits !` : 'Booster ajouté à tes crédits !')
   }
 
   const filtered = cards.filter(c => {
@@ -240,18 +257,18 @@ export default function CollectionPage() {
   return (
     <div className="pb-4 max-w-5xl mx-auto w-full">
       {/* Header */}
-      <div className="sticky top-20 z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
+      <div className="sticky top-[var(--header-h,5rem)] z-20 py-4 mb-10 backdrop-blur-md flex flex-col justify-center rounded-xl" style={{ backgroundColor: 'rgba(8,10,18,0.82)' }}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-4">
           <div className="flex items-center gap-2 min-w-0">
             <h2 className="font-bold text-white text-base shrink-0">Ma collection</h2>
             <span className="text-white/40 text-xs truncate">{cards.filter(c => c.owned).length} / {cards.length} · {cards.reduce((a, c) => a + c.count, 0)} copies</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* Recycler */}
             {recyclableCards.length > 0 && (
               <button
                 onClick={() => { setRecycleMode(v => !v); clearSelection() }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
                 style={recycleMode
                   ? { background: 'rgba(123,43,255,0.35)', border: '1px solid rgba(168,85,247,0.6)', color: '#e9d5ff' }
                   : { background: 'rgba(123,43,255,0.15)', border: '1px solid rgba(123,43,255,0.35)', color: '#c084fc' }}
@@ -263,27 +280,28 @@ export default function CollectionPage() {
             {recyclableCards.length > 0 && (
               <button
                 onClick={() => setConfirmAll(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:opacity-90"
                 style={{ background: 'rgba(255,100,50,0.12)', border: '1px solid rgba(255,100,50,0.3)', color: '#fb923c' }}
               >
-                <Trash2 size={12} /> Recycler tout
+                <Trash2 size={12} /> <span className="sm:hidden">Tout</span><span className="hidden sm:inline">Recycler tout</span>
               </button>
             )}
             {/* Booster */}
             <button
               onClick={() => mana >= BOOSTER_COST && setFamilyPicker(true)}
               disabled={mana < BOOSTER_COST || redeeming}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={mana >= BOOSTER_COST
                 ? { background: 'linear-gradient(135deg,#7b2bff,#a855f7)', color: '#fff', boxShadow: '0 0 12px rgba(123,43,255,0.4)' }
                 : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
-              title={`Obtenir 1 booster pour ${BOOSTER_COST} mana`}
+              title={voidDay ? `Void Day : 2 boosters pour ${BOOSTER_COST} mana` : `Obtenir 1 booster pour ${BOOSTER_COST} mana`}
             >
               <ShoppingBag size={12} />
               <span className="hidden sm:inline">Booster</span> ({BOOSTER_COST})
+              {voidDay && <span className="hidden sm:inline ml-0.5 px-1 rounded-md text-[9px] font-black bg-white/20">x2</span>}
             </button>
             {/* Mana */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold"
+            <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-xl text-xs font-bold"
               style={{ background: 'rgba(123,43,255,0.12)', border: '1px solid rgba(123,43,255,0.25)' }}>
               <Flame size={12} className="text-[#a78bfa]" />
               <span className="text-[#a78bfa] font-black">{mana.toLocaleString('fr-FR')}</span>
@@ -465,7 +483,23 @@ export default function CollectionPage() {
                           </div>
                         ) : (
                           <div key={card.card_id} className="flex flex-col">
-                            {recycleMode && card.count > 1 && (
+                            {recycleMode && card.count > 2 && recycleSelected[card.card_id] ? (
+                              <div className="mb-1.5 flex items-center justify-between gap-1 py-0.5 px-1 rounded-lg text-[10px] font-bold"
+                                style={{ background: RARITY_COLOR[card.rarity] + '25', border: `1px solid ${RARITY_COLOR[card.rarity]}60`, color: RARITY_COLOR[card.rarity] }}>
+                                <button onClick={() => setRecycleQty(card, recycleSelected[card.card_id] - 1)}
+                                  aria-label="Recycler une copie de moins"
+                                  className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors">
+                                  <Minus size={10} />
+                                </button>
+                                <span className="tabular-nums">Recycler {recycleSelected[card.card_id]}/{card.count - 1}</span>
+                                <button onClick={() => setRecycleQty(card, recycleSelected[card.card_id] + 1)}
+                                  disabled={recycleSelected[card.card_id] >= card.count - 1}
+                                  aria-label="Recycler une copie de plus"
+                                  className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+                                  <Plus size={10} />
+                                </button>
+                              </div>
+                            ) : recycleMode && card.count > 1 && (
                               <button onClick={() => toggleCard(card)}
                                 className="mb-1.5 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold transition-all hover:opacity-90"
                                 style={recycleSelected[card.card_id]
@@ -543,6 +577,14 @@ export default function CollectionPage() {
               <div>
                 <p className="text-white font-black text-base">Choisir un booster</p>
                 <p className="text-white/40 text-xs mt-1">Le booster ne contiendra que des cartes de cette famille.</p>
+                {voidDay && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-bold text-[#e9d5ff]"
+                    style={{ background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.35)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/assets/branding/void-favicon.png" alt="" aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />
+                    Void Day : 1 booster acheté = 1 offert !
+                  </p>
+                )}
               </div>
               <button onClick={() => setFamilyPicker(false)} className="text-white/25 hover:text-white/60 transition-colors shrink-0 mt-0.5"><X size={17} /></button>
             </div>

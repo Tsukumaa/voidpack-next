@@ -12,6 +12,7 @@ import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
 import { CombatRulesModal } from '@/components/game/CombatRulesModal'
 import { useCards } from '@/hooks/useCards'
+import { notifyRaidActivity } from '@/lib/raid-events'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LadderEntry {
@@ -99,6 +100,7 @@ interface AllCard {
   name: string
   rarity: string
   image_url: string | null
+  count?: number // exemplaires possédés par l'ami (étape "want" d'un trade)
 }
 
 const RARITY_COLOR: Record<string, string> = {
@@ -207,7 +209,7 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
       }
       const fc = (col ?? []).map((c: { cardId?: string; card_id?: string; rarity: string; count: number }) => {
         const key = c.cardId ?? c.card_id ?? ''
-        return { ...defs[key], id: key, rarity: c.rarity }
+        return { ...defs[key], id: key, rarity: c.rarity, count: c.count }
       }).filter((c: AllCard) => c.id && c.name)
       setFriendCards(fc)
     } finally {
@@ -249,6 +251,10 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
 
   const offerList = myCards
     .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+
+  // Nombre d'exemplaires affiché à l'étape "want" : ceux de l'ami en trade direct,
+  // les miens en mode marché (pour savoir si on l'a déjà)
+  const myCountOf = (id: string) => myCards.find(m => m.cardId === id)?.count ?? 0
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -309,7 +315,14 @@ function CreateTradeModal({ onClose, onCreated, marketMode = false }: { onClose:
                       className={cn('w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all text-left',
                         wanted?.id === c.id ? 'border-[#7b2bff] bg-[#7b2bff]/10' : 'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.03]')}>
                       <CardThumb name={c.name} imageUrl={c.image_url} rarity={c.rarity} />
-                      {wanted?.id === c.id && <Check size={14} className="text-[#7b2bff] flex-shrink-0" />}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {marketMode ? (
+                          <span className="text-xs text-white/30">{myCountOf(c.id) > 0 ? `Tu as x${myCountOf(c.id)}` : 'Non possédée'}</span>
+                        ) : (
+                          c.count != null && <span className="text-xs text-white/30">x{c.count}</span>
+                        )}
+                        {wanted?.id === c.id && <Check size={14} className="text-[#7b2bff]" />}
+                      </div>
                     </button>
                   ))}
                   {wantList.length === 0 && <p className="text-center text-white/30 text-sm py-8">Aucune carte trouvée</p>}
@@ -438,6 +451,7 @@ function CommunauteContent() {
   // Marché state
   const [market, setMarket]           = useState<MarketOffer[]>([])
   const [myOffers, setMyOffers]       = useState<MarketOffer[]>([])
+  const [myCounts, setMyCounts]       = useState<Record<string, number>>({}) // cardId → exemplaires que je possède
   const [marketTab, setMarketTab]     = useState<'browse' | 'mine'>('browse')
   const [showMarketCreate, setShowMarketCreate] = useState(false)
   const [marketActioning, setMarketActioning]   = useState<string | null>(null)
@@ -512,10 +526,12 @@ function CommunauteContent() {
 
   const loadMarket = useCallback(async () => {
     if (!user) return
-    const [data, cards] = await Promise.all([
+    const [data, cards, col] = await Promise.all([
       fetch('/api/market?combined=1').then(r => r.ok ? r.json() : { browse: [], mine: [] }),
       fetchCards(),
+      fetch('/api/collection').then(r => r.ok ? r.json() : []),
     ])
+    setMyCounts(Object.fromEntries((col ?? []).map((c: { cardId?: string; card_id?: string; count: number }) => [c.cardId ?? c.card_id ?? '', c.count])))
     const defs: Record<string, { name: string; image_url: string | null }> = {}
     for (const c of cards ?? []) {
       const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata || '{}') } catch { return {} } })() : (c.metadata ?? {})
@@ -532,6 +548,7 @@ function CommunauteContent() {
       const res = await fetch(`/api/market/${offerId}/${act}`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) { setMarketMsg(data.error ?? 'Erreur'); setTimeout(() => setMarketMsg(''), 4000); return }
+      if (act === 'accept') notifyRaidActivity('trades_completed')
       setMarketMsg(act === 'accept' ? 'Échange effectué !' : 'Offre annulée.')
       setTimeout(() => setMarketMsg(''), 3000)
       loadMarket()
@@ -562,6 +579,7 @@ function CommunauteContent() {
       const res = await fetch(`/api/trade/${tradeId}/${act}`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) { setTradeMsg(data.error ?? 'Erreur'); setTimeout(() => setTradeMsg(''), 4000); return }
+      if (act === 'accept') notifyRaidActivity('trades_completed')
       setTradeMsg(act === 'accept' ? '✅ Trade accepté !' : act === 'decline' ? 'Trade refusé.' : 'Trade annulé.')
       setTimeout(() => setTradeMsg(''), 3000)
       loadTrades()
@@ -585,7 +603,7 @@ function CommunauteContent() {
 
       {/* Header */}
       <div
-        className="sticky top-20 z-20 mb-4 px-4 py-3 rounded-2xl border border-white/[0.07] backdrop-blur-md"
+        className="sticky top-[var(--header-h,5rem)] z-20 mb-4 px-4 py-3 rounded-2xl border border-white/[0.07] backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}
       >
         {/* Titre + actions */}
@@ -918,6 +936,9 @@ function CommunauteContent() {
                           <p className="text-white/30 text-[10px] mb-1.5">{offer.sellerUsername} veut</p>
                           <div className="flex flex-col items-end">
                             <CardThumb name={wantedDef?.name ?? offer.wantedCardName ?? offer.wantedCardKey} imageUrl={wantedDef?.image_url} rarity={offer.wantedRarity ?? 'common'} />
+                            <span className={cn('mt-1 text-[10px]', (myCounts[offer.wantedCardKey] ?? 0) > 0 ? 'text-white/40' : 'text-red-400/70')}>
+                              {(myCounts[offer.wantedCardKey] ?? 0) > 0 ? `Tu en as x${myCounts[offer.wantedCardKey]}` : 'Tu ne l\'as pas'}
+                            </span>
                           </div>
                         </div>
                       </div>

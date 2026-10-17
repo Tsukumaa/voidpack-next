@@ -46,7 +46,10 @@ export function PackScreen() {
   const [openedType, setOpenedType] = useState<string>('void')
   const [openedImageUrl, setOpenedImageUrl] = useState<string>('/assets/back.png')
   const [boosterImages, setBoosterImages] = useState<Record<string, string>>({})
-  const [carouselIdx, setCarouselIdx] = useState(0)
+  // Le carrousel mémorise le TYPE sélectionné, pas sa position : l'ordre des types
+  // dépend du plus ancien crédit de chacun et change quand on ouvre un booster.
+  const [selectedType, setSelectedType] = useState<string | null>(null)
+  const lastIdx = useRef(0)
 
   // ── Don de pack ────────────────────────────────────────────────────────────
   const [giftOpen, setGiftOpen] = useState(false)
@@ -61,7 +64,15 @@ export function PackScreen() {
     [pendingCredits]
   )
 
-  const safeIdx = Math.min(carouselIdx, Math.max(0, types.length - 1))
+  // Type sélectionné toujours disponible → on reste dessus ; sinon (plus de crédits
+  // de ce type) on garde la même position, bornée à la liste
+  const foundIdx = selectedType ? types.indexOf(selectedType) : -1
+  const safeIdx = foundIdx >= 0 ? foundIdx : Math.min(lastIdx.current, Math.max(0, types.length - 1))
+  lastIdx.current = safeIdx
+  const setCarouselIdx = (next: number | ((i: number) => number)) => {
+    const i = typeof next === 'function' ? next(safeIdx) : next
+    setSelectedType(types[Math.max(0, Math.min(i, types.length - 1))] ?? null)
+  }
   const activeType = types[safeIdx] ?? null
   const activeCredits = activeType ? (groups[activeType] ?? []) : []
 
@@ -218,7 +229,12 @@ export function PackScreen() {
           onOpenAnother={() => { removePendingCredit(Number(openedCreditId)); handleOpen(openedCreditId ?? undefined) }}
           canOpenAnother={hasCredits}
           onCancel={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
-          onClose={() => { setOpenedCards(null); setOpenedCreditId(null); loadCredits() }}
+          onClose={() => {
+            // Le booster vient d'être réclamé : on le retire tout de suite de la liste locale
+            // (sinon il reste dans le carrousel tant que le cache de 15 s n'a pas expiré)
+            if (openedCreditId) removePendingCredit(Number(openedCreditId))
+            setOpenedCards(null); setOpenedCreditId(null); loadCredits(true)
+          }}
         />
       )}
 
@@ -231,7 +247,7 @@ export function PackScreen() {
           items-center
           justify-center
           w-full
-          min-h-[calc(100dvh-120px)]
+          min-h-[calc(100dvh_-_var(--header-h,120px)_-_11rem)]
           px-4
           py-6
           overflow-hidden

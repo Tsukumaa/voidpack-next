@@ -1,3 +1,5 @@
+import { notifyRaidActivity } from '@/lib/raid-events';
+
 export const RANKS = [
   { id: 'void',     label: 'VOID',    min: 2000, color: '#a855f7', icon: '🌌' },
   { id: 'diamond',  label: 'Diamant', min: 1500, color: '#00f3ff', icon: '💎' },
@@ -60,4 +62,5 @@ export async function recordCombatResult(sessionId, winnerId) {
     body:    JSON.stringify({ sessionId, winnerId }),
   });
   if (!res.ok) throw new Error(await res.text());
+  notifyRaidActivity('combats_won');
 }

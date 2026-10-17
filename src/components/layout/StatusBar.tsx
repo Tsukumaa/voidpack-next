@@ -9,13 +9,15 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useGameStore } from '@/store/game'
 import { useSocialStore } from '@/store/social'
 import { signIn, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { ShopModal } from '@/components/game/ShopModal'
+import { VoidDayBanner } from '@/components/layout/VoidDayBanner'
+import { RaidBanner } from '@/components/layout/RaidBanner'
 
 function xpForLevel(lvl: number) {
   return Math.floor(200 * Math.pow(1.18, lvl - 1))
@@ -46,6 +48,18 @@ export function StatusBar() {
   const streak = useSocialStore(s => s.streak)
   const [showShop, setShowShop] = useState(false)
 
+  // Expose la hauteur réelle du header (variable bandeau Void Day compris) en --header-h,
+  // pour que les barres sticky des pages se placent juste en dessous.
+  const headerRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const root = document.documentElement
+    const ro = new ResizeObserver(() => root.style.setProperty('--header-h', `${el.offsetHeight}px`))
+    ro.observe(el)
+    return () => { ro.disconnect(); root.style.removeProperty('--header-h') }
+  }, [])
+
   async function handleAuth() {
     if (user) {
       await signOut({ callbackUrl: '/pack' })
@@ -59,7 +73,7 @@ export function StatusBar() {
     : 0
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-3 pb-2">
+    <header ref={headerRef} className="sticky top-0 z-50 px-3 pt-3 pb-2">
 
       <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
 
@@ -184,6 +198,9 @@ export function StatusBar() {
         </div>
 
       </div>
+
+      <VoidDayBanner />
+      <RaidBanner />
 
       {showShop &&
         createPortal(

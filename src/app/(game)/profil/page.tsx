@@ -307,7 +307,7 @@ export default function ProfilPage() {
     <div className="pb-4 space-y-4 max-w-4xl mx-auto w-full">
 
       {/* Header sticky */}
-      <div className="sticky top-20 z-20 rounded-2xl border border-white/[0.07] px-4 py-3 backdrop-blur-md"
+      <div className="sticky top-[var(--header-h,5rem)] z-20 rounded-2xl border border-white/[0.07] px-4 py-3 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(8,10,18,0.88)' }}>
 
         <div className="flex items-center gap-3 mb-3">

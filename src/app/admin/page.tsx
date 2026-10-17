@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone } from 'lucide-react'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone, Swords } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ interface Setting {
   value: string
 }
 
-type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'twitch' | 'artists' | 'settings'
+type Tab = 'players' | 'families' | 'cards' | 'boosters' | 'cardbacks' | 'arenas' | 'twitch' | 'artists' | 'raids' | 'settings'
 
 interface Arena {
   id?: string
@@ -110,6 +110,7 @@ export default function AdminPage() {
     { id: 'cardbacks', icon: <Shirt size={13} />,    label: 'Dos' },
     { id: 'arenas',    icon: <Shield size={13} />,   label: 'Arènes' },
     { id: 'twitch',    icon: <Tv2 size={13} />,      label: 'Twitch' },
+    { id: 'raids',     icon: <Swords size={13} />,   label: 'Raids' },
     { id: 'settings',  icon: <Settings size={13} />, label: 'Params' },
   ]
 
@@ -233,6 +234,7 @@ export default function AdminPage() {
         {tab === 'arenas'   && <ArenasTab onMsg={showMsg} />}
         {tab === 'twitch'   && <TwitchTab onMsg={showMsg} />}
         {tab === 'artists'  && <ArtistsTab onMsg={showMsg} />}
+        {tab === 'raids'    && <RaidsTab onMsg={showMsg} />}
         {tab === 'settings' && <SettingsTab onMsg={showMsg} />}
       </div>
     </div>
@@ -1605,6 +1607,7 @@ const FEATURE_FLAGS = [
   { key: 'feature_trading',            label: 'Échange de cartes',   desc: 'Trades entre joueurs',                icon: '🔄' },
   { key: 'feature_social',             label: 'Social / Chat',       desc: 'Messages, amis, communauté',          icon: '💬' },
   { key: 'feature_shop',               label: 'Boutique arènes',     desc: 'Achat d\'arènes et objets',           icon: '🏪' },
+  { key: 'event_void_day',             label: 'Void Day',            desc: '1 booster acheté = 1 offert (Compatible achats Mana et Twitch)', icon: '🌀', defaultOff: true },
 ]
 
 function FeatureToggle({ featureKey, label, desc, icon, value, onChange }: {
@@ -1918,8 +1921,8 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
       const map: Record<string, boolean> = {}
       for (const f of FEATURE_FLAGS) {
         const row = (data ?? []).find((s: Setting) => s.key === f.key)
-        // maintenance_mode désactivé par défaut, autres flags activés par défaut
-        const defaultVal = f.key === 'maintenance_mode' ? false : true
+        // maintenance_mode et événements désactivés par défaut, autres flags activés par défaut
+        const defaultVal = f.key === 'maintenance_mode' || ('defaultOff' in f && f.defaultOff) ? false : true
         map[f.key] = row ? row.value === 'true' || (row.value !== 'false' && defaultVal) : defaultVal
       }
       setFeatures(map)
@@ -2284,6 +2287,254 @@ function SqlTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Onglet Raids ─────────────────────────────────────────────────────────────
+const RAID_OBJECTIVE_OPTIONS = [
+  { value: 'boosters_opened',  label: 'Boosters ouverts' },
+  { value: 'combats_won',      label: 'Combats gagnés (PvP)' },
+  { value: 'cards_recycled',   label: 'Cartes recyclées' },
+  { value: 'trades_completed', label: 'Échanges réalisés (amis + marché)' },
+]
+
+interface AdminRaid {
+  id: number
+  title: string
+  description: string | null
+  objectiveType: string
+  goal: number
+  progress: number
+  minContribution: number
+  tiers: { threshold: number; boosters: number; boosterType: string }[]
+  status: string
+  phase: 'running' | 'claim' | 'over'
+  endsAt: string | null
+  completedAt: string | null
+  claimUntil: string | null
+  createdAt: string
+  participants: number
+  eligible: number
+  claims: number
+}
+
+type TierForm = { threshold: string; boosters: string; boosterType: string }
+
+function RaidsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
+  const [raids, setRaids]       = useState<AdminRaid[]>([])
+  const [families, setFamilies] = useState<{ key: string; label: string }[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [granting, setGranting] = useState<number | null>(null)
+  const [form, setForm] = useState({
+    title: '', description: '', objectiveType: 'boosters_opened', goal: '100000', minContribution: '5', endsAt: '',
+  })
+  const [tiers, setTiers] = useState<TierForm[]>([
+    { threshold: '25000',  boosters: '1', boosterType: 'void' },
+    { threshold: '50000',  boosters: '2', boosterType: 'void' },
+    { threshold: '100000', boosters: '3', boosterType: 'void' },
+  ])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [r, f] = await Promise.all([
+        fetch('/api/admin/raids').then(res => res.ok ? res.json() : []),
+        fetch('/api/families', { headers: { 'x-admin': '1' } }).then(res => res.ok ? res.json() : []),
+      ])
+      setRaids(r ?? [])
+      setFamilies((f ?? []).filter((x: { key: string }) => x.key !== 'global'))
+    } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // Visible côté joueurs : en cours ou en période de réclamation
+  const isRunning = (r: AdminRaid) => r.phase !== 'over'
+  const hasRunning = raids.some(isRunning)
+
+  async function create() {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/raids', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          goal: Number(form.goal),
+          minContribution: Number(form.minContribution),
+          endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
+          tiers: tiers.map(t => ({ threshold: Number(t.threshold), boosters: Number(t.boosters), boosterType: t.boosterType })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { onMsg(data.error ?? 'Erreur', false); return }
+      onMsg('✅ Raid lancé')
+      setShowForm(false)
+      load()
+    } finally { setSaving(false) }
+  }
+
+  async function end(id: number) {
+    if (!confirm('Terminer ce raid maintenant ? Il disparaît pour les joueurs et les récompenses non réclamées sont perdues.')) return
+    const res = await fetch('/api/admin/raids', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'end' }),
+    })
+    if (!res.ok) { onMsg('Erreur', false); return }
+    onMsg('⛔ Raid terminé')
+    load()
+  }
+
+  // Donne à tous les joueurs éligibles les paliers atteints qu'ils n'ont pas réclamés
+  async function grant(r: AdminRaid) {
+    const reached = r.tiers.filter(t => r.progress >= t.threshold).length
+    if (!reached) { onMsg('Aucun palier atteint pour ce raid.', false); return }
+    if (!confirm(`Accorder les récompenses des ${reached} palier${reached > 1 ? 's' : ''} atteint${reached > 1 ? 's' : ''} aux ${r.eligible} joueur${r.eligible > 1 ? 's' : ''} éligible${r.eligible > 1 ? 's' : ''} ?\n\nLes boosters sont ajoutés directement à leurs crédits. Les paliers déjà réclamés ne sont pas redonnés.`)) return
+    setGranting(r.id)
+    try {
+      const res = await fetch('/api/admin/raids', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: r.id, action: 'grant' }),
+      })
+      const data = await res.json()
+      if (!res.ok) { onMsg(data.error ?? 'Erreur', false); return }
+      onMsg(data.grants > 0
+        ? `🎁 ${data.grants} palier${data.grants > 1 ? 's' : ''} accordé${data.grants > 1 ? 's' : ''}`
+        : 'Rien à accorder : tous les paliers atteints sont déjà réclamés.')
+      load()
+    } finally { setGranting(null) }
+  }
+
+  const setTier =(i: number, patch: Partial<TierForm>) => setTiers(ts => ts.map((t, j) => j === i ? { ...t, ...patch } : t))
+  const objectiveLabel = (v: string) => RAID_OBJECTIVE_OPTIONS.find(o => o.value === v)?.label ?? v
+
+  if (loading) return <LoadingText />
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-white">Raids communautaires</h3>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Objectif commun à tous les joueurs. Chaque palier atteint débloque des boosters, à réclamer par les joueurs ayant assez participé.
+          </p>
+        </div>
+        {!hasRunning && !showForm && (
+          <button onClick={() => setShowForm(true)} className={primaryBtnCls}><Plus size={14} className="inline mr-1" />Nouveau raid</button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="space-y-4 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Titre">
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="L'invasion du Void" className={inputCls} />
+            </Field>
+            <Field label="Action comptée">
+              <select value={form.objectiveType} onChange={e => setForm(f => ({ ...f, objectiveType: e.target.value }))} className={selectCls}>
+                {RAID_OBJECTIVE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="Description (optionnelle)">
+            <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Tous ensemble, ouvrez 100 000 boosters !" className={inputCls} />
+          </Field>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Field label="Objectif total">
+              <input type="number" min={1} value={form.goal} onChange={e => setForm(f => ({ ...f, goal: e.target.value }))} className={inputCls} />
+            </Field>
+            <Field label="Participation minimum">
+              <input type="number" min={1} value={form.minContribution} onChange={e => setForm(f => ({ ...f, minContribution: e.target.value }))} className={inputCls} />
+            </Field>
+            <Field label="Fin (optionnelle)">
+              <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} className={inputCls} />
+            </Field>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}>Paliers</p>
+            {tiers.map((t, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input type="number" min={1} value={t.threshold} onChange={e => setTier(i, { threshold: e.target.value })} className={inputCls} placeholder="Seuil" title="Seuil de la jauge" />
+                <input type="number" min={1} value={t.boosters} onChange={e => setTier(i, { boosters: e.target.value })} className={`${inputCls} !w-24`} placeholder="Nb" title="Boosters offerts" />
+                <select value={t.boosterType} onChange={e => setTier(i, { boosterType: e.target.value })} className={selectCls} title="Famille du booster">
+                  <option value="void">Void (toutes familles)</option>
+                  {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+                </select>
+                <button onClick={() => setTiers(ts => ts.filter((_, j) => j !== i))} disabled={tiers.length <= 1} className={dangerIconBtnCls} title="Supprimer le palier">
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setTiers(ts => [...ts, { threshold: form.goal, boosters: '1', boosterType: 'void' }])} className={iconBtnCls}>
+              <Plus size={12} className="inline mr-1" />Ajouter un palier
+            </button>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setShowForm(false)} className={iconBtnCls}>Annuler</button>
+            <button onClick={create} disabled={saving} className={primaryBtnCls}>{saving ? 'Lancement…' : 'Lancer le raid'}</button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {raids.length === 0 && <p className="text-sm text-white/30">Aucun raid pour l&apos;instant.</p>}
+        {raids.map(r => {
+          const running = isRunning(r)
+          const pct = Math.min(100, (r.progress / r.goal) * 100)
+          return (
+            <div key={r.id} className="p-4 rounded-2xl space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${running ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.06)'}` }}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-white font-bold text-sm truncate">{r.title}</p>
+                    {r.phase === 'running'
+                      ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/20 text-orange-300">En cours</span>
+                      : r.phase === 'claim'
+                        ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-yellow-500/20 text-yellow-300">Réussi · réclamation</span>
+                        : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 text-white/30">{r.completedAt ? 'Réussi' : 'Terminé'}</span>}
+                  </div>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    {objectiveLabel(r.objectiveType)} · min. {r.minContribution} pour les récompenses
+                    {r.phase === 'claim' && r.claimUntil
+                      ? ` · réclamation jusqu'au ${new Date(r.claimUntil).toLocaleString('fr-FR')}`
+                      : r.endsAt && ` · ${running ? 'fin' : 'terminé'} le ${new Date(r.endsAt).toLocaleString('fr-FR')}`}
+                  </p>
+                </div>
+                {running && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {r.tiers.some(t => r.progress >= t.threshold) && (
+                      <button onClick={() => grant(r)} disabled={granting === r.id} className={iconBtnCls}
+                        title="Donne les boosters des paliers atteints à tous les joueurs éligibles qui ne les ont pas réclamés">
+                        {granting === r.id ? '…' : '🎁 Accorder les récompenses'}
+                      </button>
+                    )}
+                    <button onClick={() => end(r.id)} className={dangerIconBtnCls}>Terminer</button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-white/50">{Math.min(r.progress, r.goal).toLocaleString('fr-FR')} / {r.goal.toLocaleString('fr-FR')}{r.progress >= r.goal && ' · objectif atteint'}</span>
+                  <span className="text-white/50">{Math.floor(pct)}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#f97316,#facc15)' }} />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/40">
+                <span>{r.participants} participant{r.participants > 1 ? 's' : ''}</span>
+                <span>{r.eligible} éligible{r.eligible > 1 ? 's' : ''}</span>
+                <span>{r.claims} palier{r.claims > 1 ? 's' : ''} réclamé{r.claims > 1 ? 's' : ''}</span>
+                <span>Paliers : {r.tiers.map(t => `${t.threshold.toLocaleString('fr-FR')} → ${t.boosters} ${t.boosterType}`).join(' · ')}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

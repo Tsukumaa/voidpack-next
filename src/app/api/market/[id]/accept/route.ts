@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { marketOffers, playerCards } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { contributeToRaid } from '@/lib/game/raids'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -58,6 +59,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   await db.update(marketOffers)
     .set({ status: 'accepted', buyerId: uid, acceptedAt: new Date().toISOString() })
     .where(eq(marketOffers.id, id))
+
+  // Raid : 1 échange = +1 sur la jauge, +1 de participation pour l'acheteur et le vendeur
+  await contributeToRaid('trades_completed', [{ userId: uid, amount: 1 }, { userId: offer.sellerId, amount: 1 }], 1)
 
   return NextResponse.json({ ok: true })
 }
