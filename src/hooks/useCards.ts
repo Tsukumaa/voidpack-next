@@ -1,7 +1,9 @@
 import { useCallback } from 'react'
 import { useGameStore } from '@/store/game'
 
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+// Court : /api/cards répond 304 (vide) quand rien n'a changé, donc revalider souvent coûte peu
+// et une carte masquée par l'admin disparaît presque immédiatement
+const CACHE_TTL = 30 * 1000
 
 export function useCards() {
   const { cardsCache, cardsCachedAt, setCardsCache } = useGameStore(s => ({

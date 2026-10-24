@@ -127,7 +127,8 @@ function DraftContent() {
       defMap[d.id] = { name: d.name, image_url: d.imageUrl ?? d.image_url, metadata: meta }
     }
     defMapRef.current = defMap
-    const sorted = (rawCards ?? []).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
+    // Cartes absentes de /api/cards (masquées, famille désactivée) : non jouables
+    const sorted = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => defMap[c.card_id ?? c.cardId ?? '']).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
       const combat = (def?.metadata?.combat ?? { atk: 1, hp: 2, cost: 1 }) as { atk: number; hp: number; cost: number; effects?: string[] }

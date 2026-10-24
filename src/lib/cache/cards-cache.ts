@@ -26,3 +26,18 @@ export async function getCachedAllCards(): Promise<CardRow[]> {
   cachedCards = { data: rows, ts: Date.now() }
   return cachedCards.data
 }
+
+// Identifiants des cartes masquées par l'admin (indisponibles côté joueurs).
+// Lecture directe, sans cache : le masquage doit s'appliquer immédiatement sur tous les
+// serveurs (le cache ci-dessus n'est invalidé que sur l'instance qui a traité l'admin).
+// Requête minuscule : quelques dizaines de cartes, seulement l'id des masquées.
+export async function getHiddenCardIds(): Promise<Set<string>> {
+  const rows = await db.select({ id: customCards.id }).from(customCards).where(eq(customCards.hidden, true))
+  return new Set(rows.map(r => r.id))
+}
+
+// Vrai si au moins une des cartes est masquée (échanges, marché…)
+export async function hasHiddenCard(...ids: (string | null | undefined)[]): Promise<boolean> {
+  const hidden = await getHiddenCardIds()
+  return ids.some(id => !!id && hidden.has(id))
+}

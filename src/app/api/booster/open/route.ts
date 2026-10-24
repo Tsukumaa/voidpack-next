@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { boosterCredits } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
-import { getCachedActiveFamilies, getCachedAllCards } from '@/lib/cache/cards-cache'
+import { getCachedActiveFamilies, getCachedAllCards, getHiddenCardIds } from '@/lib/cache/cards-cache'
 
 const RARITY_WEIGHTS: Record<string, number> = {
   common:    60,
@@ -53,7 +53,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Construire le pool (depuis le cache)
-  const [activeFamilies, allCards] = await Promise.all([getCachedActiveFamilies(), getCachedAllCards()])
+  const [activeFamilies, cachedCards, hidden] = await Promise.all([getCachedActiveFamilies(), getCachedAllCards(), getHiddenCardIds()])
+  // Cartes masquées par l'admin : jamais tirées (liste lue en direct, effet immédiat)
+  const allCards = cachedCards.filter(c => !hidden.has(c.id))
 
   const pool = booster_type === 'void'
     ? allCards.filter(c => activeFamilies.includes(c.family) || c.family === 'global')

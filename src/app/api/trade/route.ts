@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { tradeOffers, playerCards, playerProfiles } from '@/lib/db/schema'
 import { eq, or, and, inArray } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
+import { getHiddenCardIds, hasHiddenCard } from '@/lib/cache/cards-cache'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -12,13 +13,18 @@ export async function GET(req: NextRequest) {
   const uid    = session.user.id
   const status = req.nextUrl.searchParams.get('status') ?? 'pending'
 
-  const rows = await db.query.tradeOffers.findMany({
-    where: and(
-      or(eq(tradeOffers.senderId, uid), eq(tradeOffers.receiverId, uid)),
-      eq(tradeOffers.status, status),
-    ),
-    orderBy: (t, { desc }) => [desc(t.createdAt)],
-  })
+  const [allRows, hidden] = await Promise.all([
+    db.query.tradeOffers.findMany({
+      where: and(
+        or(eq(tradeOffers.senderId, uid), eq(tradeOffers.receiverId, uid)),
+        eq(tradeOffers.status, status),
+      ),
+      orderBy: (t, { desc }) => [desc(t.createdAt)],
+    }),
+    getHiddenCardIds(),
+  ])
+  // Échanges portant sur une carte masquée par l'admin : non affichés
+  const rows = allRows.filter(r => !hidden.has(r.offeredCardKey) && !hidden.has(r.wantedCardKey))
 
   // Enrichir avec username + avatarUrl des deux parties
   const userIds = [...new Set(rows.flatMap(r => [r.senderId, r.receiverId]))]
@@ -47,6 +53,9 @@ export async function POST(req: NextRequest) {
 
   if (!receiverId || !offeredCardKey || !offeredRarity || !wantedCardKey) {
     return NextResponse.json({ error: 'Champs requis manquants.' }, { status: 400 })
+  }
+  if (await hasHiddenCard(offeredCardKey, wantedCardKey)) {
+    return NextResponse.json({ error: 'Cette carte n\'est pas disponible.' }, { status: 400 })
   }
 
   const owned = await db.query.playerCards.findFirst({

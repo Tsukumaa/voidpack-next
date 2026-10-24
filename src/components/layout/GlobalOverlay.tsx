@@ -7,6 +7,7 @@ import { useSocialStore } from '@/store/social'
 import { ToastOverlay } from '@/components/layout/ToastOverlay'
 import { ChallengePopup, type PendingChallenge } from '@/components/layout/ChallengePopup'
 import { useIdleDetection } from '@/hooks/useIdleDetection'
+import { AnnouncementVideo } from '@/components/layout/AnnouncementVideo'
 
 interface AnnouncementSection { subtitle: string; text: string }
 interface Announcement { title: string; sections: AnnouncementSection[]; since: string }
@@ -22,13 +23,17 @@ export function GlobalOverlay() {
   const cb = useRef({ setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast, setActiveChallenge })
   cb.current = { setPendingFriendCount, setUnreadMessageCount, setUnreadBySender, setPendingTradeCount, setProfilBadge, setStreak, addToast, setActiveChallenge }
   const [announcement, setAnnouncement] = useState<Announcement | null>(null)
+  const [video, setVideo] = useState<{ url: string; since: string } | null>(null)
   const idle = useIdleDetection()
 
-  // Popup d'annonce — affichée une seule fois par activation
-  const fetchAnnouncement = () => {
-    fetch('/api/announcement').then(r => r.ok ? r.json() : null).then(data => {
-      if (!data?.active) return
+  // Vidéo puis popup d'annonce — chacune affichée une seule fois par activation
+  // fresh : contourne le cache CDN (aperçu déclenché depuis l'admin)
+  const fetchAnnouncement = (fresh = false) => {
+    fetch(fresh ? `/api/announcement?fresh=${Date.now()}` : '/api/announcement').then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return
       try {
+        if (data.video && localStorage.getItem('announcement_video_seen') !== data.video.since) setVideo(data.video)
+        if (!data.active) return
         const seen = localStorage.getItem('announcement_seen')
         if (seen === data.since) return
         let sections: AnnouncementSection[] = []
@@ -38,10 +43,16 @@ export function GlobalOverlay() {
     }).catch(() => {})
   }
 
+  const closeVideo = () => {
+    try { if (video) localStorage.setItem('announcement_video_seen', video.since) } catch { /* */ }
+    setVideo(null)
+  }
+
   useEffect(() => {
     fetchAnnouncement()
-    window.addEventListener('show-announcement', fetchAnnouncement)
-    return () => window.removeEventListener('show-announcement', fetchAnnouncement)
+    const onShow = () => fetchAnnouncement(true)
+    window.addEventListener('show-announcement', onShow)
+    return () => window.removeEventListener('show-announcement', onShow)
   }, []) // eslint-disable-line
 
   useEffect(() => {
@@ -106,7 +117,8 @@ export function GlobalOverlay() {
     <>
       <ToastOverlay />
       {/* Écran d'inactivité */}
-      {idle && (
+      {/* Pas d'écran de veille pendant la vidéo d'annonce (on ne bouge pas la souris en la regardant) */}
+      {idle && !video && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center"
           style={{ background: 'rgba(4,3,12,0.92)', backdropFilter: 'blur(8px)' }}>
           <div className="flex flex-col items-center gap-3 text-center select-none">
@@ -127,7 +139,9 @@ export function GlobalOverlay() {
           onDone={() => setActiveChallenge(null)}
         />
       )}
-      {announcement && (
+      {video && <AnnouncementVideo src={video.url} onDone={closeVideo} />}
+      {/* La popup attend la fin de la vidéo */}
+      {announcement && !video && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="relative w-full max-w-md rounded-2xl border border-[#7b2bff]/30 p-6 flex flex-col gap-4"
             style={{ background: '#0b0816', boxShadow: '0 0 60px rgba(123,43,255,0.2)' }}>

@@ -1,14 +1,14 @@
 import { db } from '@/lib/db'
 import { playerCards } from '@/lib/db/schema'
 import { and, inArray, sql } from 'drizzle-orm'
-import { getCachedActiveFamilies, getCachedAllCards } from '@/lib/cache/cards-cache'
+import { getCachedActiveFamilies, getCachedAllCards, getHiddenCardIds } from '@/lib/cache/cards-cache'
 
 // Cartes à posséder pour le badge "collection complète" : mêmes règles que /api/cards
-// (famille 'global' + familles actives). Les cartes des familles désactivées sont exclues,
-// sinon personne ne peut jamais compléter la collection.
+// (famille 'global' + familles actives, hors cartes masquées). Les cartes indisponibles
+// sont exclues, sinon personne ne peut jamais compléter la collection.
 export async function getCompletableCardIds(): Promise<string[]> {
-  const [cards, activeFamilies] = await Promise.all([getCachedAllCards(), getCachedActiveFamilies()])
-  return cards.filter(c => c.family === 'global' || activeFamilies.includes(c.family)).map(c => c.id)
+  const [cards, activeFamilies, hidden] = await Promise.all([getCachedAllCards(), getCachedActiveFamilies(), getHiddenCardIds()])
+  return cards.filter(c => !hidden.has(c.id) && (c.family === 'global' || activeFamilies.includes(c.family))).map(c => c.id)
 }
 
 // Retourne l'ensemble des joueurs (parmi userIds) qui possèdent toutes les cartes obtenables.

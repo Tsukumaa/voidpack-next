@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone, Swords } from 'lucide-react'
+import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone, Swords, Eye, EyeOff } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
+import { announcementMediaKind } from '@/components/layout/AnnouncementVideo'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -49,6 +50,7 @@ interface Card {
   combat_effects: string[]
   artist: string
   artistUrl: string
+  hidden?: boolean | number // custom_cards.hidden (0/1 en SQL brut)
 }
 
 interface Setting {
@@ -1185,6 +1187,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [filterFam, setFilterFam] = useState('')
   const [filterRarity, setFilterRarity] = useState('')
   const [filterArtist, setFilterArtist] = useState('')
+  const [filterVisibility, setFilterVisibility] = useState<'' | 'visible' | 'hidden'>('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [artists, setArtists]   = useState<{ id: number; name: string; url: string | null }[]>([])
   const [artistOpen, setArtistOpen] = useState(false)
@@ -1231,7 +1234,8 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         artist: form.artist.trim(),
         artist_url: form.artistUrl?.trim() || null,
         description: (form.description ?? '').trim(),
-        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } })
+        metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } }),
+        hidden: !!form.hidden,
       }
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
@@ -1251,6 +1255,19 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     onMsg(`🗑 "${card.name}" supprimée`); load()
   }
 
+  // Masquée : invisible et indisponible partout côté joueurs (tirage, collection, échanges…)
+  async function toggleHidden(card: Card) {
+    const hide = !card.hidden
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, hidden: hide } : c))
+    try {
+      await adminDb('update', 'custom_cards', { hidden: hide }, { col: 'id', val: card.id })
+      onMsg(hide ? `🙈 "${card.name}" masquée` : `👁 "${card.name}" visible`)
+    } catch {
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, hidden: !hide } : c))
+      onMsg('Erreur', false)
+    }
+  }
+
   const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', common: '#9ca3af' }
 
   // Sépare le tag artiste de la description libre (pour pré-remplir l'édition)
@@ -1267,8 +1284,10 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&
     (!filterFam || c.family === filterFam) &&
     (!filterRarity || c.rarity === filterRarity) &&
-    (!filterArtist || c.artist === filterArtist)
+    (!filterArtist || c.artist === filterArtist) &&
+    (!filterVisibility || (filterVisibility === 'hidden') === !!c.hidden)
   )
+  const hiddenCount = cards.filter(c => c.hidden).length
 
   return (
     <div>
@@ -1279,7 +1298,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           placeholder="Rechercher une carte…"
           className={inputCls}
         />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <select value={filterFam} onChange={e => setFilterFam(e.target.value)} className={selectCls}>
             <option value="">Toutes les familles</option>
             {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
@@ -1291,6 +1310,11 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
           <select value={filterArtist} onChange={e => setFilterArtist(e.target.value)} className={selectCls}>
             <option value="">Tous les artistes</option>
             {artists.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+          </select>
+          <select value={filterVisibility} onChange={e => setFilterVisibility(e.target.value as '' | 'visible' | 'hidden')} className={selectCls}>
+            <option value="">Toutes visibilités</option>
+            <option value="visible">Visibles</option>
+            <option value="hidden">Masquées ({hiddenCount})</option>
           </select>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -1335,7 +1359,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               </thead>
               <tbody>
                 {filtered.map((c, i) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                  <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)', opacity: c.hidden ? 0.5 : 1 }}>
                     <td className="px-3 py-1.5">
                       <div className="w-6 h-8 rounded overflow-hidden bg-[#0a0612] flex-shrink-0">
                         {c.image_url
@@ -1344,7 +1368,10 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                           : <div className="w-full h-full flex items-center justify-center text-white/10 text-[8px]">?</div>}
                       </div>
                     </td>
-                    <td className="px-3 py-1.5 font-semibold text-white">{c.name}</td>
+                    <td className="px-3 py-1.5 font-semibold text-white">
+                      {c.name}
+                      {!!c.hidden && <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase">Masquée</span>}
+                    </td>
                     <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '-'}</td>
                     <td className="px-3 py-1.5">
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase" style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '22' }}>{c.rarity}</span>
@@ -1363,6 +1390,10 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
                           className={iconBtnCls}><Pencil size={11} /></button>
+                        <button onClick={() => toggleHidden(c)} className={iconBtnCls}
+                          title={c.hidden ? 'Rendre visible pour les joueurs' : 'Masquer pour les joueurs'}>
+                          {c.hidden ? <EyeOff size={11} className="text-red-300" /> : <Eye size={11} />}
+                        </button>
                         <button onClick={() => del(c)} className={dangerIconBtnCls}><X size={11} /></button>
                       </div>
                     </td>
@@ -1378,14 +1409,22 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               <div
                 key={c.id}
                 className="rounded-xl overflow-hidden flex flex-col"
-                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${RARITY_COLOR[c.rarity]}44` }}
+                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${c.hidden ? 'rgba(248,113,113,0.5)' : RARITY_COLOR[c.rarity] + '44'}` }}
               >
                 <div className="aspect-[0.714] relative overflow-hidden bg-[#0a0612]">
                   {c.image_url
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={c.image_url} alt={c.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                    ? <img src={c.image_url} alt={c.name} className="absolute inset-0 w-full h-full object-cover" draggable={false}
+                        style={c.hidden ? { filter: 'grayscale(1) brightness(0.45)' } : undefined} />
                     : <div className="absolute inset-0 flex items-center justify-center opacity-20 text-lg">?</div>
                   }
+                  {!!c.hidden && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="flex items-center gap-1 text-[8px] font-black px-1.5 py-0.5 rounded bg-red-500/80 text-white uppercase tracking-wider">
+                        <EyeOff size={8} /> Masquée
+                      </span>
+                    </div>
+                  )}
                   <span
                     className="absolute top-1 left-1 text-[7px] font-bold px-1 py-0.5 rounded-full uppercase tracking-wider"
                     style={{ color: RARITY_COLOR[c.rarity], background: RARITY_COLOR[c.rarity] + '33', backdropFilter: 'blur(8px)', border: `1px solid ${RARITY_COLOR[c.rarity]}55` }}
@@ -1403,6 +1442,11 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   <div className="flex gap-0.5 flex-shrink-0">
                     <button onClick={() => { const a = splitArtist(c.description); setForm({ ...c, artist: c.artist || a.artist, artistUrl: c.artistUrl || a.artistUrl, description: c.artist ? (c.description ?? '') : a.text, combat_atk: c.metadata?.combat?.atk ?? 1, combat_hp: c.metadata?.combat?.hp ?? 2, combat_cost: c.metadata?.combat?.cost ?? 1, combat_effects: c.metadata?.combat?.effects ?? [] }) }}
                       className="w-5 h-5 rounded flex items-center justify-center bg-white/5 hover:bg-white/10"><Pencil size={8} /></button>
+                    <button onClick={() => toggleHidden(c)}
+                      title={c.hidden ? 'Rendre visible pour les joueurs' : 'Masquer pour les joueurs'}
+                      className={`w-5 h-5 rounded flex items-center justify-center ${c.hidden ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10'}`}>
+                      {c.hidden ? <EyeOff size={8} /> : <Eye size={8} />}
+                    </button>
                     <button onClick={() => del(c)}
                       className="w-5 h-5 rounded flex items-center justify-center bg-red-500/10 hover:bg-red-500/25 text-red-400"><X size={8} /></button>
                   </div>
@@ -1515,6 +1559,19 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               </Field>
             </div>
           </div>
+          {/* Masquée dès la création : la carte n'apparaît jamais côté joueurs tant qu'elle n'est pas rendue visible */}
+          <label className="mt-4 flex items-start gap-3 p-3 rounded-xl cursor-pointer select-none"
+            style={{ background: form.hidden ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${form.hidden ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+            <input type="checkbox" checked={!!form.hidden} onChange={e => setForm(f => f && ({ ...f, hidden: e.target.checked }))}
+              className="mt-0.5 accent-red-500" />
+            <span>
+              <span className="flex items-center gap-1.5 text-sm font-bold text-white">
+                {form.hidden ? <EyeOff size={13} className="text-red-300" /> : <Eye size={13} className="text-white/50" />}
+                Masquée pour les joueurs
+              </span>
+              <span className="block text-xs text-white/40 mt-0.5">Invisible et indisponible partout (boosters, collection, échanges…). Visible uniquement dans l&apos;admin.</span>
+            </span>
+          </label>
           <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
         </Modal>
       )}
@@ -1912,6 +1969,9 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
   const [popupSections, setPopupSections] = useState<{ subtitle: string; text: string }[]>([{ subtitle: '', text: '' }])
   const [popupActive, setPopupActive] = useState(false)
   const [savingPopup, setSavingPopup] = useState(false)
+  const [videoUrl, setVideoUrl]       = useState('/assets/void-gvn-reveal.mp4')
+  const [videoActive, setVideoActive] = useState(false)
+  const [savingVideo, setSavingVideo] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1939,6 +1999,10 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
         } catch { /* ancien format texte */ }
       }
       setPopupActive(!!pa?.value)
+      const vu = (data ?? []).find((s: Setting) => s.key === 'announcement_video_url')
+      const vs = (data ?? []).find((s: Setting) => s.key === 'announcement_video_since')
+      if (vu?.value) setVideoUrl(vu.value)
+      setVideoActive(!!vs?.value)
     } finally { setLoading(false) }
   }, [])
 
@@ -1979,6 +2043,18 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     } finally { setSavingPopup(false) }
   }
 
+  // Vidéo d'annonce : (ré)activer = nouvelle date → rejouée une fois pour chaque joueur
+  async function saveVideo(activate: boolean) {
+    setSavingVideo(true)
+    try {
+      await adminDb('upsert', 'settings', { key: 'announcement_video_url', value: videoUrl.trim() }, { col: 'key', val: 'announcement_video_url', onConflict: 'key' })
+      const since = activate ? new Date().toISOString() : ''
+      await adminDb('upsert', 'settings', { key: 'announcement_video_since', value: since }, { col: 'key', val: 'announcement_video_since', onConflict: 'key' })
+      setVideoActive(activate)
+      onMsg(activate ? '✅ Vidéo d\'annonce activée' : '⛔ Vidéo d\'annonce désactivée')
+    } finally { setSavingVideo(false) }
+  }
+
   async function saveRevealDate() {
     setSavingReveal(true)
     try {
@@ -1990,6 +2066,51 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
 
   return (
     <div className="space-y-8">
+      {/* ── Vidéo d'annonce ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-sm font-bold text-white">Vidéo d&apos;annonce</h3>
+          {videoActive
+            ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-green-500/20 text-green-400">Active</span>
+            : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 text-white/30">Inactive</span>}
+        </div>
+        <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Jouée en plein écran <strong className="text-white/60">une seule fois</strong> à chaque joueur à son arrivée sur le site, depuis la date d&apos;activation (avant la popup si elle est active). Réactiver la rejoue pour tout le monde.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Field label="Vidéo ou image">
+              <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="/assets/ma-video.mp4 ou https://imgg.fr/r/xxxx.gif" className={inputCls} />
+            </Field>
+            <p className="text-[11px] text-white/30">
+              Fichier du dossier <code>public/</code> (ex. <code>/assets/void-gvn-reveal.mp4</code>) ou URL complète, lien imgg.fr compris.
+              Vidéo : se ferme seule à la fin. Image / GIF : le joueur la ferme avec un bouton.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => saveVideo(true)} disabled={savingVideo || !videoUrl.trim()} className={primaryBtnCls}>
+                {savingVideo ? 'Sauvegarde…' : videoActive ? 'Réactiver' : 'Activer la vidéo'}
+              </button>
+              {videoActive && (
+                <button onClick={() => saveVideo(false)} disabled={savingVideo}
+                  className="px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                  style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)', color: '#f87171' }}>
+                  Désactiver
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="p-4 rounded-2xl flex flex-col" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3">Aperçu</p>
+            {!videoUrl.trim()
+              ? <p className="text-white/20 text-xs italic">Renseigne une vidéo ou une image…</p>
+              : announcementMediaKind(videoUrl.trim()) === 'image'
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img key={videoUrl} src={videoUrl.trim()} alt="" className="w-full rounded-xl bg-black object-contain max-h-64" />
+                : <video key={videoUrl} src={videoUrl.trim()} controls preload="metadata" className="w-full rounded-xl bg-black" />}
+          </div>
+        </div>
+      </div>
+
       {/* ── Popup d'annonce ── */}
       <div>
         <div className="flex items-center gap-2 mb-1">

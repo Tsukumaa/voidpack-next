@@ -51,6 +51,8 @@ export const customCards = sqliteTable('custom_cards', {
   imageUrl:    text('image_url'),
   description: text('description'),
   metadata:    text('metadata').notNull().default('{}'), // JSON
+  // Masquée : invisible et indisponible partout côté joueurs (tirage, collection, échanges…), visible en admin
+  hidden:      integer('hidden', { mode: 'boolean' }).notNull().default(false),
   createdAt:   text('created_at').notNull().default(now),
   updatedAt:   text('updated_at').notNull().default(now),
 })

@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { marketOffers, playerCards, playerProfiles } from '@/lib/db/schema'
 import { eq, and, inArray, ne } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
+import { getHiddenCardIds, hasHiddenCard } from '@/lib/cache/cards-cache'
 
 // GET — liste les offres ouvertes (sauf les siennes) + les siennes
 export async function GET(req: NextRequest) {
@@ -15,12 +16,18 @@ export async function GET(req: NextRequest) {
   const page  = Math.max(0, parseInt(req.nextUrl.searchParams.get('page') ?? '0', 10))
   const limit = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get('limit') ?? '50', 10)))
 
+  // Offres portant sur une carte masquée par l'admin : retirées de toutes les listes
+  const hidden = await getHiddenCardIds()
+  const isVisible = (r: { offeredCardKey: string; wantedCardKey: string }) => !hidden.has(r.offeredCardKey) && !hidden.has(r.wantedCardKey)
+
   const combined = req.nextUrl.searchParams.get('combined') === '1'
   if (combined) {
-    const [browseRows, mineRows] = await Promise.all([
+    const [allBrowseRows, allMineRows] = await Promise.all([
       db.query.marketOffers.findMany({ where: and(eq(marketOffers.status, 'open'), ne(marketOffers.sellerId, uid)), orderBy: (t, { desc }) => [desc(t.createdAt)], limit }),
       db.query.marketOffers.findMany({ where: eq(marketOffers.sellerId, uid), orderBy: (t, { desc }) => [desc(t.createdAt)], limit }),
     ])
+    const browseRows = allBrowseRows.filter(isVisible)
+    const mineRows   = allMineRows.filter(isVisible)
     const sellerIds = [...new Set([...browseRows, ...mineRows].map(r => r.sellerId))]
     const profiles = sellerIds.length
       ? await db.select({ userId: playerProfiles.userId, username: playerProfiles.username, avatarUrl: playerProfiles.avatarUrl })
@@ -56,6 +63,7 @@ export async function GET(req: NextRequest) {
       offset: page * limit,
     })
   }
+  rows = rows.filter(isVisible)
 
   // Enrichir avec le profil du vendeur (1 query groupée)
   const sellerIds = [...new Set(rows.map(r => r.sellerId))]
@@ -102,6 +110,8 @@ export async function POST(req: NextRequest) {
 
   if (!offeredCardKey || !offeredRarity || !wantedCardKey)
     return NextResponse.json({ error: 'Champs requis manquants.' }, { status: 400 })
+  if (await hasHiddenCard(offeredCardKey, wantedCardKey))
+    return NextResponse.json({ error: 'Cette carte n\'est pas disponible.' }, { status: 400 })
 
   const owned = await db.query.playerCards.findFirst({
     where: and(eq(playerCards.userId, uid), eq(playerCards.cardId, offeredCardKey)),

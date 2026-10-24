@@ -151,12 +151,15 @@ export default function ProfilPage() {
   const load = useCallback(async () => {
     if (!user) return
 
-    const [cards, dailyData, achData, allCards] = await Promise.all([
+    const [rawCards, dailyData, achData, allCards] = await Promise.all([
       fetch('/api/collection').then(r => r.ok ? r.json() : []),
       fetch('/api/profile/streak').then(r => r.ok ? r.json() : null),
       fetch('/api/achievements').then(r => r.ok ? r.json() : []),
       fetchCards(),
     ])
+    // Stats et vitrine : seulement les cartes disponibles (pas les masquées / familles désactivées)
+    const available = new Set((Array.isArray(allCards) ? allCards : []).map((d: { id: string }) => d.id))
+    const cards = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => available.has(c.card_id ?? c.cardId ?? ''))
     if (Array.isArray(allCards) && allCards.length > 0) setTotalAvailable(allCards.length)
 
     if (cards?.length >= 0) {

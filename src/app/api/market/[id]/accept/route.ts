@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { marketOffers, playerCards } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { contributeToRaid } from '@/lib/game/raids'
+import { hasHiddenCard } from '@/lib/cache/cards-cache'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -17,6 +18,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Offre introuvable ou déjà traitée.' }, { status: 404 })
   if (offer.sellerId === uid)
     return NextResponse.json({ error: 'Tu ne peux pas accepter ta propre offre.' }, { status: 400 })
+  // Carte masquée par l'admin depuis la publication de l'offre
+  if (await hasHiddenCard(offer.offeredCardKey, offer.wantedCardKey))
+    return NextResponse.json({ error: 'Cette carte n\'est plus disponible.' }, { status: 400 })
 
   // Vérifier que l'acheteur possède la carte voulue
   const buyerOwns = await db.query.playerCards.findFirst({

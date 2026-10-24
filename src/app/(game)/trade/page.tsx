@@ -122,7 +122,8 @@ function CreateTradeModal({ onClose, onCreated }: { onClose: () => void; onCreat
         const key = c.cardId ?? c.card_id ?? ''
         const def = defs[key]
         return { cardId: key, rarity: c.rarity, family: c.family, count: c.count, name: def?.name ?? key, image_url: def?.image_url ?? null }
-      }).filter((c: MyCard) => c.count >= 1))
+      // Cartes absentes de /api/cards (masquées, famille désactivée) : non proposables
+      }).filter((c: MyCard) => c.count >= 1 && defs[c.cardId]))
       setFriends((fr ?? []).map((f: Record<string, unknown>) => ({
         friend_id: f.userId ?? f.friend_id,
         username: f.username ?? null,

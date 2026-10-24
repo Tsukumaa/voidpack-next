@@ -5,6 +5,7 @@ import { tradeOffers, playerCards, playerDailyMissions } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
 import { contributeToRaid } from '@/lib/game/raids'
+import { hasHiddenCard } from '@/lib/cache/cards-cache'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -19,6 +20,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   if (!trade) return NextResponse.json({ error: 'Trade introuvable.' }, { status: 404 })
   if (trade.status !== 'pending') return NextResponse.json({ error: 'Trade déjà traité.' }, { status: 400 })
+  // Carte masquée par l'admin depuis la création de l'offre
+  if (await hasHiddenCard(trade.offeredCardKey, trade.wantedCardKey))
+    return NextResponse.json({ error: 'Cette carte n\'est plus disponible.' }, { status: 400 })
 
   // Vérifier que le sender a encore la carte offerte
   const senderHasOffered = await db.query.playerCards.findFirst({

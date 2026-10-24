@@ -9,6 +9,25 @@ const MUSIC_COMBAT = 'https://imgg.fr/r/KF3aA7Fy.mp3'
 
 const audios: Record<string, HTMLAudioElement> = {}
 let activeUrl: string | null = null
+// Musique suspendue (ex. vidéo d'annonce) : rien ne peut la relancer tant que c'est actif
+// (démarrage différé au 1er clic, sortie de veille, changement de piste, fade in)
+let suppressed = false
+
+// Met la musique du site en pause / la reprend (au volume et mute des réglages)
+export function suppressSiteMusic(on: boolean): void {
+  suppressed = on
+  if (_fadeMusicTimer) { clearInterval(_fadeMusicTimer); _fadeMusicTimer = null }
+  if (on) {
+    Object.values(audios).forEach(a => a.pause())
+    return
+  }
+  const audio = activeUrl ? audios[activeUrl] : null
+  if (!audio) return
+  const { musicVolume, musicMuted } = useSettingsStore.getState()
+  audio.volume = musicVolume
+  audio.muted  = musicMuted
+  audio.play().catch(() => {})
+}
 
 function isCombatRoute(pathname: string) {
   const parts = pathname.split('/').filter(Boolean)
@@ -26,6 +45,8 @@ function getOrCreate(url: string): HTMLAudioElement {
 async function startAudio(url: string, volume: number, muted: boolean) {
   const audio = getOrCreate(url)
   audio.volume = volume
+  // Suspendue : on retient la piste, suppressSiteMusic(false) la lancera
+  if (suppressed) { activeUrl = url; return }
   // Muted autoplay : toujours autorisé par les navigateurs
   audio.muted = true
   try {
@@ -35,6 +56,7 @@ async function startAudio(url: string, volume: number, muted: boolean) {
   } catch {
     // En dernier recours, attendre un clic
     const unlock = () => {
+      if (suppressed) return // ex. clic sur "Activer le son" de la vidéo : on reste en attente
       audio.play().then(() => { audio.muted = muted }).catch(() => {})
       window.removeEventListener('click', unlock)
       window.removeEventListener('touchend', unlock)
@@ -46,6 +68,7 @@ async function startAudio(url: string, volume: number, muted: boolean) {
 }
 
 function crossfade(fromUrl: string, toUrl: string, volume: number, muted: boolean) {
+  if (suppressed) { activeUrl = toUrl; return }
   const from = getOrCreate(fromUrl)
   const to   = getOrCreate(toUrl)
   to.volume = 0
@@ -86,6 +109,7 @@ export function fadeSiteMusicOut(ms = 600): void {
 }
 
 export function fadeSiteMusicIn(ms = 600): void {
+  if (suppressed) return
   if (_fadeMusicTimer) clearInterval(_fadeMusicTimer)
   const active = Object.values(audios).filter(a => !a.paused)
   if (!active.length) return
