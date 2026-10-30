@@ -1,5 +1,6 @@
 'use client'
 import { Sparkles } from 'lucide-react'
+import { useFeatures } from '@/hooks/useFeatures'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { CardMedia } from '@/components/game/CardMedia'
@@ -23,6 +24,9 @@ export function PromoCardsShowcase({ cards, isSelf = true, onCardClick }: {
   isSelf?: boolean
   onCardClick?: (card: PromoCardItem) => void
 }) {
+  // Masquable dans l'admin (Paramètres → Encart cartes promo). Caché tant que le réglage n'est pas chargé.
+  const { features } = useFeatures()
+  if (features.feature_promo_showcase !== true) return null
   return (
     // Fond flouté (comme la vitrine) avec un léger voile irisé
     <div className="rounded-2xl border border-yellow-400/20 p-4 backdrop-blur-md"

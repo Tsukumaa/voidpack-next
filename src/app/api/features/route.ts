@@ -11,6 +11,7 @@ const FEATURE_KEYS = [
   'feature_trading',
   'feature_social',
   'feature_shop',
+  'feature_promo_showcase',
 ]
 
 // Événements : désactivés par défaut, activés seulement si la valeur vaut 'true'

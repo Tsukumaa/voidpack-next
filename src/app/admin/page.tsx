@@ -5,6 +5,7 @@ import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, 
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { announcementMediaKind } from '@/components/layout/AnnouncementVideo'
 import { refreshFeatures } from '@/hooks/useFeatures'
+import { parseArtists, joinArtists } from '@/lib/artists'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -1227,14 +1228,15 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
 
   async function save() {
     if (!form) return
-    if (!form.artist?.trim()) { onMsg('Un artiste est requis pour créer la carte.', false); return }
+    const credits = joinArtists(parseArtists(form.artist, form.artistUrl))
+    if (!credits.artist) { onMsg('Au moins un artiste est requis pour créer la carte.', false); return }
     setSaving(true)
     try {
       const fields = {
         name: form.name, family: form.family, rarity: form.rarity,
         image_url: form.image_url,
-        artist: form.artist.trim(),
-        artist_url: form.artistUrl?.trim() || null,
+        artist: credits.artist,
+        artist_url: credits.artistUrl,
         description: (form.description ?? '').trim(),
         metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } }),
         hidden: !!form.hidden,
@@ -1287,10 +1289,20 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     (!search || c.name.toLowerCase().includes(search.toLowerCase())) &&
     (!filterFam || c.family === filterFam) &&
     (!filterRarity || c.rarity === filterRarity) &&
-    (!filterArtist || c.artist === filterArtist) &&
+    (!filterArtist || parseArtists(c.artist).some(a => a.name === filterArtist)) &&
     (!filterVisibility || (filterVisibility === 'hidden') === !!c.hidden)
   )
   const hiddenCount = cards.filter(c => c.hidden).length
+
+  // Artistes sélectionnés dans le formulaire (collab : plusieurs possibles, ordre de sélection conservé)
+  const formArtists = form ? parseArtists(form.artist, form.artistUrl) : []
+  function toggleFormArtist(a: { name: string; url: string | null }) {
+    const next = formArtists.some(x => x.name === a.name)
+      ? formArtists.filter(x => x.name !== a.name)
+      : [...formArtists, { name: a.name, url: a.url }]
+    const j = joinArtists(next)
+    setForm(f => f && ({ ...f, artist: j.artist ?? '', artistUrl: j.artistUrl ?? '' }))
+  }
 
   return (
     <div>
@@ -1523,12 +1535,12 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
               </Field>
             </div>
             <div className="col-span-1 sm:col-span-2">
-              <Field label="Artiste *">
+              <Field label="Artiste(s) * — plusieurs possibles pour une collab">
                 <div ref={artistRef} className="relative">
                   <button type="button" onClick={() => setArtistOpen(v => !v)}
                     className={`${inputCls} flex items-center justify-between text-left w-full`}>
-                    <span style={form.artist ? {} : { color: 'rgba(255,255,255,0.35)' }}>
-                      {form.artist || 'Choisir un artiste'}
+                    <span className="truncate" style={formArtists.length ? {} : { color: 'rgba(255,255,255,0.35)' }}>
+                      {formArtists.length ? formArtists.map(a => a.name).join(' & ') : 'Choisir un ou plusieurs artistes'}
                     </span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
                       className={`shrink-0 transition-transform ${artistOpen ? 'rotate-180' : ''}`} style={{ opacity: .5 }}>
@@ -1538,28 +1550,36 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   {artistOpen && (
                     <div className="absolute bottom-full left-0 right-0 mb-1 z-50 max-h-56 overflow-y-auto rounded-xl"
                       style={{ background: '#0d0d1a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)' }}>
-                      {form.artist && (
+                      {formArtists.length > 0 && (
                         <button type="button"
                           onClick={() => { setForm(f => f && ({ ...f, artist: '', artistUrl: '' })); setArtistOpen(false) }}
                           className="w-full text-left px-4 py-2 text-xs transition-colors hover:bg-white/5"
                           style={{ color: 'rgba(255,255,255,0.3)' }}>
-                          Aucun
+                          Tout retirer
                         </button>
                       )}
                       {artists.length === 0 && (
                         <p className="px-4 py-2.5 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Aucun artiste - gérer dans l&apos;onglet Artistes</p>
                       )}
-                      {artists.map(a => (
-                        <button key={a.id} type="button"
-                          onClick={() => { setForm(f => f && ({ ...f, artist: a.name, artistUrl: a.url ?? '' })); setArtistOpen(false) }}
-                          className="w-full text-left px-4 py-2 text-xs font-bold transition-colors"
-                          style={form.artist === a.name
-                            ? { color: '#a78bfa', background: 'rgba(123,43,255,0.15)' }
-                            : { color: 'rgba(255,255,255,0.6)' }
-                          }>
-                          {a.name}
-                        </button>
-                      ))}
+                      {artists.map(a => {
+                        const on = formArtists.some(x => x.name === a.name)
+                        return (
+                          // Clic = ajoute / retire l'artiste, la liste reste ouverte pour en choisir d'autres
+                          <button key={a.id} type="button"
+                            onClick={() => toggleFormArtist(a)}
+                            className="w-full flex items-center gap-2 text-left px-4 py-2 text-xs font-bold transition-colors hover:bg-white/5"
+                            style={on
+                              ? { color: '#a78bfa', background: 'rgba(123,43,255,0.15)' }
+                              : { color: 'rgba(255,255,255,0.6)' }
+                            }>
+                            <span className="w-3.5 h-3.5 rounded flex items-center justify-center shrink-0"
+                              style={{ border: `1px solid ${on ? '#a78bfa' : 'rgba(255,255,255,0.25)'}`, background: on ? 'rgba(123,43,255,0.4)' : 'transparent' }}>
+                              {on && <Check size={10} />}
+                            </span>
+                            {a.name}
+                          </button>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -1678,6 +1698,7 @@ const FEATURE_FLAGS = [
   { key: 'feature_combat_multiplayer', label: 'Combat multijoueur',  desc: 'Matchmaking + défis entre joueurs',   icon: '⚔️' },
   { key: 'feature_combat_training',    label: 'Combat entraînement', desc: 'Combat contre le bot',                icon: '🤖' },
   { key: 'feature_pack_opening',       label: 'Ouverture de packs',  desc: 'Ouvrir des boosters',                 icon: '📦' },
+  { key: 'feature_promo_showcase',     label: 'Encart cartes promo', desc: 'Encart « Cartes promotionnelles » sur les profils', icon: '✨' },
   { key: 'feature_trading',            label: 'Échange de cartes',   desc: 'Trades entre joueurs',                icon: '🔄' },
   { key: 'feature_social',             label: 'Social / Chat',       desc: 'Messages, amis, communauté',          icon: '💬' },
   { key: 'feature_shop',               label: 'Boutique arènes',     desc: 'Achat d\'arènes et objets',           icon: '🏪' },

@@ -13,6 +13,7 @@ import { useAchievements } from '@/hooks/useAchievements'
 import { trackMissions } from '@/lib/game/mission-tracker'
 import { fadeSiteMusicOut, fadeSiteMusicIn } from '@/components/layout/MusicPlayer'
 import { notifyRaidActivity } from '@/lib/raid-events'
+import { ArtistNames, artistLabel } from '@/components/game/ArtistCredits'
 
 interface Card {
   id: string
@@ -800,16 +801,8 @@ export function BoosterOpening({ cards, boosterImageUrl, boosterType = 'void', o
             </p>
             {currentCard.artist && (
               <p className="text-white/35 text-[10px] mt-0.5">
-                🎨 Artiste:{' '}
-                {currentCard.artistUrl ? (
-                  <a href={currentCard.artistUrl} target="_blank" rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-[#a78bfa] hover:text-white underline underline-offset-2 transition-colors">
-                    {currentCard.artist}
-                  </a>
-                ) : (
-                  currentCard.artist
-                )}
+                🎨 {artistLabel(currentCard.artist)}:{' '}
+                <ArtistNames artist={currentCard.artist} artistUrl={currentCard.artistUrl} />
               </p>
             )}
           </div>
