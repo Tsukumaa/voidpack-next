@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Swords, Skull, Heart, X, Timer, Trophy, Check, Flame, Sparkles } from 'lucide-react'
+import { Swords, Skull, Heart, X, Timer, Trophy, Check, Flame, Sparkles, BookOpen } from 'lucide-react'
 import { useGameStore } from '@/store/game'
 import { cn } from '@/lib/utils'
 import { useRaid, raidDeadline, promoDaysStatus, type RaidInfo, type RaidMe } from '@/hooks/useRaid'
@@ -283,7 +283,7 @@ export function RaidBanner() {
   )
 }
 
-type RaidTab = 'combat' | 'rewards' | 'ranking'
+type RaidTab = 'combat' | 'rewards' | 'ranking' | 'rules'
 
 // Encart de fin de raid : victoire avec les récompenses du joueur, ou défaite
 function RaidResultCard({ raid, me }: { raid: RaidInfo; me: RaidMe }) {
@@ -373,6 +373,84 @@ function PromoCondition({ done, failed = false, children }: { done: boolean; fai
   )
 }
 
+// Durée d'affichage des résultats (RAID_RESULTS_HOURS dans lib/game/raids.ts, module serveur)
+const RAID_RESULTS_LABEL = '24 h'
+
+// Libellés des paliers de rang : "1er", "2e – 3e", "4e – 10e", "Les autres"
+function rankTierLabels(tiers: RaidInfo['rankRewards']) {
+  let prev = 0
+  return tiers.map(t => {
+    const from = prev + 1
+    const label = t.upToRank == null
+      ? (prev ? 'Les autres participants' : 'Tous les participants')
+      : t.upToRank === from
+        ? (from === 1 ? '1er' : `${from}e`)
+        : `${from === 1 ? '1er' : `${from}e`} – ${t.upToRank}e`
+    if (t.upToRank != null) prev = t.upToRank
+    return { label, mana: t.mana }
+  })
+}
+
+// Onglet "Règles" : principe du raid avec les valeurs du raid en cours (dégâts, mana, multiplicateurs, assiduité)
+function RaidRules({ raid }: { raid: RaidInfo }) {
+  const v = raid.damageValues
+  const days = raid.requiredDays
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5">
+        <div className="space-y-3 text-[11px] leading-relaxed text-white/60">
+          <div>
+            <p className="text-white/85 font-bold mb-0.5">Le principe</p>
+            <p>Toute la communauté attaque le même boss. Il faut faire tomber ses {fmt(raid.hp)} PV avant la fin du timer : chacun de tes gestes compte pour tout le monde.</p>
+          </div>
+          <div>
+            <p className="text-white/85 font-bold mb-0.5">Infliger des dégâts</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li><span className="text-red-300 font-bold">{v.booster}</span> dégât{v.booster > 1 ? 's' : ''} par booster ouvert</li>
+              <li><span className="text-red-300 font-bold">{v.mission}</span> dégâts par mission quotidienne réclamée</li>
+              <li><span className="text-red-300 font-bold">+{v.allMissions}</span> bonus quand les 3 missions du jour sont réclamées</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-white/85 font-bold mb-0.5">Mana selon ton classement</p>
+            <div className="rounded-lg border border-white/[0.06] divide-y divide-white/[0.06]">
+              {rankTierLabels(raid.rankRewards).map(t => (
+                <div key={t.label} className="flex justify-between px-2.5 py-1">
+                  <span>{t.label}</span>
+                  <span className="text-[#c4b5fd] font-bold tabular-nums">{fmt(t.mana)} mana</span>
+                </div>
+              ))}
+            </div>
+            {raid.overkill.length > 0 && (
+              <p className="mt-1.5">
+                Bonus de dépassement : si la communauté inflige plus que les PV du boss, tout le mana est multiplié{' '}
+                {raid.overkill.map((o, i) => (
+                  <span key={o.ratio}>{i > 0 && (i === raid.overkill.length - 1 ? ' ou ' : ', ')}<span className="text-white/85 font-bold">×{o.multiplier}</span> à {Math.round(o.ratio * 100)} %</span>
+                ))}.
+              </p>
+            )}
+          </div>
+          {raid.promo && (
+            <div>
+              <p className="text-white/85 font-bold mb-0.5">Carte promotionnelle</p>
+              <p>
+                Réclame au moins une mission quotidienne <span className="text-white/85 font-bold">chaque jour du raid</span> ({days} jour{days > 1 ? 's' : ''}).
+                Si le boss tombe, la carte promo exclusive est à toi : elle rejoint ton profil, ne peut être ni recyclée ni échangée.
+                Son image se dévoile au fil des PV perdus par le boss.
+              </p>
+            </div>
+          )}
+          <div>
+            <p className="text-white/85 font-bold mb-0.5">Fin du raid</p>
+            <p>
+              Boss vaincu : les récompenses sont distribuées automatiquement à la fin du timer, rien à réclamer.
+              Boss survivant : aucune récompense. Les résultats restent visibles {RAID_RESULTS_LABEL} après la fin.
+            </p>
+          </div>
+        </div>
+    </div>
+  )
+}
+
 function RaidModal({ raid, me, loggedIn, onClose }: {
   raid: RaidInfo; me: RaidMe | null; loggedIn: boolean; onClose: () => void
 }) {
@@ -388,6 +466,7 @@ function RaidModal({ raid, me, loggedIn, onClose }: {
     { id: 'combat',  label: 'Combat',      icon: <Swords size={13} /> },
     { id: 'rewards', label: 'Récompenses', icon: <Sparkles size={13} /> },
     { id: 'ranking', label: 'Classement',  icon: <Trophy size={13} /> },
+    { id: 'rules',   label: 'Règles',      icon: <BookOpen size={13} /> },
   ]
 
   return (
@@ -443,9 +522,10 @@ function RaidModal({ raid, me, loggedIn, onClose }: {
         <div className="shrink-0 flex gap-1 mx-4 mt-3 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
           {tabs.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={cn('flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all',
+              // 4 onglets : largeur selon le libellé (pas de texte coupé), icône seule sur très petit écran
+              className={cn('flex-auto flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all',
                 tab === t.id ? 'bg-red-500/20 text-red-200' : 'text-white/40 hover:text-white/70')}>
-              {t.icon}{t.label}
+              {t.icon}<span className="hidden min-[400px]:inline">{t.label}</span>
             </button>
           ))}
         </div>
@@ -511,6 +591,9 @@ function RaidModal({ raid, me, loggedIn, onClose }: {
               </div>
             )}
           </>}
+
+          {/* ── Règles ── */}
+          {tab === 'rules' && <RaidRules raid={raid} />}
 
           {/* ── Récompenses ── */}
           {tab === 'rewards' && <>
