@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { playerDailyMissions, playerProfiles } from '@/lib/db/schema'
 import { and, eq, sql, count } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
+import { dealRaidDamage } from '@/lib/game/raids'
 
 function todayStr() {
   return new Date().toISOString().split('T')[0]
@@ -72,9 +73,13 @@ export async function POST(req: NextRequest) {
           .set({ mana: sql`${playerProfiles.mana} + 60`, updatedAt: now })
           .where(eq(playerProfiles.userId, uid)),
       ])
+      // Raid : dégâts de la mission + bonus "toutes les missions du jour"
+      await dealRaidDamage(uid, { missions: 1, allMissions: 1 })
       return NextResponse.json({ ok: true, xp_gained: mission.xp, bonus_mana: 60 })
     }
   }
 
+  // Raid : une mission réclamée inflige de gros dégâts et rend éligible à la carte promo
+  await dealRaidDamage(uid, { missions: 1 })
   return NextResponse.json({ ok: true, xp_gained: mission.xp })
 }

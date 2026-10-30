@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Cinzel } from 'next/font/google'
 import { Providers } from '@/components/layout/Providers'
 import { MusicPlayer } from '@/components/layout/MusicPlayer'
-import { SettingsButton } from '@/components/layout/SettingsButton'
 import './globals.css'
 
 const inter  = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -45,7 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>{children}</Providers>
         </div>
         <MusicPlayer />
-        <SettingsButton />
       </body>
     </html>
   )

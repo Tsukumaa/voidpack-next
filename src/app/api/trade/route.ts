@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { tradeOffers, playerCards, playerProfiles } from '@/lib/db/schema'
-import { eq, or, and, inArray } from 'drizzle-orm'
+import { eq, or, and, inArray, lte } from 'drizzle-orm'
 import { checkFeature } from '@/lib/features'
 import { getHiddenCardIds, hasHiddenCard } from '@/lib/cache/cards-cache'
 
@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
 
   const uid    = session.user.id
   const status = req.nextUrl.searchParams.get('status') ?? 'pending'
+
+  // Trades privés arrivés à expiration : vraiment fermés (statut "expired"), pas juste masqués
+  await db.update(tradeOffers)
+    .set({ status: 'expired', respondedAt: new Date().toISOString() })
+    .where(and(eq(tradeOffers.status, 'pending'), lte(tradeOffers.expiresAt, new Date().toISOString())))
 
   const [allRows, hidden] = await Promise.all([
     db.query.tradeOffers.findMany({
@@ -68,7 +73,8 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
 
   const [row] = await db.insert(tradeOffers)
-    .values({ senderId: session.user.id, receiverId, offeredCardKey, offeredRarity, wantedCardKey, wantedCardName: wantedCardName ?? null, wantedRarity: wantedRarity ?? null, message: message ?? null, expiresAt })
+    // offeredCardId : ancienne colonne encore NOT NULL sur les bases non migrées (scripts/migrate-trade-offers.mjs)
+    .values({ senderId: session.user.id, receiverId, offeredCardId: offeredCardKey, offeredCardKey, offeredRarity, wantedCardKey, wantedCardName: wantedCardName ?? null, wantedRarity: wantedRarity ?? null, message: message ?? null, expiresAt })
     .returning()
 
   return NextResponse.json(row)

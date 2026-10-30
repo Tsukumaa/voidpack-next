@@ -8,7 +8,8 @@ import { getCachedActiveFamilies, getCachedAllCards, getHiddenCardIds } from '@/
 // sont exclues, sinon personne ne peut jamais compléter la collection.
 export async function getCompletableCardIds(): Promise<string[]> {
   const [cards, activeFamilies, hidden] = await Promise.all([getCachedAllCards(), getCachedActiveFamilies(), getHiddenCardIds()])
-  return cards.filter(c => !hidden.has(c.id) && (c.family === 'global' || activeFamilies.includes(c.family))).map(c => c.id)
+  // Les cartes exclusives (promo de raid) ne s'obtiennent pas en booster : hors du total
+  return cards.filter(c => !hidden.has(c.id) && !c.exclusive && (c.family === 'global' || activeFamilies.includes(c.family))).map(c => c.id)
 }
 
 // Retourne l'ensemble des joueurs (parmi userIds) qui possèdent toutes les cartes obtenables.

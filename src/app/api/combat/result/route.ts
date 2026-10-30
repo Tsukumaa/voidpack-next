@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 import { gameSessions, combatStats, playerDailyMissions, boosterCredits } from '@/lib/db/schema'
 import { eq, sql } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
-import { contributeToRaid } from '@/lib/game/raids'
 
 const WIN_POINTS  = 25
 const LOSS_POINTS = -15
@@ -83,8 +82,6 @@ export async function POST(req: NextRequest) {
       })
       .catch(() => {})
   }
-
-  await contributeToRaid('combats_won', [{ userId: winnerId, amount: 1 }])
 
   return NextResponse.json({ ok: true })
 }

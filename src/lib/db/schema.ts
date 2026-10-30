@@ -53,6 +53,9 @@ export const customCards = sqliteTable('custom_cards', {
   metadata:    text('metadata').notNull().default('{}'), // JSON
   // Masquée : invisible et indisponible partout côté joueurs (tirage, collection, échanges…), visible en admin
   hidden:      integer('hidden', { mode: 'boolean' }).notNull().default(false),
+  // Exclusive (carte promo de raid…) : jamais dans les boosters, hors badge collection complète,
+  // affichée dans la collection seulement si on la possède
+  exclusive:   integer('exclusive', { mode: 'boolean' }).notNull().default(false),
   createdAt:   text('created_at').notNull().default(now),
   updatedAt:   text('updated_at').notNull().default(now),
 })
@@ -317,6 +320,28 @@ export const marketOffers = sqliteTable('market_offers', {
   index('market_offers_status_idx').on(t.status),
 ])
 
+// ── market_listings ───────────────────────────────────────────────────────────
+// Marché : vente de cartes contre du mana. La carte est retirée de la collection du
+// vendeur à la mise en vente (séquestre) et lui revient s'il annule ou si l'offre expire.
+// À l'achat : l'acheteur paie `price`, le vendeur reçoit `price - commission` (10 %).
+export const marketListings = sqliteTable('market_listings', {
+  id:        text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sellerId:  text('seller_id').notNull(),
+  cardId:    text('card_id').notNull(),
+  rarity:    text('rarity').notNull(),
+  family:    text('family').notNull().default('global'),
+  price:     integer('price').notNull(),                    // mana payé par l'acheteur
+  status:    text('status').notNull().default('open'),      // open | sold | cancelled | expired
+  buyerId:   text('buyer_id'),
+  sellerGain: integer('seller_gain'),                       // mana reçu par le vendeur (après commission)
+  createdAt: text('created_at').notNull().default(now),
+  expiresAt: text('expires_at').notNull(),
+  closedAt:  text('closed_at'),                              // vente, annulation ou expiration
+}, (t) => [
+  index('market_listings_status_idx').on(t.status, t.createdAt),
+  index('market_listings_seller_idx').on(t.sellerId, t.status),
+])
+
 // ── twitch_pending_codes ──────────────────────────────────────────────────────
 export const twitchPendingCodes = sqliteTable('twitch_pending_codes', {
   id:               integer('id').primaryKey({ autoIncrement: true }),
@@ -425,21 +450,26 @@ export const kanbanCards = sqliteTable('kanban_cards', {
 })
 
 // ── raids ─────────────────────────────────────────────────────────────────────
-// Événement communautaire : tous les joueurs font progresser une jauge commune.
-// Les paliers (tiers, JSON RaidTier[]) débloquent des boosters à réclamer pour
-// les joueurs ayant contribué au moins min_contribution fois.
+// Raid de boss communautaire (une semaine) : les joueurs infligent des dégâts au boss
+// (boosters ouverts, missions quotidiennes). À la fin, si le boss est tué : carte promo
+// aux joueurs ayant réclamé ≥ 1 mission, mana selon le classement × multiplicateur de
+// dépassement des PV. Sinon rien. Distribution automatique (voir lib/game/raids.ts).
 export const raids = sqliteTable('raids', {
   id:              integer('id').primaryKey({ autoIncrement: true }),
-  title:           text('title').notNull(),
+  title:           text('title').notNull(),                       // nom du boss
   description:     text('description'),
-  objectiveType:   text('objective_type').notNull(), // boosters_opened | combats_won | cards_recycled | trades_completed
-  goal:            integer('goal').notNull(),
-  progress:        integer('progress').notNull().default(0),
-  minContribution: integer('min_contribution').notNull().default(1),
-  tiers:           text('tiers').notNull().default('[]'), // JSON RaidTier[]
-  status:          text('status').notNull().default('active'), // active | ended
+  objectiveType:   text('objective_type').notNull(),              // 'boss' (anciens raids : autres valeurs)
+  goal:            integer('goal').notNull(),                     // PV du boss
+  progress:        integer('progress').notNull().default(0),      // dégâts totaux (non plafonnés : dépassement)
+  minContribution: integer('min_contribution').notNull().default(1), // ancien système
+  tiers:           text('tiers').notNull().default('[]'),         // ancien système
+  status:          text('status').notNull().default('active'),    // active | finalizing | ended
   endsAt:          text('ends_at'),
-  completedAt:     text('completed_at'), // objectif atteint → ouvre la fenêtre de réclamation
+  completedAt:     text('completed_at'),                          // moment où le boss est tombé à 0 PV
+  bossImageUrl:    text('boss_image_url'),
+  promoCardId:     text('promo_card_id'),                         // custom_cards.id (carte exclusive)
+  config:          text('config').notNull().default('{}'),        // JSON RaidConfig (dégâts, mana, multiplicateurs)
+  finalizedAt:     text('finalized_at'),                          // récompenses distribuées
   createdAt:       text('created_at').notNull().default(now),
 }, (t) => [
   index('raids_status_idx').on(t.status),
@@ -447,12 +477,20 @@ export const raids = sqliteTable('raids', {
 
 // ── raid_contributions ────────────────────────────────────────────────────────
 export const raidContributions = sqliteTable('raid_contributions', {
-  raidId:    integer('raid_id').notNull(),
-  userId:    text('user_id').notNull(),
-  amount:    integer('amount').notNull().default(0),
-  updatedAt: text('updated_at').notNull().default(now),
+  raidId:       integer('raid_id').notNull(),
+  userId:       text('user_id').notNull(),
+  amount:       integer('amount').notNull().default(0),   // dégâts infligés
+  missions:     integer('missions').notNull().default(0), // missions quotidiennes réclamées pendant le raid
+  rank:         integer('rank'),                          // classement final (rempli à la fin)
+  manaReward:   integer('mana_reward'),                   // mana gagné (rempli à la fin)
+  promoGranted: integer('promo_granted', { mode: 'boolean' }).notNull().default(false),
+  // Assiduité : jours distincts (UTC, comme les missions) avec ≥ 1 mission réclamée pendant le raid
+  missionDays:    integer('mission_days').notNull().default(0),
+  lastMissionDay: text('last_mission_day'),               // YYYY-MM-DD du dernier jour compté
+  updatedAt:    text('updated_at').notNull().default(now),
 }, (t) => [
   primaryKey({ columns: [t.raidId, t.userId] }),
+  index('raid_contributions_damage_idx').on(t.raidId, t.amount),
 ])
 
 // ── raid_claims ───────────────────────────────────────────────────────────────

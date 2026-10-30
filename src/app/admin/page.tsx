@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Users, Globe, Layers, Package, Shirt, Shield, Settings, Download, Pin, ArrowLeft, Check, Lock, Hexagon, RefreshCw, Pencil, X, Tv2, Palette, Link as LinkIcon, Trash2, Plus, Megaphone, Swords, Eye, EyeOff } from 'lucide-react'
 import { RoleBadge, type UserRole } from '@/components/game/RoleBadge'
 import { announcementMediaKind } from '@/components/layout/AnnouncementVideo'
+import { refreshFeatures } from '@/hooks/useFeatures'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Player {
@@ -51,6 +52,7 @@ interface Card {
   artist: string
   artistUrl: string
   hidden?: boolean | number // custom_cards.hidden (0/1 en SQL brut)
+  exclusive?: boolean | number // custom_cards.exclusive : jamais dans les boosters (carte promo de raid…)
 }
 
 interface Setting {
@@ -79,7 +81,7 @@ interface CardBack {
   active?: boolean
 }
 
-const RARITIES = ['common',  'rare', 'epic', 'legendary', 'void']
+const RARITIES = ['common',  'rare', 'epic', 'legendary', 'void', 'promo'] // promo : cartes exclusives (raid), effet unique
 
 // ─── Helper API admin (service role, bypass RLS) ──────────────────────────────
 async function adminDb(action: string, table: string, data?: unknown, eq?: { col: string; val: unknown; onConflict?: string }) {
@@ -1236,6 +1238,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
         description: (form.description ?? '').trim(),
         metadata: JSON.stringify({ combat: { atk: form.combat_atk, hp: form.combat_hp, cost: form.combat_cost, effects: form.combat_effects } }),
         hidden: !!form.hidden,
+        exclusive: !!form.exclusive,
       }
       if (form.id) {
         await adminDb('update', 'custom_cards', fields, { col: 'id', val: form.id })
@@ -1268,7 +1271,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     }
   }
 
-  const RARITY_COLOR: Record<string, string> = { void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', common: '#9ca3af' }
+  const RARITY_COLOR: Record<string, string> = { promo: '#ffd76a', void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899', rare: '#3b82f6', common: '#9ca3af' }
 
   // Sépare le tag artiste de la description libre (pour pré-remplir l'édition)
   function splitArtist(desc?: string) {
@@ -1371,6 +1374,7 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                     <td className="px-3 py-1.5 font-semibold text-white">
                       {c.name}
                       {!!c.hidden && <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 uppercase">Masquée</span>}
+                      {!!c.exclusive && <span className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 uppercase">★ Exclusive</span>}
                     </td>
                     <td className="px-3 py-1.5 text-white/50 text-xs">{c.family || '-'}</td>
                     <td className="px-3 py-1.5">
@@ -1431,6 +1435,9 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                   >
                     {c.rarity.slice(0, 3)}
                   </span>
+                  {!!c.exclusive && (
+                    <span className="absolute top-1 right-1 text-[8px] font-black px-1 py-0.5 rounded-full bg-yellow-400/90 text-black" title="Exclusive (carte promo)">★</span>
+                  )}
                   <div className="absolute bottom-0 left-0 right-0 px-1 py-1 flex justify-between text-[8px] font-bold" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
                     <span style={{ color: '#f87171' }}>⚔{c.metadata?.combat?.atk ?? '?'}</span>
                     <span style={{ color: '#60a5fa' }}>♥{c.metadata?.combat?.hp ?? '?'}</span>
@@ -1570,6 +1577,16 @@ function CardsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
                 Masquée pour les joueurs
               </span>
               <span className="block text-xs text-white/40 mt-0.5">Invisible et indisponible partout (boosters, collection, échanges…). Visible uniquement dans l&apos;admin.</span>
+            </span>
+          </label>
+          {/* Exclusive : carte promo (raid…), ne s'obtient jamais en booster */}
+          <label className="mt-2 flex items-start gap-3 p-3 rounded-xl cursor-pointer select-none"
+            style={{ background: form.exclusive ? 'rgba(250,204,21,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${form.exclusive ? 'rgba(250,204,21,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+            <input type="checkbox" checked={!!form.exclusive} onChange={e => setForm(f => f && ({ ...f, exclusive: e.target.checked }))}
+              className="mt-0.5 accent-yellow-400" />
+            <span>
+              <span className="text-sm font-bold text-white">★ Exclusive (carte promo)</span>
+              <span className="block text-xs text-white/40 mt-0.5">Ne sort jamais des boosters et ne compte pas pour la collection complète. Elle n&apos;apparaît pas dans la collection mais dans l&apos;encart « Cartes promo » du profil de ceux qui la possèdent (récompense de raid…).</span>
             </span>
           </label>
           <ModalActions onCancel={() => setForm(null)} onConfirm={save} loading={saving} label={form.id ? 'Modifier' : 'Créer'} />
@@ -2021,6 +2038,8 @@ function SettingsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) 
     } else {
       await adminDb('upsert', 'settings', { key, value: val ? 'true' : 'false' }, { col: 'key', val: key, onConflict: 'key' })
     }
+    // Bandeau Void Day & co : mise à jour immédiate (cet onglet + autres onglets ouverts)
+    refreshFeatures().catch(() => {})
     onMsg(val ? `✅ ${FEATURE_FLAGS.find(f => f.key === key)?.label} activé` : `⛔ ${FEATURE_FLAGS.find(f => f.key === key)?.label} désactivé`)
   }
 
@@ -2412,124 +2431,159 @@ function SqlTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   )
 }
 
-// ─── Onglet Raids ─────────────────────────────────────────────────────────────
-const RAID_OBJECTIVE_OPTIONS = [
-  { value: 'boosters_opened',  label: 'Boosters ouverts' },
-  { value: 'combats_won',      label: 'Combats gagnés (PvP)' },
-  { value: 'cards_recycled',   label: 'Cartes recyclées' },
-  { value: 'trades_completed', label: 'Échanges réalisés (amis + marché)' },
-]
+// ─── Onglet Raids (boss) ──────────────────────────────────────────────────────
+interface AdminRaidConfig {
+  damage:      { booster: number; mission: number; allMissions: number }
+  rankRewards: { upToRank: number | null; mana: number }[]
+  overkill:    { ratio: number; multiplier: number }[]
+}
 
 interface AdminRaid {
   id: number
   title: string
   description: string | null
-  objectiveType: string
+  bossImageUrl: string | null
+  promoCardId: string | null
   goal: number
   progress: number
-  minContribution: number
-  tiers: { threshold: number; boosters: number; boosterType: string }[]
   status: string
-  phase: 'running' | 'claim' | 'over'
+  phase: 'running' | 'due' | 'results' | 'over'
+  killed: boolean
+  multiplier: number
+  config: AdminRaidConfig
   endsAt: string | null
-  completedAt: string | null
-  claimUntil: string | null
+  finalizedAt: string | null
   createdAt: string
   participants: number
-  eligible: number
-  claims: number
+  eligible: number       // joueurs ayant déjà une mission chaque jour requis
+  stillPossible: number  // pas encore éligibles mais encore dans la course
+  requiredDays: number   // jours de mission requis pour la carte promo
+  promoGiven: number
+  manaGiven: number
 }
 
-type TierForm = { threshold: string; boosters: string; boosterType: string }
+interface PromoCardOption { id: string; name: string; rarity: string; image_url: string | null; hidden: number | boolean; exclusive: number | boolean }
+
+// Valeur pour <input type="datetime-local"> (heure locale)
+function toLocalInput(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const emptyRaidForm = () => ({
+  bossName: '', description: '', bossImageUrl: '', hp: '10000', promoCardId: '',
+  endsAt: toLocalInput(new Date(Date.now() + 7 * 86400_000)),
+  damage: { booster: '1', mission: '10', allMissions: '20' },
+  // upToRank vide = tous les autres participants
+  rankRewards: [{ upToRank: '1', mana: '500' }, { upToRank: '3', mana: '300' }, { upToRank: '10', mana: '150' }, { upToRank: '', mana: '50' }],
+  // ratio en % des PV du boss
+  overkill: [{ ratio: '150', multiplier: '1.5' }, { ratio: '200', multiplier: '2' }, { ratio: '300', multiplier: '3' }],
+})
+
+// Formulaire pré-rempli depuis un raid existant (modification)
+const raidToForm = (r: AdminRaid): ReturnType<typeof emptyRaidForm> => ({
+  bossName: r.title, description: r.description ?? '', bossImageUrl: r.bossImageUrl ?? '',
+  hp: String(r.goal), promoCardId: r.promoCardId ?? '',
+  endsAt: r.endsAt ? toLocalInput(new Date(r.endsAt)) : '',
+  damage: {
+    booster: String(r.config.damage.booster), mission: String(r.config.damage.mission), allMissions: String(r.config.damage.allMissions),
+  },
+  rankRewards: r.config.rankRewards.map(x => ({ upToRank: x.upToRank == null ? '' : String(x.upToRank), mana: String(x.mana) })),
+  overkill: r.config.overkill.map(o => ({ ratio: String(Math.round(o.ratio * 100)), multiplier: String(o.multiplier) })),
+})
 
 function RaidsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
   const [raids, setRaids]       = useState<AdminRaid[]>([])
-  const [families, setFamilies] = useState<{ key: string; label: string }[]>([])
+  const [cards, setCards]       = useState<PromoCardOption[]>([])
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
+  const [ending, setEnding]     = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [granting, setGranting] = useState<number | null>(null)
-  const [form, setForm] = useState({
-    title: '', description: '', objectiveType: 'boosters_opened', goal: '100000', minContribution: '5', endsAt: '',
-  })
-  const [tiers, setTiers] = useState<TierForm[]>([
-    { threshold: '25000',  boosters: '1', boosterType: 'void' },
-    { threshold: '50000',  boosters: '2', boosterType: 'void' },
-    { threshold: '100000', boosters: '3', boosterType: 'void' },
-  ])
+  const [editingId, setEditingId] = useState<number | null>(null) // null = création
+  const [form, setForm]         = useState(emptyRaidForm)
+
+  const openCreate = () => { setEditingId(null); setForm(emptyRaidForm()); setShowForm(true) }
+  const openEdit   = (r: AdminRaid) => { setEditingId(r.id); setForm(raidToForm(r)); setShowForm(true) }
+  const closeForm  = () => { setShowForm(false); setEditingId(null) }
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [r, f] = await Promise.all([
+      const [r, c] = await Promise.all([
         fetch('/api/admin/raids').then(res => res.ok ? res.json() : []),
-        fetch('/api/families', { headers: { 'x-admin': '1' } }).then(res => res.ok ? res.json() : []),
+        adminDb('select', 'custom_cards', { select: 'id, name, rarity, image_url, hidden, exclusive', order: 'exclusive DESC, name' }),
       ])
       setRaids(r ?? [])
-      setFamilies((f ?? []).filter((x: { key: string }) => x.key !== 'global'))
+      setCards(c ?? [])
     } finally { setLoading(false) }
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  // Visible côté joueurs : en cours ou en période de réclamation
-  const isRunning = (r: AdminRaid) => r.phase !== 'over'
-  const hasRunning = raids.some(isRunning)
+  const hasRunning = raids.some(r => r.phase === 'running')
+  const promo = cards.find(c => c.id === form.promoCardId)
 
-  async function create() {
+  // Création (POST) ou modification du raid en cours (PUT)
+  async function save() {
     setSaving(true)
     try {
       const res = await fetch('/api/admin/raids', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: editingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          goal: Number(form.goal),
-          minContribution: Number(form.minContribution),
-          endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
-          tiers: tiers.map(t => ({ threshold: Number(t.threshold), boosters: Number(t.boosters), boosterType: t.boosterType })),
+          id:           editingId ?? undefined,
+          bossName:     form.bossName,
+          description:  form.description,
+          bossImageUrl: form.bossImageUrl,
+          hp:           Number(form.hp),
+          promoCardId:  form.promoCardId || null,
+          endsAt:       form.endsAt ? new Date(form.endsAt).toISOString() : null,
+          config: {
+            damage: { booster: Number(form.damage.booster), mission: Number(form.damage.mission), allMissions: Number(form.damage.allMissions) },
+            rankRewards: form.rankRewards.map(r => ({ upToRank: r.upToRank.trim() ? Number(r.upToRank) : null, mana: Number(r.mana) })),
+            overkill: form.overkill.map(o => ({ ratio: Number(o.ratio) / 100, multiplier: Number(o.multiplier) })),
+          },
         }),
       })
       const data = await res.json()
       if (!res.ok) { onMsg(data.error ?? 'Erreur', false); return }
-      onMsg('✅ Raid lancé')
-      setShowForm(false)
+      onMsg(editingId ? '✅ Raid modifié' : '⚔️ Raid lancé')
+      closeForm(); setForm(emptyRaidForm())
       load()
     } finally { setSaving(false) }
   }
 
-  async function end(id: number) {
-    if (!confirm('Terminer ce raid maintenant ? Il disparaît pour les joueurs et les récompenses non réclamées sont perdues.')) return
-    const res = await fetch('/api/admin/raids', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'end' }),
-    })
-    if (!res.ok) { onMsg('Erreur', false); return }
-    onMsg('⛔ Raid terminé')
-    load()
-  }
-
-  // Donne à tous les joueurs éligibles les paliers atteints qu'ils n'ont pas réclamés
-  async function grant(r: AdminRaid) {
-    const reached = r.tiers.filter(t => r.progress >= t.threshold).length
-    if (!reached) { onMsg('Aucun palier atteint pour ce raid.', false); return }
-    if (!confirm(`Accorder les récompenses des ${reached} palier${reached > 1 ? 's' : ''} atteint${reached > 1 ? 's' : ''} aux ${r.eligible} joueur${r.eligible > 1 ? 's' : ''} éligible${r.eligible > 1 ? 's' : ''} ?\n\nLes boosters sont ajoutés directement à leurs crédits. Les paliers déjà réclamés ne sont pas redonnés.`)) return
-    setGranting(r.id)
+  async function end(r: AdminRaid) {
+    const msg = r.killed
+      ? `Terminer le raid maintenant ? Le boss est vaincu : la carte promo et le mana sont distribués tout de suite.`
+      : `Terminer le raid maintenant ? Le boss n'est pas vaincu : aucune récompense ne sera distribuée.`
+    if (!confirm(msg)) return
+    setEnding(r.id)
     try {
       const res = await fetch('/api/admin/raids', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: r.id, action: 'grant' }),
+        body: JSON.stringify({ id: r.id, action: 'end' }),
       })
       const data = await res.json()
       if (!res.ok) { onMsg(data.error ?? 'Erreur', false); return }
-      onMsg(data.grants > 0
-        ? `🎁 ${data.grants} palier${data.grants > 1 ? 's' : ''} accordé${data.grants > 1 ? 's' : ''}`
-        : 'Rien à accorder : tous les paliers atteints sont déjà réclamés.')
+      onMsg(data.killed ? '🏆 Raid terminé, récompenses distribuées' : '⛔ Raid terminé (boss non vaincu)')
       load()
-    } finally { setGranting(null) }
+    } finally { setEnding(null) }
   }
 
-  const setTier =(i: number, patch: Partial<TierForm>) => setTiers(ts => ts.map((t, j) => j === i ? { ...t, ...patch } : t))
-  const objectiveLabel = (v: string) => RAID_OBJECTIVE_OPTIONS.find(o => o.value === v)?.label ?? v
+  const setRank = (i: number, patch: Partial<{ upToRank: string; mana: string }>) =>
+    setForm(f => ({ ...f, rankRewards: f.rankRewards.map((r, j) => j === i ? { ...r, ...patch } : r) }))
+  const setOverkill = (i: number, patch: Partial<{ ratio: string; multiplier: string }>) =>
+    setForm(f => ({ ...f, overkill: f.overkill.map((o, j) => j === i ? { ...o, ...patch } : o) }))
+
+  const phaseBadge = (r: AdminRaid) => {
+    if (r.phase === 'running') return r.killed
+      ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-yellow-500/20 text-yellow-300">En cours · boss vaincu</span>
+      : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-red-500/20 text-red-300">En cours</span>
+    if (r.phase === 'due') return <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-white/60">Distribution…</span>
+    return r.killed
+      ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-green-500/20 text-green-300">Terminé · réussi</span>
+      : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 text-white/40">Terminé · échoué</span>
+  }
 
   if (loading) return <LoadingText />
 
@@ -2537,66 +2591,155 @@ function RaidsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold text-white">Raids communautaires</h3>
+          <h3 className="text-sm font-bold text-white">Raids de boss</h3>
           <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Objectif commun à tous les joueurs. Chaque palier atteint débloque des boosters, à réclamer par les joueurs ayant assez participé.
+            Les joueurs infligent des dégâts au boss (boosters ouverts, missions quotidiennes). À la fin, si le boss est vaincu :
+            carte promo pour les joueurs assidus (au moins 1 mission quotidienne réclamée chaque jour du raid), et mana selon le classement × multiplicateur de dépassement. Sinon rien.
+            Distribution automatique à la date de fin.
           </p>
         </div>
         {!hasRunning && !showForm && (
-          <button onClick={() => setShowForm(true)} className={primaryBtnCls}><Plus size={14} className="inline mr-1" />Nouveau raid</button>
+          <button onClick={openCreate} className={primaryBtnCls}><Plus size={14} className="inline mr-1" />Nouveau raid</button>
         )}
       </div>
 
       {showForm && (
-        <div className="space-y-4 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Titre">
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="L'invasion du Void" className={inputCls} />
-            </Field>
-            <Field label="Action comptée">
-              <select value={form.objectiveType} onChange={e => setForm(f => ({ ...f, objectiveType: e.target.value }))} className={selectCls}>
-                {RAID_OBJECTIVE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Field>
-          </div>
-          <Field label="Description (optionnelle)">
-            <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Tous ensemble, ouvrez 100 000 boosters !" className={inputCls} />
-          </Field>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="Objectif total">
-              <input type="number" min={1} value={form.goal} onChange={e => setForm(f => ({ ...f, goal: e.target.value }))} className={inputCls} />
-            </Field>
-            <Field label="Participation minimum">
-              <input type="number" min={1} value={form.minContribution} onChange={e => setForm(f => ({ ...f, minContribution: e.target.value }))} className={inputCls} />
-            </Field>
-            <Field label="Fin (optionnelle)">
-              <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} className={inputCls} />
-            </Field>
+        <div className="space-y-5 p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          {editingId && (() => {
+            const r = raids.find(x => x.id === editingId)
+            return (
+              <div>
+                <p className="text-sm font-bold text-white">Modifier le raid en cours</p>
+                {r && (
+                  <p className="text-xs text-white/40 mt-0.5">
+                    Dégâts déjà infligés conservés : {r.progress.toLocaleString('fr-FR')}.
+                    Des PV inférieurs à ce total rendent le boss vaincu ; supérieurs, il redevient vivant.
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* Boss */}
+          <div className="grid sm:grid-cols-[1fr_140px] gap-4">
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Nom du boss">
+                  <input value={form.bossName} onChange={e => setForm(f => ({ ...f, bossName: e.target.value }))} placeholder="Le Dévoreur du Void" className={inputCls} />
+                </Field>
+                <Field label="PV du boss">
+                  <input type="number" min={1} value={form.hp} onChange={e => setForm(f => ({ ...f, hp: e.target.value }))} className={inputCls} />
+                </Field>
+              </div>
+              <Field label="Image du boss (lien imgg.fr)">
+                <input value={form.bossImageUrl} onChange={e => setForm(f => ({ ...f, bossImageUrl: e.target.value }))} placeholder="https://imgg.fr/r/xxxx.png" className={inputCls} />
+              </Field>
+              <Field label="Description (optionnelle)">
+                <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Il menace le Void, unissez vos forces !" className={inputCls} />
+              </Field>
+              <Field label="Fin du raid">
+                <input type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} className={inputCls} />
+              </Field>
+            </div>
+            <div className="rounded-xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center min-h-[140px]">
+              {form.bossImageUrl.trim()
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={form.bossImageUrl.trim()} alt="" className="w-full h-full object-cover" />
+                : <span className="text-white/20 text-xs">Aperçu du boss</span>}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}>Paliers</p>
-            {tiers.map((t, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input type="number" min={1} value={t.threshold} onChange={e => setTier(i, { threshold: e.target.value })} className={inputCls} placeholder="Seuil" title="Seuil de la jauge" />
-                <input type="number" min={1} value={t.boosters} onChange={e => setTier(i, { boosters: e.target.value })} className={`${inputCls} !w-24`} placeholder="Nb" title="Boosters offerts" />
-                <select value={t.boosterType} onChange={e => setTier(i, { boosterType: e.target.value })} className={selectCls} title="Famille du booster">
-                  <option value="void">Void (toutes familles)</option>
-                  {families.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+          {/* Carte promo */}
+          <div className="grid sm:grid-cols-[1fr_80px] gap-4 items-start">
+            <div className="space-y-2">
+              <Field label="Carte promo">
+                <select value={form.promoCardId} onChange={e => setForm(f => ({ ...f, promoCardId: e.target.value }))} className={selectCls}>
+                  <option value="">Aucune</option>
+                  {cards.map(c => (
+                    <option key={c.id} value={c.id}>{c.exclusive ? '★ ' : ''}{c.name} ({c.rarity}){c.hidden ? ' · masquée' : ''}</option>
+                  ))}
                 </select>
-                <button onClick={() => setTiers(ts => ts.filter((_, j) => j !== i))} disabled={tiers.length <= 1} className={dangerIconBtnCls} title="Supprimer le palier">
+              </Field>
+              <p className="text-[11px] text-white/40">
+                Créer la carte dans l&apos;onglet Cartes en cochant <strong className="text-white/60">Masquée</strong> et <strong className="text-white/60">Exclusive</strong> (★).
+                Elle sera dévoilée progressivement pendant le raid, puis donnée et rendue visible si le boss est vaincu.
+              </p>
+              {promo && (!promo.exclusive || !promo.hidden) && (
+                <p className="text-[11px] text-yellow-300">
+                  ⚠ Cette carte n&apos;est pas {[!promo.exclusive && 'exclusive', !promo.hidden && 'masquée'].filter(Boolean).join(' ni ')} :
+                  {!promo.exclusive && ' elle peut sortir des boosters'}{!promo.exclusive && !promo.hidden && ' et'}{!promo.hidden && ' elle est déjà visible par les joueurs'}.
+                </p>
+              )}
+            </div>
+            <div className="rounded-lg overflow-hidden bg-black/40 border border-white/10" style={{ aspectRatio: '0.714' }}>
+              {promo?.image_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={promo.image_url} alt="" className="w-full h-full object-cover" />
+                : null}
+            </div>
+          </div>
+
+          {/* Dégâts */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}>Dégâts infligés</p>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Par booster ouvert">
+                <input type="number" min={0} value={form.damage.booster} onChange={e => setForm(f => ({ ...f, damage: { ...f.damage, booster: e.target.value } }))} className={inputCls} />
+              </Field>
+              <Field label="Par mission réclamée">
+                <input type="number" min={0} value={form.damage.mission} onChange={e => setForm(f => ({ ...f, damage: { ...f.damage, mission: e.target.value } }))} className={inputCls} />
+              </Field>
+              <Field label="Bonus 3 missions/jour">
+                <input type="number" min={0} value={form.damage.allMissions} onChange={e => setForm(f => ({ ...f, damage: { ...f.damage, allMissions: e.target.value } }))} className={inputCls} />
+              </Field>
+            </div>
+          </div>
+
+          {/* Mana par classement */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}>Mana selon le classement (si vaincu)</p>
+            {form.rankRewards.map((r, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-white/50">
+                <span className="shrink-0">Jusqu&apos;au rang</span>
+                <input type="number" min={1} value={r.upToRank} onChange={e => setRank(i, { upToRank: e.target.value })}
+                  placeholder="tous" className={`${inputCls} !w-24`} title="Vide = tous les autres participants" />
+                <input type="number" min={0} value={r.mana} onChange={e => setRank(i, { mana: e.target.value })} className={`${inputCls} !w-28`} />
+                <span className="shrink-0">mana</span>
+                <button onClick={() => setForm(f => ({ ...f, rankRewards: f.rankRewards.filter((_, j) => j !== i) }))} disabled={form.rankRewards.length <= 1} className={dangerIconBtnCls}>
                   <Trash2 size={12} />
                 </button>
               </div>
             ))}
-            <button onClick={() => setTiers(ts => [...ts, { threshold: form.goal, boosters: '1', boosterType: 'void' }])} className={iconBtnCls}>
+            <button onClick={() => setForm(f => ({ ...f, rankRewards: [...f.rankRewards, { upToRank: '', mana: '0' }] }))} className={iconBtnCls}>
               <Plus size={12} className="inline mr-1" />Ajouter un palier
+            </button>
+            <p className="text-[11px] text-white/30">Rang vide = tous les autres participants (au moins 1 dégât).</p>
+          </div>
+
+          {/* Multiplicateurs de dépassement */}
+          <div className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Cinzel, serif' }}>Multiplicateurs de dépassement des PV</p>
+            {form.overkill.map((o, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-white/50">
+                <span className="shrink-0">À</span>
+                <input type="number" min={101} value={o.ratio} onChange={e => setOverkill(i, { ratio: e.target.value })} className={`${inputCls} !w-24`} />
+                <span className="shrink-0">% des PV → mana ×</span>
+                <input type="number" min={1} step={0.1} value={o.multiplier} onChange={e => setOverkill(i, { multiplier: e.target.value })} className={`${inputCls} !w-24`} />
+                <button onClick={() => setForm(f => ({ ...f, overkill: f.overkill.filter((_, j) => j !== i) }))} className={dangerIconBtnCls}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setForm(f => ({ ...f, overkill: [...f.overkill, { ratio: '400', multiplier: '4' }] }))} className={iconBtnCls}>
+              <Plus size={12} className="inline mr-1" />Ajouter un multiplicateur
             </button>
           </div>
 
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowForm(false)} className={iconBtnCls}>Annuler</button>
-            <button onClick={create} disabled={saving} className={primaryBtnCls}>{saving ? 'Lancement…' : 'Lancer le raid'}</button>
+            <button onClick={closeForm} className={iconBtnCls}>Annuler</button>
+            <button onClick={save} disabled={saving} className={primaryBtnCls}>
+              {saving ? 'Enregistrement…' : editingId ? 'Enregistrer les modifications' : 'Lancer le raid'}
+            </button>
           </div>
         </div>
       )}
@@ -2604,53 +2747,55 @@ function RaidsTab({ onMsg }: { onMsg: (msg: string, ok?: boolean) => void }) {
       <div className="space-y-3">
         {raids.length === 0 && <p className="text-sm text-white/30">Aucun raid pour l&apos;instant.</p>}
         {raids.map(r => {
-          const running = isRunning(r)
-          const pct = Math.min(100, (r.progress / r.goal) * 100)
+          const hpLeftPct = Math.max(0, 1 - r.progress / r.goal) * 100
+          const promoCard = cards.find(c => c.id === r.promoCardId)
           return (
-            <div key={r.id} className="p-4 rounded-2xl space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${running ? 'rgba(249,115,22,0.35)' : 'rgba(255,255,255,0.06)'}` }}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+            <div key={r.id} className="p-4 rounded-2xl space-y-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${r.phase === 'running' ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.06)'}` }}>
+              <div className="flex items-start gap-3">
+                {r.bossImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.bossImageUrl} alt="" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-white font-bold text-sm truncate">{r.title}</p>
-                    {r.phase === 'running'
-                      ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/20 text-orange-300">En cours</span>
-                      : r.phase === 'claim'
-                        ? <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-yellow-500/20 text-yellow-300">Réussi · réclamation</span>
-                        : <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 text-white/30">{r.completedAt ? 'Réussi' : 'Terminé'}</span>}
+                    {phaseBadge(r)}
                   </div>
                   <p className="text-xs text-white/40 mt-0.5">
-                    {objectiveLabel(r.objectiveType)} · min. {r.minContribution} pour les récompenses
-                    {r.phase === 'claim' && r.claimUntil
-                      ? ` · réclamation jusqu'au ${new Date(r.claimUntil).toLocaleString('fr-FR')}`
-                      : r.endsAt && ` · ${running ? 'fin' : 'terminé'} le ${new Date(r.endsAt).toLocaleString('fr-FR')}`}
+                    {r.endsAt && `${r.phase === 'running' ? 'Fin le' : 'Terminé le'} ${new Date(r.endsAt).toLocaleString('fr-FR')}`}
+                    {promoCard && ` · carte promo : ${promoCard.name}`}
                   </p>
                 </div>
-                {running && (
+                {r.phase === 'running' && (
                   <div className="flex items-center gap-2 shrink-0">
-                    {r.tiers.some(t => r.progress >= t.threshold) && (
-                      <button onClick={() => grant(r)} disabled={granting === r.id} className={iconBtnCls}
-                        title="Donne les boosters des paliers atteints à tous les joueurs éligibles qui ne les ont pas réclamés">
-                        {granting === r.id ? '…' : '🎁 Accorder les récompenses'}
-                      </button>
-                    )}
-                    <button onClick={() => end(r.id)} className={dangerIconBtnCls}>Terminer</button>
+                    <button onClick={() => openEdit(r)} className={iconBtnCls}>
+                      <Pencil size={12} className="inline mr-1" />Modifier
+                    </button>
+                    <button onClick={() => end(r)} disabled={ending === r.id} className={dangerIconBtnCls}>
+                      {ending === r.id ? '…' : 'Terminer maintenant'}
+                    </button>
                   </div>
                 )}
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-white/50">{Math.min(r.progress, r.goal).toLocaleString('fr-FR')} / {r.goal.toLocaleString('fr-FR')}{r.progress >= r.goal && ' · objectif atteint'}</span>
-                  <span className="text-white/50">{Math.floor(pct)}%</span>
+                  <span className="text-white/50 tabular-nums">{r.progress.toLocaleString('fr-FR')} / {r.goal.toLocaleString('fr-FR')} dégâts</span>
+                  <span className={r.killed ? 'text-yellow-300' : 'text-white/50'}>
+                    {r.killed ? `${Math.round(r.progress / r.goal * 100)} % · mana ×${r.multiplier}` : `${Math.ceil(hpLeftPct)} % PV restants`}
+                  </span>
                 </div>
                 <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#f97316,#facc15)' }} />
+                  <div className="h-full rounded-full" style={r.killed
+                    ? { width: '100%', background: 'linear-gradient(90deg,#facc15,#f97316)' }
+                    : { width: `${hpLeftPct}%`, background: 'linear-gradient(90deg,#dc2626,#ef4444)' }} />
                 </div>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/40">
                 <span>{r.participants} participant{r.participants > 1 ? 's' : ''}</span>
-                <span>{r.eligible} éligible{r.eligible > 1 ? 's' : ''}</span>
-                <span>{r.claims} palier{r.claims > 1 ? 's' : ''} réclamé{r.claims > 1 ? 's' : ''}</span>
-                <span>Paliers : {r.tiers.map(t => `${t.threshold.toLocaleString('fr-FR')} → ${t.boosters} ${t.boosterType}`).join(' · ')}</span>
+                <span>Carte promo ({r.requiredDays} jours de mission requis) : {r.eligible} éligible{r.eligible > 1 ? 's' : ''}{r.phase === 'running' && ` · ${r.stillPossible} encore dans la course`}</span>
+                {r.finalizedAt && <span>{r.promoGiven} carte{r.promoGiven > 1 ? 's' : ''} promo données</span>}
+                {r.finalizedAt && <span>{r.manaGiven.toLocaleString('fr-FR')} mana distribués</span>}
               </div>
             </div>
           )

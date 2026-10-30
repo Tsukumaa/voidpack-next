@@ -9,6 +9,7 @@ interface CardHoverProps {
 }
 
 const RARITY_GLOW: Record<string, string> = {
+  promo:     'rgba(255,215,106,0.85)',
   void:      'rgba(168,85,247,0.8)',
   legendary: 'rgba(255,154,61,0.8)',
   epic:      'rgba(184,109,255,0.7)',
@@ -17,6 +18,7 @@ const RARITY_GLOW: Record<string, string> = {
 }
 
 const RARITY_SHIMMER: Record<string, string> = {
+  promo:     'linear-gradient(105deg, transparent 40%, rgba(255,240,180,0.35) 50%, transparent 60%)',
   void:      'linear-gradient(105deg, transparent 40%, rgba(168,85,247,0.25) 50%, transparent 60%)',
   legendary: 'linear-gradient(105deg, transparent 40%, rgba(255,215,0,0.30) 50%, transparent 60%)',
   epic:      'linear-gradient(105deg, transparent 40%, rgba(192,132,252,0.25) 50%, transparent 60%)',
@@ -111,6 +113,9 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
 
   const isVoid      = rarity === 'void'
   const isLegendary = rarity === 'legendary'
+  const isPromo     = rarity === 'promo'
+  // Effet holographique arc-en-ciel qui suit le curseur : Void et Promo
+  const isHolo      = isVoid || isPromo
 
   // ── Void : boucle continue — float + glow respirant + application du tilt ──
   useEffect(() => {
@@ -217,8 +222,8 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       const rect = card.getBoundingClientRect()
       const x = (e.clientX - rect.left) / rect.width   // 0..1
       const y = (e.clientY - rect.top)  / rect.height  // 0..1
-      const rx = (y - 0.5) * (rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
-      const ry = (x - 0.5) * -(rarity === 'void' || rarity === 'legendary' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
+      const rx = (y - 0.5) * (rarity === 'void' || rarity === 'legendary' || rarity === 'promo' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
+      const ry = (x - 0.5) * -(rarity === 'void' || rarity === 'legendary' || rarity === 'promo' ? 22 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8)
       tiltRef.current = { rx, ry, scale: 1.04 }
       if (!isVoid) {
         card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.04)`
@@ -234,6 +239,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
       if (shimRef.current && RARITY_SHIMMER[rarity] !== 'none') {
         const shimX = x * 100
         const color = rarity === 'legendary' ? 'rgba(255,215,0,0.35)'
+          : rarity === 'promo' ? 'rgba(255,236,170,0.40)'
           : rarity === 'void' ? 'rgba(192,132,252,0.30)'
           : rarity === 'epic' ? 'rgba(236,72,153,0.28)'
           : 'rgba(147,210,255,0.25)'
@@ -241,8 +247,8 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         shimRef.current.style.opacity = '1'
       }
 
-      // Holo foil — void uniquement, dégradé arc-en-ciel qui suit le curseur
-      if (isVoid && holoRef.current) {
+      // Holo foil — void et promo, dégradé arc-en-ciel qui suit le curseur
+      if (isHolo && holoRef.current) {
         const hx = x * 100
         const hy = y * 100
         holoRef.current.style.background = `linear-gradient(${115 + (x-0.5)*60}deg,
@@ -257,7 +263,7 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
         holoRef.current.style.backgroundPosition = `${hx}% ${hy}%`
       }
     })
-  }, [rarity, isVoid])
+  }, [rarity, isVoid, isHolo])
 
   const onLeave = useCallback(() => {
     cancelAnimationFrame(rafRef.current)
@@ -313,8 +319,8 @@ export function CardHover({ rarity, children, className = '', style = {} }: Card
           style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3, borderRadius: 12 }} />
       )}
 
-      {/* Holo foil — void uniquement, effet holographique pleine carte */}
-      {isVoid && (
+      {/* Holo foil — void et promo, effet holographique pleine carte */}
+      {isHolo && (
         <div ref={holoRef} className="absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-150"
           style={{ opacity: 0, mixBlendMode: 'screen', zIndex: 3, borderRadius: 12 }} />
       )}

@@ -9,7 +9,9 @@ import { getHiddenCardIds } from '@/lib/cache/cards-cache'
 const getPublicCards = unstable_cache(
   async () => {
     const activeFamilies = (await db.select({ key: families.key }).from(families).where(eq(families.active, true))).map(f => f.key)
-    return (await db.select().from(customCards)).filter(c => c.family === 'global' || activeFamilies.includes(c.family))
+    // Les cartes exclusives (promo de raid) restent visibles quelle que soit leur famille
+    // (elles peuvent n'en avoir aucune) : elles ne sortent jamais des boosters de toute façon
+    return (await db.select().from(customCards)).filter(c => c.exclusive || c.family === 'global' || activeFamilies.includes(c.family))
   },
   ['public-cards'],
   { revalidate: 300, tags: ['public-cards'] },

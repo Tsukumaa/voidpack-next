@@ -7,14 +7,15 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
+import { PromoCardsShowcase, isPromoCard } from '@/components/game/PromoCardsShowcase'
 import { RoleBadge } from '@/components/game/RoleBadge'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { cn } from '@/lib/utils'
 import { useCards } from '@/hooks/useCards'
 
-const RARITY_ORDER = ['void','legendary','epic','rare','uncommon','common']
+const RARITY_ORDER = ['promo', 'void','legendary','epic','rare','uncommon','common']
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
 
@@ -65,6 +66,7 @@ export default function PlayerProfilePage() {
   const [isSelf, setIsSelf]       = useState(false)
   const [friendship, setFriendship] = useState<Friendship>({ status: 'none', friendshipId: null })
   const [cards, setCards]         = useState<GroupedCard[]>([])
+  const [promoCards, setPromoCards] = useState<GroupedCard[]>([]) // cartes promo possédées (encart dédié)
   const [loading, setLoading]     = useState(true)
   const [notFound, setNotFound]   = useState(false)
   const [selected, setSelected]   = useState<GroupedCard | null>(null)
@@ -91,7 +93,7 @@ export default function PlayerProfilePage() {
     setIsSelf(player.isSelf)
     setFriendship(player.friendship ?? { status: 'none', friendshipId: null })
 
-    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null; exclusive: boolean }> = {}
     for (const d of cardDefs ?? []) {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = {
@@ -103,10 +105,11 @@ export default function PlayerProfilePage() {
         def:  meta?.combat?.hp   ?? null,
         artist: d.artist ?? null,
         artistUrl: d.artistUrl ?? d.artist_url ?? null,
+        exclusive: !!d.exclusive,
       }
     }
 
-    const ownedList: GroupedCard[] = (player.collection ?? []).filter((c: { cardId?: string; card_id?: string }) => defMap[c.cardId ?? c.card_id ?? '']).map((c: { cardId?: string; card_id?: string; rarity: string; family: string; count?: number }) => {
+    const allOwned: GroupedCard[] = (player.collection ?? []).filter((c: { cardId?: string; card_id?: string }) => defMap[c.cardId ?? c.card_id ?? '']).map((c: { cardId?: string; card_id?: string; rarity: string; family: string; count?: number }) => {
       const cardKey = c.cardId ?? c.card_id ?? ''
       const def = defMap[cardKey]
       return {
@@ -116,10 +119,15 @@ export default function PlayerProfilePage() {
         owned: true, artist: def?.artist ?? null, artistUrl: def?.artistUrl ?? null,
       }
     })
+    // Cartes promo : encart dédié du profil, hors album et hors stats de collection
+    const isPromo = (c: GroupedCard) => isPromoCard({ exclusive: defMap[c.card_id]?.exclusive, rarity: c.rarity })
+    const ownedList = allOwned.filter(c => !isPromo(c))
+    setPromoCards(allOwned.filter(isPromo))
 
-    const ownedIds = new Set(ownedList.map(c => c.card_id))
+    const ownedIds = new Set(allOwned.map(c => c.card_id))
     const lockedList: GroupedCard[] = (cardDefs ?? [])
-      .filter((d: { id: string }) => !ownedIds.has(d.id))
+      // Cartes exclusives (promo de raid) : affichées seulement si le joueur les possède
+      .filter((d: { id: string; exclusive?: boolean }) => !ownedIds.has(d.id) && !d.exclusive)
       .map((d: { id: string; name?: string; rarity?: string; family?: string; familyKey?: string }) => {
         const def = defMap[d.id]
         return {
@@ -334,12 +342,21 @@ export default function PlayerProfilePage() {
             </div>
           </div>
 
+          {/* Cartes promo (hors album) */}
+          <div className="mb-6">
+            <PromoCardsShowcase
+              isSelf={isSelf}
+              cards={promoCards.map(c => ({ id: c.card_id, name: c.name, rarity: c.rarity, image_url: c.image_url }))}
+              onCardClick={pc => { const match = promoCards.find(c => c.card_id === pc.id); if (match) setSelected(match) }}
+            />
+          </div>
+
           {/* Vitrine (favoris) */}
           <FavoriteShowcase
             className="mb-6"
             favoriteIds={(profile as unknown as { favoriteCards?: string[] }).favoriteCards ?? []}
             onCardClick={def => {
-              const match = cards.find(c => c.card_id === def.id)
+              const match = cards.find(c => c.card_id === def.id) ?? promoCards.find(c => c.card_id === def.id)
               setSelected(match ?? {
                 card_id: def.id, rarity: def.rarity, family: '', count: 0,
                 name: def.name, image_url: def.image_url, description: null,

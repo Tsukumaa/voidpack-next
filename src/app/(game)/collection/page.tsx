@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronDown, Lock, Gem, Sword, Shield, Link as LinkIcon, Flame, X, ShoppingBag, Search, Trash2, CheckSquare, Square, Minus, Plus } from 'lucide-react'
 import { CardMedia } from '@/components/game/CardMedia'
+import { isPromoCard } from '@/components/game/PromoCardsShowcase'
 import { useFeatures } from '@/hooks/useFeatures'
 import { useGameStore } from '@/store/game'
 import { useCards } from '@/hooks/useCards'
@@ -11,17 +12,17 @@ import { CardModal } from '@/components/game/CardModal'
 import { CardHover } from '@/components/game/CardHover'
 import { CardFrame } from '@/components/game/CardFrame'
 import { MANA_PER_RARITY } from '@/lib/game/mana-constants'
-import { notifyRaidActivity } from '@/lib/raid-events'
 
-const RARITY_ORDER = ['void','legendary','epic','rare','common']
+const RARITY_ORDER = ['promo', 'void','legendary','epic','rare','common']
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_RATES: Record<string, number> = {
   common: 60, rare: 24, epic: 13, legendary: 2.5, void: 0.5,
 }
 const RARITY_BG: Record<string, string> = {
+  promo:     'linear-gradient(135deg, #2a2208, #120d02)',
   void:      'linear-gradient(135deg, #1a0a3a, #0d051f)',
   legendary: 'linear-gradient(135deg, #2a1500, #110800)',
   epic:      'linear-gradient(135deg, #1a0a2e, #0a0518)',
@@ -44,6 +45,7 @@ interface GroupedCard {
   owned: boolean
   artist: string | null
   artistUrl: string | null
+  exclusive: boolean // carte promo (raid) : non recyclable
 }
 
 const BOOSTER_COST = 150
@@ -105,33 +107,38 @@ export default function CollectionPage() {
     ])
     if (storeProfile?.mana != null) setMana(storeProfile.mana)
 
-    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null }> = {}
+    const defMap: Record<string, { name: string; image_url: string | null; description: string | null; cost: number | null; atk: number | null; def: number | null; artist: string | null; artistUrl: string | null; exclusive: boolean }> = {}
     for (const d of cardDefs ?? []) {
       const meta = typeof d.metadata === 'string' ? (() => { try { return JSON.parse(d.metadata || '{}') } catch { return {} } })() : (d.metadata ?? {})
       defMap[d.id] = {
         name: d.name, image_url: d.imageUrl ?? d.image_url,
         description: d.description ?? null,
         cost: meta?.combat?.cost ?? null, atk: meta?.combat?.atk ?? null, def: meta?.combat?.hp ?? null,
-        artist: d.artist ?? null, artistUrl: d.artistUrl ?? d.artist_url ?? null,
+        artist: d.artist ?? null, artistUrl: d.artistUrl ?? d.artist_url ?? null, exclusive: !!d.exclusive,
       }
     }
 
-    const ownedList: GroupedCard[] = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => defMap[c.card_id ?? c.cardId ?? '']).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
+    // Cartes promo exclues : elles ont leur encart dans le profil, pas dans la collection
+    const ownedList: GroupedCard[] = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string; rarity?: string }) => {
+      const def = defMap[c.card_id ?? c.cardId ?? '']
+      return def && !isPromoCard({ exclusive: def.exclusive, rarity: c.rarity })
+    }).map((c: { card_id?: string; cardId?: string; rarity: string; family: string; count?: number; last_obtained_at?: string }) => {
       const cardKey = c.card_id ?? c.cardId ?? ''
       const def = defMap[cardKey]
       return { card_id: cardKey, rarity: c.rarity, family: c.family, count: c.count ?? 1,
         name: def?.name ?? cardKey, image_url: def?.image_url ?? null, description: def?.description ?? null,
         latest_at: c.last_obtained_at ?? '', cost: def?.cost ?? null, atk: def?.atk ?? null, def: def?.def ?? null,
-        owned: true, artist: def?.artist ?? null, artistUrl: def?.artistUrl ?? null }
+        owned: true, artist: def?.artist ?? null, artistUrl: def?.artistUrl ?? null, exclusive: !!def?.exclusive }
     })
     const ownedIds = new Set(ownedList.map(c => c.card_id))
-    const lockedList: GroupedCard[] = (cardDefs ?? []).filter((d: { id: string }) => !ownedIds.has(d.id))
+    // Cartes exclusives (promo de raid) : affichées seulement si on les possède
+    const lockedList: GroupedCard[] = (cardDefs ?? []).filter((d: { id: string; exclusive?: boolean }) => !ownedIds.has(d.id) && !d.exclusive)
       .map((d: { id: string; name?: string; rarity?: string; family?: string; familyKey?: string }) => {
         const def = defMap[d.id]
         return { card_id: d.id, rarity: d.rarity ?? 'common', family: d.family ?? d.familyKey ?? '',
           count: 0, name: def?.name ?? d.name ?? d.id, image_url: def?.image_url ?? null,
           description: def?.description ?? null, latest_at: '', cost: def?.cost ?? null,
-          atk: def?.atk ?? null, def: def?.def ?? null, owned: false, artist: def?.artist ?? null, artistUrl: def?.artistUrl ?? null }
+          atk: def?.atk ?? null, def: def?.def ?? null, owned: false, artist: def?.artist ?? null, artistUrl: def?.artistUrl ?? null, exclusive: !!def?.exclusive }
       })
 
     const sorted = [...ownedList, ...lockedList].sort((a, b) => {
@@ -145,8 +152,9 @@ export default function CollectionPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Cartes recyclables = owned + count > 1
-  const recyclableCards = cards.filter(c => c.owned && c.count > 1)
+  // Cartes recyclables = possédées en double, hors cartes promo (exclusives : jamais en double, non recyclables)
+  const canRecycle = (c: GroupedCard) => c.owned && c.count > 1 && !c.exclusive && c.rarity !== 'promo'
+  const recyclableCards = cards.filter(canRecycle)
 
   const totalRecycleMana = Object.entries(recycleSelected).reduce((sum, [cardId, qty]) => {
     const card = cards.find(c => c.card_id === cardId)
@@ -201,7 +209,6 @@ export default function CollectionPage() {
     const data = await res.json()
     setRecycling(false)
     if (!res.ok) { showToast(data.error ?? 'Erreur', false); return }
-    notifyRaidActivity('cards_recycled')
     setMana(data.manaTotal)
     const recycledMap: Record<string, number> = {}
     items.forEach(({ cardId, quantity }) => { recycledMap[cardId] = quantity })
@@ -442,7 +449,7 @@ export default function CollectionPage() {
               <div key={r}>
                 <div className="flex items-center gap-2 mb-3">
                   {recycleMode && (() => {
-                    const groupRecyclable = group.filter(c => c.owned && c.count > 1)
+                    const groupRecyclable = group.filter(canRecycle)
                     if (!groupRecyclable.length) return null
                     const allSel = groupRecyclable.every(c => recycleSelected[c.card_id])
                     return (
@@ -483,7 +490,7 @@ export default function CollectionPage() {
                           </div>
                         ) : (
                           <div key={card.card_id} className="flex flex-col">
-                            {recycleMode && card.count > 2 && recycleSelected[card.card_id] ? (
+                            {recycleMode && canRecycle(card) && card.count > 2 && recycleSelected[card.card_id] ? (
                               <div className="mb-1.5 flex items-center justify-between gap-1 py-0.5 px-1 rounded-lg text-[10px] font-bold"
                                 style={{ background: RARITY_COLOR[card.rarity] + '25', border: `1px solid ${RARITY_COLOR[card.rarity]}60`, color: RARITY_COLOR[card.rarity] }}>
                                 <button onClick={() => setRecycleQty(card, recycleSelected[card.card_id] - 1)}
@@ -499,7 +506,7 @@ export default function CollectionPage() {
                                   <Plus size={10} />
                                 </button>
                               </div>
-                            ) : recycleMode && card.count > 1 && (
+                            ) : recycleMode && canRecycle(card) && (
                               <button onClick={() => toggleCard(card)}
                                 className="mb-1.5 flex items-center justify-center gap-1 py-1 rounded-lg text-[10px] font-bold transition-all hover:opacity-90"
                                 style={recycleSelected[card.card_id]

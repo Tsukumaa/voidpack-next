@@ -5,7 +5,7 @@ import { CardMedia } from '@/components/game/CardMedia'
 import { Palette } from 'lucide-react'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899',
+  promo: '#ffd76a', void: '#7b2bff', legendary: '#f59e0b', epic: '#ec4899',
   rare: '#3b82f6', common: '#9ca3af',
 }
 

@@ -7,10 +7,10 @@ import { FeatureGate } from '@/components/FeatureGate'
 import { cn } from '@/lib/utils'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_LABEL: Record<string, string> = {
-  void: 'VOID', legendary: 'Légendaire', epic: 'Épique', rare: 'Rare', common: 'Commun',
+  promo: 'Promo', void: 'VOID', legendary: 'Légendaire', epic: 'Épique', rare: 'Rare', common: 'Commun',
 }
 
 interface Trade {

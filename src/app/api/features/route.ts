@@ -26,5 +26,5 @@ export async function GET() {
     if (FEATURE_KEYS.includes(row.key)) map[row.key] = row.value !== 'false'
     if (EVENT_KEYS.includes(row.key))   map[row.key] = row.value === 'true'
   }
-  return NextResponse.json(map, { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=600' } })
+  return NextResponse.json(map, { headers: { 'Cache-Control': 's-maxage=30, stale-while-revalidate=30' } })
 }

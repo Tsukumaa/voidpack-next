@@ -17,9 +17,9 @@ const MAX_COPIES: Record<string, number> = {
   void: 1, legendary: 1, epic: 2, rare: 3, common: 4,
 }
 
-const RARITY_ORDER = ['void', 'legendary', 'epic', 'rare', 'common']
+const RARITY_ORDER = ['promo', 'void', 'legendary', 'epic', 'rare', 'common']
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', common: '#9ca3af',
 }
 

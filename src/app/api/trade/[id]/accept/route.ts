@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 import { tradeOffers, playerCards, playerDailyMissions } from '@/lib/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
-import { contributeToRaid } from '@/lib/game/raids'
 import { hasHiddenCard } from '@/lib/cache/cards-cache'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +19,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   if (!trade) return NextResponse.json({ error: 'Trade introuvable.' }, { status: 404 })
   if (trade.status !== 'pending') return NextResponse.json({ error: 'Trade déjà traité.' }, { status: 400 })
+  if (trade.expiresAt && trade.expiresAt <= new Date().toISOString()) {
+    await db.update(tradeOffers).set({ status: 'expired', respondedAt: new Date().toISOString() }).where(eq(tradeOffers.id, id))
+    return NextResponse.json({ error: 'Ce trade a expiré.' }, { status: 410 })
+  }
   // Carte masquée par l'admin depuis la création de l'offre
   if (await hasHiddenCard(trade.offeredCardKey, trade.wantedCardKey))
     return NextResponse.json({ error: 'Cette carte n\'est plus disponible.' }, { status: 400 })
@@ -81,9 +84,6 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         .catch(() => {})
     }
   }
-
-  // Raid : 1 échange = +1 sur la jauge, +1 de participation pour chacun des deux joueurs
-  await contributeToRaid('trades_completed', [{ userId: uid, amount: 1 }, { userId: trade.senderId, amount: 1 }], 1)
 
   return NextResponse.json({ ok: true })
 }

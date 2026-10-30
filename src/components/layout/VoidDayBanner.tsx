@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
 import { useFeatures } from '@/hooks/useFeatures'
+import { useCompactOnScroll } from '@/hooks/useCompactOnScroll'
 import { cn } from '@/lib/utils'
 
 // Bandeau affiché sur tout le site pendant le Void Day (réglage admin `event_void_day`).
@@ -8,15 +8,8 @@ import { cn } from '@/lib/utils'
 export function VoidDayBanner() {
   const { features } = useFeatures()
   const active = features.event_void_day === true
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    if (!active) return
-    const onScroll = () => setScrolled(window.scrollY > 24)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [active])
+  // Compact au défilement, avec hystérésis (évite le clignotement en boucle)
+  const scrolled = useCompactOnScroll(active)
 
   if (!active) return null
 

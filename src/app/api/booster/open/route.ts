@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
 
   // Construire le pool (depuis le cache)
   const [activeFamilies, cachedCards, hidden] = await Promise.all([getCachedActiveFamilies(), getCachedAllCards(), getHiddenCardIds()])
-  // Cartes masquées par l'admin : jamais tirées (liste lue en direct, effet immédiat)
-  const allCards = cachedCards.filter(c => !hidden.has(c.id))
+  // Cartes masquées par l'admin (liste lue en direct, effet immédiat) et cartes exclusives
+  // (promo de raid…) : jamais tirées
+  const allCards = cachedCards.filter(c => !hidden.has(c.id) && !c.exclusive)
 
   const pool = booster_type === 'void'
     ? allCards.filter(c => activeFamilies.includes(c.family) || c.family === 'global')

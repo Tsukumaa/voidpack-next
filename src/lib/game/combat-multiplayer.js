@@ -3,8 +3,6 @@
  * Combat multijoueur via polling (remplace Supabase Realtime).
  */
 
-import { notifyRaidActivity } from '@/lib/raid-events';
-
 let _session  = null;
 let _myRole   = null;
 let _onUpdate = null;
@@ -160,7 +158,6 @@ export async function finishGame(winnerId) {
     body:    JSON.stringify({ sessionId: _session.id, winnerId }),
   });
   if (!res.ok) throw new Error(await res.text());
-  notifyRaidActivity('combats_won');
 }
 
 export function cleanupSession({ abandon = false } = {}) {

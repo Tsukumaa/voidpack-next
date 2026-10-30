@@ -342,3 +342,50 @@
   0%, 100% { opacity: .7; transform: scale(1); }
   50%       { opacity: 1;  transform: scale(1.12); }
 }
+
+/* ── Rareté Promo (cartes exclusives de raid) : effet unique ─────────────────
+   Bordure prismatique en rotation continue + reflet doré qui balaie la carte. */
+@keyframes promoSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes promoSheen {
+  0%   { background-position: 160% 0; }
+  60%  { background-position: -60% 0; }
+  100% { background-position: -60% 0; }
+}
+
+.promo-border-spin {
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg, #ffd76a, #ff6ec7, #7b5cff, #4ad8ff, #6dffb0, #ffe66d, #ffd76a);
+  animation: promoSpin 4s linear infinite;
+  pointer-events: none;
+}
+
+.promo-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.28) 45%, rgba(255,226,140,0.35) 50%, rgba(255,255,255,0.18) 55%, transparent 65%);
+  background-size: 250% 100%;
+  animation: promoSheen 3.6s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-border-spin, .promo-sheen { animation: none; }
+}
+
+/* Halo rouge pulsant directement autour de la silhouette du boss (sans cadre) :
+   drop-shadow suit la transparence de l'image (PNG détouré) */
+@keyframes bossGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(239,68,68,0.75)) drop-shadow(0 6px 8px rgba(0,0,0,0.7)); }
+  50%      { filter: drop-shadow(0 0 12px rgba(239,68,68,1)) drop-shadow(0 0 4px rgba(255,140,140,0.9)) drop-shadow(0 6px 8px rgba(0,0,0,0.7)); }
+}
+
+.boss-glow { animation: bossGlow 2.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-glow { animation: none; filter: drop-shadow(0 0 6px rgba(239,68,68,0.8)); }
+}

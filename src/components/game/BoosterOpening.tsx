@@ -37,10 +37,11 @@ interface Props {
 }
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', common: '#9ca3af',
 }
 const RARITY_BG: Record<string, string> = {
+  promo:     'radial-gradient(ellipse at 50% 0%, rgba(42,34,8,0.82) 0%, rgba(18,13,2,0.72) 60%, rgba(6,1,14,0.6) 100%)',
   void:      'radial-gradient(ellipse at 50% 0%, rgba(26,10,58,0.82) 0%, rgba(5,2,16,0.72) 60%, rgba(6,1,14,0.6) 100%)',
   legendary: 'radial-gradient(ellipse at 50% 0%, rgba(42,24,0,0.82) 0%, rgba(16,8,0,0.72) 60%, rgba(6,1,14,0.6) 100%)',
   epic:      'radial-gradient(ellipse at 50% 0%, rgba(26,10,46,0.82) 0%, rgba(10,5,24,0.72) 60%, rgba(6,1,14,0.6) 100%)',
@@ -130,7 +131,7 @@ function ResultsScreen({ cards, boosterType = 'void', newCardIds, onClose, onOpe
         if (!claimRes.ok) throw new Error('claim error')
         const claimData = await claimRes.json()
         packsOpenedTotal = claimData.packs_opened ?? 1
-        notifyRaidActivity('boosters_opened')
+        notifyRaidActivity()
       }
 
       // Track missions (batch en une seule requête)

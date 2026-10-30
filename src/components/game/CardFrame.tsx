@@ -37,6 +37,13 @@ const RARITY: Record<string, {
     orb1:'#1a0050', orb2:'#0a003a', orb3:'#2a0060',
     fullart: true,
   },
+  // Promo (cartes exclusives de raid) : bordure prismatique animée (voir globals.css)
+  promo: {
+    b1:'#ffd76a', b2:'#fff1b8', b3:'#c9921e',
+    glow:'#ffcf4d', bg1:'#0f0b04', bg2:'#0a0702',
+    orb1:'#2a2006', orb2:'#1a1240', orb3:'#2a0a24',
+    fullart: true,
+  },
 }
 
 interface CardFrameProps {
@@ -60,22 +67,25 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
   const r = RARITY[rarity] ?? RARITY.common
   const showStats = !hideStats && (cost != null || atk != null || def != null)
 
+  const isPromo = rarity === 'promo'
   const borderGrad = `linear-gradient(145deg, ${r.b1} 0%, ${r.b2} 25%, ${r.b3} 50%, ${r.b2} 75%, ${r.b1} 100%)`
 
   return (
     <div
       className={className}
       style={{
-        padding: '2.5px',
+        padding: isPromo ? '3px' : '2.5px',
         borderRadius: 12,
-        background: borderGrad,
-        boxShadow: glow ? `0 0 16px ${r.glow}44` : 'none',
+        background: isPromo ? '#000' : borderGrad,
+        boxShadow: glow ? (isPromo ? `0 0 18px ${r.glow}66, 0 0 32px #ff6ec733` : `0 0 16px ${r.glow}44`) : 'none',
         overflow: 'hidden',
         transform: 'translateZ(0)',
         isolation: 'isolate',
         ...style,
       }}
     >
+      {/* Promo : bordure prismatique en rotation (le contenu est posé par-dessus) */}
+      {isPromo && <div className="promo-border-spin" />}
       <div style={{
         position: 'relative',
         width: '100%',
@@ -102,6 +112,13 @@ export function CardFrame({ rarity, children, name, cost, atk, def, size = 'sm',
         {r.fullart && (
           <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse at 50% 30%, ${r.glow}1a 0%, transparent 65%)`, pointerEvents:'none' }} />
         )}
+
+        {/* Promo : reflet doré qui balaie la carte + voile irisé */}
+        {isPromo && <>
+          <div style={{ position:'absolute', inset:0, pointerEvents:'none', mixBlendMode:'overlay',
+            background:'linear-gradient(135deg, rgba(255,110,199,0.12), rgba(74,216,255,0.10), rgba(255,215,106,0.12))' }} />
+          <div className="promo-sheen" />
+        </>}
 
         {/* Void grid */}
         {rarity === 'void' && (

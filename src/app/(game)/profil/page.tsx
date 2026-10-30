@@ -5,12 +5,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useGameStore } from '@/store/game'
 import { useCards } from '@/hooks/useCards'
 import { FavoriteShowcase } from '@/components/game/FavoriteShowcase'
+import { PromoCardsShowcase, isPromoCard, type PromoCardItem } from '@/components/game/PromoCardsShowcase'
 import { AvatarRing } from '@/components/game/AvatarRing'
 import { RoleBadge } from '@/components/game/RoleBadge'
 import { StatePanel } from '@/components/game/StatePanel'
 import { ACHIEVEMENTS, getTodayMissions } from '@/lib/game/achievements'
 import { trackMissionProgress } from '@/lib/game/mission-tracker'
 import { useSocialStore } from '@/store/social'
+import { notifyRaidActivity } from '@/lib/raid-events'
 
 const ACHIEVEMENT_ICON: Record<string, React.ReactNode> = {
   // ── Succès boosters
@@ -62,7 +64,7 @@ const ACHIEVEMENT_ICON: Record<string, React.ReactNode> = {
 }
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', common: '#9ca3af',
 }
 
@@ -105,6 +107,7 @@ export default function ProfilPage() {
   const [activeTab, setActiveTab]       = useState<'overview'|'missions'|'achievements'>('overview')
   const [claimingMission, setClaimingMission] = useState<string | null>(null)
   const [ownedIds, setOwnedIds]         = useState<string[]>([])
+  const [promoCards, setPromoCards]     = useState<PromoCardItem[]>([])
   const [totalAvailable, setTotalAvailable] = useState(0)
   const notifiedRef     = useRef(false)
   const dataLoadedRef   = useRef(false)
@@ -158,9 +161,18 @@ export default function ProfilPage() {
       fetchCards(),
     ])
     // Stats et vitrine : seulement les cartes disponibles (pas les masquées / familles désactivées)
-    const available = new Set((Array.isArray(allCards) ? allCards : []).map((d: { id: string }) => d.id))
-    const cards = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => available.has(c.card_id ?? c.cardId ?? ''))
-    if (Array.isArray(allCards) && allCards.length > 0) setTotalAvailable(allCards.length)
+    type Def = { id: string; name: string; rarity: string; imageUrl?: string | null; image_url?: string | null; exclusive?: boolean | number }
+    const defs: Def[] = Array.isArray(allCards) ? allCards : []
+    const defMap = new Map(defs.map(d => [d.id, d]))
+    const owned = (rawCards ?? []).filter((c: { card_id?: string; cardId?: string }) => defMap.has(c.card_id ?? c.cardId ?? ''))
+    // Les cartes promo ne font pas partie de la collection : encart dédié, hors stats
+    const isPromoOwned = (c: { card_id?: string; cardId?: string }) => isPromoCard(defMap.get(c.card_id ?? c.cardId ?? ''))
+    const cards = owned.filter((c: { card_id?: string; cardId?: string }) => !isPromoOwned(c))
+    setPromoCards(owned.filter(isPromoOwned).map((c: { card_id?: string; cardId?: string }) => {
+      const d = defMap.get(c.card_id ?? c.cardId ?? '')!
+      return { id: d.id, name: d.name, rarity: d.rarity, image_url: d.imageUrl ?? d.image_url ?? null }
+    }))
+    if (defs.length > 0) setTotalAvailable(defs.filter(d => !isPromoCard(d)).length)
 
     if (cards?.length >= 0) {
       const byRarity: Record<string, number> = {}
@@ -173,7 +185,8 @@ export default function ProfilPage() {
       }
       setStats({ totalCards, uniqueCards: cards.length, byRarity })
     }
-    setOwnedIds((cards ?? []).map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId ?? '').filter(Boolean))
+    // Vitrine : cartes de collection et cartes promo
+    setOwnedIds(owned.map((c: { card_id?: string; cardId?: string }) => c.card_id ?? c.cardId ?? '').filter(Boolean))
 
     if (dailyData) setDaily({
       last_claim_at: dailyData.lastClaimAt ?? null,
@@ -265,6 +278,7 @@ export default function ProfilPage() {
       })
       if (res.ok) {
         const data = await res.json()
+        notifyRaidActivity() // une mission réclamée inflige des dégâts au boss du raid
 
         if (data?.xp_gained && profile) setProfile({ ...profile, xp: (profile.xp ?? 0) + data.xp_gained })
         const mission = todayMissions.find(m => m.id === missionId)
@@ -372,6 +386,8 @@ export default function ProfilPage() {
       {/* ── Overview ── */}
       {activeTab === 'overview' && (
         <div className="space-y-3">
+          <PromoCardsShowcase cards={promoCards} />
+
           <FavoriteShowcase
             favoriteIds={profile.favorite_cards ?? []}
             editable

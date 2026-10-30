@@ -6,7 +6,7 @@ import {
   gameChallenges, playerDailyMissions, playerDailyRewards,
   playerProfiles,
 } from '@/lib/db/schema'
-import { eq, and, isNull, inArray } from 'drizzle-orm'
+import { eq, and, isNull, inArray, or, gt } from 'drizzle-orm'
 import { getTodayMissions } from '@/lib/game/achievements'
 
 // Endpoint combiné : remplace 6 polls séparés par 1 seul appel
@@ -39,7 +39,9 @@ export async function GET() {
     // Trades en attente (reçus)
     db.select({ id: tradeOffers.id })
       .from(tradeOffers)
-      .where(and(eq(tradeOffers.receiverId, uid), eq(tradeOffers.status, 'pending'))),
+      // Trades expirés exclus (ils sont fermés à l'ouverture de l'onglet Trades)
+      .where(and(eq(tradeOffers.receiverId, uid), eq(tradeOffers.status, 'pending'),
+        or(isNull(tradeOffers.expiresAt), gt(tradeOffers.expiresAt, new Date().toISOString())))),
 
     // Défis de combat reçus en attente
     db.select({ id: gameChallenges.id, challengerId: gameChallenges.challengerId })

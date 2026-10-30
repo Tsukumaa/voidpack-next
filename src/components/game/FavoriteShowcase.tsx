@@ -8,10 +8,10 @@ import { Star, X, Check, Pencil } from 'lucide-react'
 import { useCards } from '@/hooks/useCards'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899',
   rare: '#4aa3ff', uncommon: '#22c55e', common: '#9ca3af',
 }
-const RARITY_ORDER = ['void', 'legendary', 'epic', 'rare', 'uncommon', 'common']
+const RARITY_ORDER = ['promo', 'void', 'legendary', 'epic', 'rare', 'uncommon', 'common']
 const MAX_FAV = 3
 
 type CardDef = { id: string; name: string; rarity: string; image_url: string | null }

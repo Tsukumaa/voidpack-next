@@ -6,7 +6,7 @@ import { Gem, Sword, Shield as ShieldIcon, BookOpen } from 'lucide-react'
 import { CombatRulesModal } from './CombatRulesModal'
 
 const RARITY_COLOR: Record<string, string> = {
-  void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
+  promo: '#ffd76a', void: '#a855f7', legendary: '#ff9a3d', epic: '#ec4899', rare: '#4aa3ff', common: '#9ca3af',
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────

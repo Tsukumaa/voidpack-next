@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { ShopModal } from '@/components/game/ShopModal'
 import { VoidDayBanner } from '@/components/layout/VoidDayBanner'
 import { RaidBanner } from '@/components/layout/RaidBanner'
+import { SettingsButton } from '@/components/layout/SettingsButton'
 
 function xpForLevel(lvl: number) {
   return Math.floor(200 * Math.pow(1.18, lvl - 1))
@@ -79,9 +80,9 @@ export function StatusBar() {
 
         {/* Profil */}
         {user ? (
-        <div className="relative min-w-0">
+        <Link href="/profil" aria-label="Mon profil" className="relative min-w-0 block group transition-transform hover:scale-[1.03] active:scale-95">
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl min-w-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl min-w-0 transition-colors group-hover:bg-[#140b24]">
 
             <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#4a9e6a] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
 
@@ -138,7 +139,7 @@ export function StatusBar() {
             }}
           />
 
-        </div>
+        </Link>
         ) : (
           <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0a0612] border border-white/[0.06] backdrop-blur-xl">
             <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#4a9e6a] to-[#7b2bff] flex items-center justify-center flex-shrink-0">
@@ -154,7 +155,8 @@ export function StatusBar() {
           {profile?.is_admin && (
             <Link
               href="/admin"
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+              aria-label="Admin"
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all hover:scale-105 hover:brightness-125 hover:shadow-[0_0_14px_rgba(168,85,247,.5)] active:scale-95"
               style={{
                 background:
                   'linear-gradient(135deg,#7b2bff,#a855f7)',
@@ -167,8 +169,7 @@ export function StatusBar() {
           {user && (
           <button
             onClick={() => setShowShop(true)}
-            className="flex items-center gap-1 px-3 py-2 rounded-full"
-            style={{ background: 'rgba(123,43,255,.12)', border: '1px solid rgba(185,124,255,.28)' }}
+            className="flex items-center gap-1 px-3 py-2 rounded-full transition-all hover:scale-105 hover:bg-[rgba(123,43,255,.25)] hover:border-[rgba(185,124,255,.5)] active:scale-95 bg-[rgba(123,43,255,.12)] border border-[rgba(185,124,255,.28)]"
           >
             <Palette size={13} style={{ color: '#b97cff' }} />
             <span className="hidden sm:inline text-xs font-bold uppercase" style={{ fontFamily: 'var(--font-cinzel)', color: '#b97cff', letterSpacing: '.06em' }}>
@@ -180,10 +181,10 @@ export function StatusBar() {
           <button
             onClick={handleAuth}
             className={cn(
-              'flex items-center gap-1 px-3 py-2 rounded-full text-xs font-bold',
+              'flex items-center gap-1 px-3 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95',
               user
-                ? 'bg-white/5 border border-white/10'
-                : 'bg-[#7b2bff]/20 border border-[#7b2bff]/40'
+                ? 'bg-white/5 border border-white/10 hover:bg-[#ff4757]/15 hover:border-[#ff4757]/40 hover:text-[#ff8a95]'
+                : 'bg-[#7b2bff]/20 border border-[#7b2bff]/40 hover:bg-[#7b2bff]/35 hover:border-[#7b2bff]/70'
             )}
           >
             {user ? <LogOut size={13} /> : <LinkIcon size={13} />}
@@ -194,6 +195,8 @@ export function StatusBar() {
               <span>Se connecter</span>
             )}
           </button>
+
+          <SettingsButton inline />
 
         </div>
 

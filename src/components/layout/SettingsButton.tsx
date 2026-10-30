@@ -3,7 +3,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Settings, Volume2, VolumeX, Music, Megaphone } from 'lucide-react'
 import { useSettingsStore } from '@/store/settings'
 
-export function SettingsButton() {
+// inline : bouton intégré au header (StatusBar), panneau déroulé en dessous.
+// Sinon : bouton flottant en bas à droite (pages sans header, ex. combat).
+export function SettingsButton({ inline = false }: { inline?: boolean }) {
   const [open, setOpen]    = useState(false)
   const panelRef           = useRef<HTMLDivElement>(null)
   const volume             = useSettingsStore(s => s.musicVolume)
@@ -22,11 +24,13 @@ export function SettingsButton() {
   }, [open])
 
   return (
-    <div ref={panelRef} className="fixed bottom-40 right-4 z-[139] flex flex-col items-end gap-2">
+    <div ref={panelRef} className={inline
+      ? 'relative shrink-0 flex flex-col-reverse items-end'
+      : 'fixed bottom-40 right-4 z-[139] flex flex-col items-end gap-2'}>
 
       {/* Panel */}
       {open && (
-        <div className="mb-1 w-56 rounded-2xl overflow-hidden"
+        <div className={inline ? 'absolute right-0 top-11 z-[60] w-56 rounded-2xl overflow-hidden' : 'mb-1 w-56 rounded-2xl overflow-hidden'}
           style={{ background: 'rgba(10,8,20,0.92)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
 
           <div className="px-3.5 py-3 border-b border-white/[0.06]">
@@ -90,14 +94,17 @@ export function SettingsButton() {
       {/* Bouton */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        aria-label="Paramètres"
+        className={inline
+          ? 'w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-105 hover:!text-white hover:!border-white/25 active:scale-95'
+          : 'w-11 h-11 rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95'}
         style={{
-          background: open ? 'rgba(123,43,255,0.25)' : 'rgba(10,8,20,0.75)',
+          background: open ? 'rgba(123,43,255,0.25)' : inline ? 'rgba(255,255,255,0.05)' : 'rgba(10,8,20,0.75)',
           border: `1px solid ${open ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}`,
           backdropFilter: 'blur(16px)',
           color: open ? '#a855f7' : 'rgba(255,255,255,0.5)',
         }}>
-        <Settings size={18} style={{ transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.3s ease' }} />
+        <Settings size={inline ? 15 : 18} style={{ transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.3s ease' }} />
       </button>
     </div>
   )
